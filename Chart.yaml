@@ -11,5 +11,6 @@ keywords:
   - statefulset
   - cronjob
   - daemonset
+icon: https://raw.githubusercontent.com/cotzo/universal-helm/main/images/logo.svg
 maintainers:
   - name: cotzo
