@@ -1,0 +1,28 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    ["@semantic-release/commit-analyzer", {
+      "preset": "angular",
+      "releaseRules": [
+        { "type": "feat", "release": "minor" },
+        { "type": "fix", "release": "patch" },
+        { "type": "perf", "release": "patch" },
+        { "type": "revert", "release": "patch" },
+        { "type": "refactor", "release": "patch" },
+        { "breaking": true, "release": "major" }
+      ]
+    }],
+    "@semantic-release/release-notes-generator",
+    ["@semantic-release/exec", {
+      "prepareCmd": "sed -i 's/^version:.*/version: ${nextRelease.version}/' Chart.yaml"
+    }],
+    ["@semantic-release/git", {
+      "assets": ["Chart.yaml"],
+      "message": "chore(release): ${nextRelease.version}\n\n${nextRelease.notes}"
+    }],
+    ["@semantic-release/github", {
+      "successComment": false,
+      "failTitle": false
+    }]
+  ]
+}

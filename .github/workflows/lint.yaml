@@ -1,0 +1,56 @@
+name: Lint & Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm lint (default values)
+        run: helm lint .
+
+      - name: Helm lint (all CI value files)
+        run: |
+          for f in ci/*.yaml; do
+            echo "--- Linting with $f ---"
+            helm lint . --values "$f"
+          done
+
+      - name: Helm template (all CI value files)
+        run: |
+          for f in ci/*.yaml; do
+            echo "--- Templating with $f ---"
+            helm template test . --values "$f" > /dev/null
+          done
+
+  kubeconform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin
+
+      - name: Validate rendered manifests
+        run: |
+          for f in ci/*.yaml; do
+            echo "--- Validating with $f ---"
+            helm template test . --values "$f" \
+              | kubeconform -strict -summary \
+                -skip ServiceMonitor,PodMonitor,VMServiceScrape,VMPodScrape,ExternalSecret \
+                -kubernetes-version 1.28.0
+          done

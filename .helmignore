@@ -9,5 +9,9 @@
 .idea/
 .vscode/
 ci/
+docs/
+images/
+.github/
+.releaserc.json
 README.md
 LICENSE

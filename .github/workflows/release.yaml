@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install semantic-release plugins
+        run: |
+          npm install -g \
+            semantic-release \
+            @semantic-release/commit-analyzer \
+            @semantic-release/release-notes-generator \
+            @semantic-release/github \
+            @semantic-release/exec \
+            @semantic-release/git
+
+      - name: Run semantic-release
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: Read new version
+        if: steps.release.outcome == 'success'
+        id: version
+        run: |
+          VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Released version: $VERSION"
+
+      # Publish Helm package to GitHub Releases
+      - name: Package Helm chart
+        if: steps.version.outputs.version != ''
+        run: |
+          helm package . --version ${{ steps.version.outputs.version }}
+
+      - name: Upload chart to GitHub Release
+        if: steps.version.outputs.version != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${{ steps.version.outputs.version }}" \
+            universal-helm-${{ steps.version.outputs.version }}.tgz \
+            --clobber
+
+      # Publish OCI chart to GitHub Container Registry
+      - name: Login to GHCR
+        if: steps.version.outputs.version != ''
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push OCI chart to GHCR
+        if: steps.version.outputs.version != ''
+        run: |
+          helm push universal-helm-${{ steps.version.outputs.version }}.tgz \
+            oci://ghcr.io/${{ github.repository_owner }}/charts
