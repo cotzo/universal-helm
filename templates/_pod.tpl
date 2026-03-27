@@ -43,9 +43,45 @@ spec:
   nodeSelector:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- with .Values.podSettings.affinity }}
+  {{- /* Build nodeAffinity expressions from nodeSettings */ -}}
+  {{- $nodeAffinityExpressions := list }}
+  {{- if .Values.nodeSettings.os }}
+  {{- $nodeAffinityExpressions = append $nodeAffinityExpressions (dict "key" "kubernetes.io/os" "operator" "In" "values" .Values.nodeSettings.os) }}
+  {{- end }}
+  {{- if .Values.nodeSettings.arch }}
+  {{- $nodeAffinityExpressions = append $nodeAffinityExpressions (dict "key" "kubernetes.io/arch" "operator" "In" "values" .Values.nodeSettings.arch) }}
+  {{- end }}
+  {{- if or .Values.podSettings.affinity $nodeAffinityExpressions }}
   affinity:
-    {{- toYaml . | nindent 4 }}
+    {{- with .Values.podSettings.affinity.podAffinity }}
+    podAffinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.podSettings.affinity.podAntiAffinity }}
+    podAntiAffinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- if or $nodeAffinityExpressions .Values.podSettings.affinity.nodeAffinity }}
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          {{- if and .Values.podSettings.affinity.nodeAffinity .Values.podSettings.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution }}
+          {{- range .Values.podSettings.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms }}
+          - matchExpressions:
+              {{- $allExpressions := concat (default (list) .matchExpressions) $nodeAffinityExpressions }}
+              {{- toYaml $allExpressions | nindent 14 }}
+          {{- end }}
+          {{- else if $nodeAffinityExpressions }}
+          - matchExpressions:
+              {{- toYaml $nodeAffinityExpressions | nindent 14 }}
+          {{- end }}
+      {{- with .Values.podSettings.affinity.nodeAffinity }}
+      {{- with .preferredDuringSchedulingIgnoredDuringExecution }}
+      preferredDuringSchedulingIgnoredDuringExecution:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
   {{- end }}
   {{- with .Values.podSettings.tolerations }}
   tolerations:

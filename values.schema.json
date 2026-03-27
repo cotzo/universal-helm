@@ -109,6 +109,14 @@
       "additionalProperties": { "$ref": "#/definitions/containerSpec" },
       "description": "Map of init container name to container spec (processed in alphabetical key order)"
     },
+    "nodeSettings": {
+      "type": "object",
+      "properties": {
+        "os": { "type": "array", "items": { "type": "string" }, "description": "Target OS(es) (kubernetes.io/os)" },
+        "arch": { "type": "array", "items": { "type": "string" }, "description": "Target architecture(s) (kubernetes.io/arch)" }
+      },
+      "additionalProperties": false
+    },
     "podSettings": {
       "type": "object",
       "properties": {

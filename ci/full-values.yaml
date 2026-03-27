@@ -1,12 +1,28 @@
+# =============================================================================
+# Full test values — exercises every feature of the chart
+# =============================================================================
+
 workloadType: Deployment
 
 nameOverride: "full-test"
 
+nodeSettings:
+  os:
+    - linux
+  arch:
+    - amd64
+    - arm64
+
 global:
   labels:
     team: platform
+    env: production
   annotations:
     managed-by: universal-helm
+
+# =============================================================================
+# Containers — main app, oauth2 proxy sidecar, log shipper sidecar
+# =============================================================================
 
 containers:
   app:
@@ -24,8 +40,12 @@ containers:
       metrics:
         port: 9091
     env:
+      # Literal values
       - name: APP_ENV
         value: "production"
+      - name: LOG_FORMAT
+        value: "json"
+      # From pod fields
       - name: POD_NAME
         valueFrom:
           fieldRef:
@@ -34,11 +54,44 @@ containers:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
+      - name: POD_IP
+        valueFrom:
+          fieldRef:
+            fieldPath: status.podIP
+      # From resource field
+      - name: CPU_LIMIT
+        valueFrom:
+          resourceFieldRef:
+            resource: limits.cpu
+      # From chart-managed secret key (auto-prefixed)
       - name: API_KEY
         valueFrom:
           secretKeyRef:
             name: app-credentials
             key: api-key
+      # From chart-managed configMap key (auto-prefixed)
+      - name: LOG_LEVEL
+        valueFrom:
+          configMapKeyRef:
+            name: app-config
+            key: log-level
+      # From external secret (NOT prefixed)
+      - name: DATABASE_URL
+        valueFrom:
+          secretKeyRef:
+            name: external-db-secret
+            key: url
+            external: true
+      # Bulk inject all keys from chart-managed configMap
+      - configMapRef:
+          name: env-config
+      # Bulk inject from chart-managed secret
+      - secretRef:
+          name: env-secrets
+      # Bulk inject from external configMap
+      - configMapRef:
+          name: external-shared-config
+          external: true
     resources:
       requests:
         cpu: 250m
@@ -60,6 +113,7 @@ containers:
         port: http
       initialDelaySeconds: 15
       periodSeconds: 20
+      failureThreshold: 3
     readinessProbe:
       httpGet:
         path: /ready
@@ -76,17 +130,32 @@ containers:
       preStop:
         exec:
           command: ["/bin/sh", "-c", "sleep 15"]
+    workingDir: /app
     mounts:
+      # Existing pod volume
       - path: /tmp
         volume: tmp
+      # Chart-managed configMap
       - path: /etc/config
         configMap: app-config
         readOnly: true
+      # Chart-managed secret
       - path: /etc/secrets
         secret: app-credentials
         readOnly: true
+      # Chart-managed secret with subPath (single file)
+      - path: /etc/ssl/certs/ca.crt
+        secret: tls-certs
+        subPath: ca.crt
+        readOnly: true
+      # Chart-managed persistence
       - path: /cache
         persistence: cache
+      # External configMap (not managed by chart)
+      - path: /etc/external
+        configMap: external-nginx-config
+        external: true
+        readOnly: true
 
   oauth2-proxy:
     image:
@@ -100,6 +169,7 @@ containers:
       - --http-address=0.0.0.0:4180
       - --provider=oidc
       - --email-domain=*
+      - --cookie-secure=true
     env:
       - name: OAUTH2_PROXY_CLIENT_ID
         valueFrom:
@@ -113,6 +183,12 @@ containers:
             name: oauth2-secret
             key: client-secret
             external: true
+      - name: OAUTH2_PROXY_COOKIE_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-secret
+            key: cookie-secret
+            external: true
     resources:
       requests:
         cpu: 50m
@@ -120,11 +196,15 @@ containers:
       limits:
         cpu: 100m
         memory: 128Mi
+    securityContext:
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
 
   log-shipper:
     image:
       repository: fluent/fluent-bit
       tag: "3.0"
+    args: ["--config", "/etc/fluent-bit/fluent-bit.conf"]
     resources:
       requests:
         cpu: 50m
@@ -132,35 +212,84 @@ containers:
       limits:
         cpu: 100m
         memory: 128Mi
+    mounts:
+      - path: /etc/fluent-bit
+        configMap: fluent-bit-config
+        readOnly: true
+
+# =============================================================================
+# Init containers — DB migration, wait-for-dependency
+# =============================================================================
 
 initContainers:
-  init-db:
+  01-wait-for-db:
     image:
       repository: busybox
       tag: "1.36"
-    command: ["sh", "-c", "echo 'Waiting for DB...' && sleep 5"]
+    command: ["sh", "-c"]
+    args: ["until nc -z db-service 5432; do echo waiting for db; sleep 2; done"]
+    env:
+      - name: DB_HOST
+        valueFrom:
+          secretKeyRef:
+            name: external-db-secret
+            key: host
+            external: true
+
+  02-migrate:
+    image:
+      repository: my-full-app
+      tag: "2.0.0"
+    command: ["/app/migrate", "--up"]
+    env:
+      - name: DATABASE_URL
+        valueFrom:
+          secretKeyRef:
+            name: external-db-secret
+            key: url
+            external: true
+    mounts:
+      - path: /etc/config
+        configMap: app-config
+        readOnly: true
+
+# =============================================================================
+# Pod settings
+# =============================================================================
 
 podSettings:
   imagePullSecrets:
     - name: registry-secret
+    - name: ghcr-secret
   securityContext:
     fsGroup: 1000
     runAsUser: 1000
+    runAsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "9091"
+    cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
   labels:
     app.kubernetes.io/component: api
+    sidecar.istio.io/inject: "true"
   volumes:
     - name: tmp
+      emptyDir:
+        sizeLimit: 100Mi
+    - name: shared-data
       emptyDir: {}
   nodeSelector:
-    kubernetes.io/os: linux
+    node.kubernetes.io/instance-type: m5.xlarge
   tolerations:
     - key: "dedicated"
       operator: "Equal"
       value: "app"
       effect: "NoSchedule"
+    - key: "node.kubernetes.io/not-ready"
+      operator: "Exists"
+      effect: "NoExecute"
+      tolerationSeconds: 300
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
@@ -173,6 +302,16 @@ podSettings:
                   values:
                     - full-test
             topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                  - us-east-1a
+                  - us-east-1b
+                  - us-east-1c
   topologySpreadConstraints:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
@@ -180,8 +319,23 @@ podSettings:
       labelSelector:
         matchLabels:
           app.kubernetes.io/name: full-test
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: full-test
   priorityClassName: high-priority
   terminationGracePeriodSeconds: 30
+  dnsPolicy: ClusterFirst
+  dnsConfig:
+    options:
+      - name: ndots
+        value: "2"
+
+# =============================================================================
+# Services — ClusterIP, NodePort, headless, LoadBalancer
+# =============================================================================
 
 services:
   http:
@@ -204,6 +358,27 @@ services:
         port: 9091
     annotations:
       prometheus.io/scrape: "true"
+      prometheus.io/port: "9091"
+  external:
+    type: NodePort
+    ports:
+      http:
+        port: 80
+        containerPort: http
+        nodePort: 30080
+    externalTrafficPolicy: Local
+  discovery:
+    headless: true
+    publishNotReadyAddresses: true
+    ports:
+      http:
+        port: 8080
+      grpc:
+        port: 9090
+
+# =============================================================================
+# Ingresses — public + internal with different ingress classes
+# =============================================================================
 
 ingresses:
   public:
@@ -211,8 +386,14 @@ ingresses:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
       nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
     hosts:
       - host: app.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+      - host: www.example.com
         paths:
           - path: /
             pathType: Prefix
@@ -220,19 +401,39 @@ ingresses:
       - secretName: app-tls
         hosts:
           - app.example.com
+          - www.example.com
   api:
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+      nginx.ingress.kubernetes.io/enable-cors: "true"
     hosts:
       - host: api.example.com
         paths:
           - path: /v1
             pathType: Prefix
+          - path: /v2
+            pathType: Prefix
     tls:
       - secretName: api-tls
         hosts:
           - api.example.com
+  internal:
+    className: nginx-internal
+    annotations:
+      nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12"
+    hosts:
+      - host: app.internal.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+          - path: /admin
+            pathType: Prefix
+
+# =============================================================================
+# ConfigMaps — app config, env vars, sidecar config
+# =============================================================================
 
 configMaps:
   app-config:
@@ -241,30 +442,121 @@ configMaps:
         server:
           port: 8080
           grpcPort: 9090
+          readTimeout: 30s
+          writeTimeout: 30s
         logging:
           level: info
           format: json
+        cache:
+          enabled: true
+          ttl: 300s
+      log-level: info
+  env-config:
+    data:
+      FEATURE_FLAG_NEW_UI: "true"
+      CACHE_TTL: "300"
+      MAX_CONNECTIONS: "100"
+  fluent-bit-config:
+    data:
+      fluent-bit.conf: |
+        [SERVICE]
+            Flush 5
+            Log_Level info
+        [INPUT]
+            Name tail
+            Path /var/log/app/*.log
+            Tag app.*
+        [OUTPUT]
+            Name forward
+            Match *
+            Host fluentd.logging.svc
+            Port 24224
+
+# =============================================================================
+# Secrets — app credentials, TLS certs, env vars, various types
+# =============================================================================
 
 secrets:
   app-credentials:
     stringData:
-      api-key: "my-api-key"
+      api-key: "my-api-key-value"
+      webhook-secret: "whsec_abc123"
+  tls-certs:
+    type: kubernetes.io/tls
+    data:
+      tls.crt: LS0tLS1CRUdJTi...
+      tls.key: LS0tLS1CRUdJTi...
+      ca.crt: LS0tLS1CRUdJTi...
+  env-secrets:
+    stringData:
+      SMTP_PASSWORD: "smtp-pass"
+      REDIS_PASSWORD: "redis-pass"
+      JWT_SECRET: "jwt-signing-key"
+  docker-registry:
+    type: kubernetes.io/dockerconfigjson
+    data:
+      .dockerconfigjson: eyJhdXRocyI6e319
+
+# =============================================================================
+# External Secrets — AWS Secrets Manager + Vault
+# =============================================================================
+
+externalSecrets:
+  aws-credentials:
+    refreshInterval: 1h
+    secretStoreRef:
+      name: aws-secrets-manager
+      kind: ClusterSecretStore
+    target:
+      creationPolicy: Owner
+      deletionPolicy: Retain
+    data:
+      - secretKey: access-key-id
+        remoteRef:
+          key: /prod/app/aws-credentials
+          property: access_key_id
+      - secretKey: secret-access-key
+        remoteRef:
+          key: /prod/app/aws-credentials
+          property: secret_access_key
+  vault-db-creds:
+    refreshInterval: 30m
+    secretStoreRef:
+      name: vault-backend
+      kind: SecretStore
+    target:
+      creationPolicy: Owner
+      template:
+        type: Opaque
+        data:
+          connection-string: "postgresql://{{ .username }}:{{ .password }}@db:5432/mydb"
+    dataFrom:
+      - extract:
+          key: database/creds/my-role
+
+# =============================================================================
+# Persistence — cache SSD, shared data
+# =============================================================================
 
 persistence:
   cache:
-    enabled: true
     storageClass: fast-ssd
-    size: 5Gi
+    size: 10Gi
     accessModes:
       - ReadWriteOnce
+    annotations:
+      volume.kubernetes.io/storage-provisioner: ebs.csi.aws.com
+  shared-storage:
+    storageClass: efs-sc
+    size: 50Gi
+    accessModes:
+      - ReadWriteMany
+  existing-data:
+    existingClaim: legacy-data-pvc
 
-deployment:
-  replicaCount: 2
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: "25%"
-      maxUnavailable: 0
+# =============================================================================
+# Autoscaling — CPU + memory + custom metrics
+# =============================================================================
 
 autoscaling:
   enabled: true
@@ -283,6 +575,13 @@ autoscaling:
         target:
           type: Utilization
           averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "1000"
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 300
@@ -290,15 +589,48 @@ autoscaling:
         - type: Percent
           value: 10
           periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 4
+          periodSeconds: 15
+      selectPolicy: Max
+
+# =============================================================================
+# PDB
+# =============================================================================
 
 pdb:
   enabled: true
   minAvailable: "50%"
 
+# =============================================================================
+# Deployment settings
+# =============================================================================
+
+deployment:
+  replicaCount: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: "25%"
+      maxUnavailable: 0
+  revisionHistoryLimit: 5
+
+# =============================================================================
+# Service Account + RBAC
+# =============================================================================
+
 serviceAccount:
   create: true
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/my-app-role
+  labels:
+    app.kubernetes.io/component: serviceaccount
 
 rbac:
   roles:
@@ -307,10 +639,41 @@ rbac:
         - apiGroups: [""]
           resources: ["configmaps"]
           verbs: ["get", "list", "watch"]
+    secret-reader:
+      rules:
+        - apiGroups: [""]
+          resources: ["secrets"]
+          verbs: ["get"]
+          resourceNames: ["app-specific-secret"]
+    pod-reader:
+      rules:
+        - apiGroups: [""]
+          resources: ["pods", "pods/log"]
+          verbs: ["get", "list", "watch"]
+  clusterRoles:
+    node-reader:
+      rules:
+        - apiGroups: [""]
+          resources: ["nodes"]
+          verbs: ["get", "list", "watch"]
   roleBindings:
     configmap-reader:
       roleRef:
         name: configmap-reader
+    secret-reader:
+      roleRef:
+        name: secret-reader
+    pod-reader:
+      roleRef:
+        name: pod-reader
+  clusterRoleBindings:
+    node-reader:
+      roleRef:
+        name: node-reader
+
+# =============================================================================
+# Monitors — all 4 CRD types
+# =============================================================================
 
 monitors:
   prom-service:
@@ -320,8 +683,13 @@ monitors:
     path: /metrics
     interval: 15s
     scrapeTimeout: 10s
+    honorLabels: false
     labels:
       release: prometheus
+    metricRelabelings:
+      - sourceLabels: [__name__]
+        regex: "go_.*"
+        action: drop
   prom-pods:
     kind: pod
     operator: prometheus
@@ -330,15 +698,54 @@ monitors:
     interval: 30s
     podTargetLabels:
       - app.kubernetes.io/name
+      - app.kubernetes.io/component
   vm-service:
     kind: service
     operator: victoriametrics
     port: metrics
     path: /metrics
     interval: 15s
+    vmScrapeParams:
+      stream_parse: true
+      disable_compression: true
   vm-pods:
     kind: pod
     operator: victoriametrics
     port: metrics
     path: /metrics
     interval: 30s
+    podTargetLabels:
+      - app.kubernetes.io/name
+
+# =============================================================================
+# Extra Resources — escape hatch
+# =============================================================================
+
+extraResources:
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: '{{ include "universal-helm.fullname" . }}-network-policy'
+    spec:
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: full-test
+      policyTypes:
+        - Ingress
+        - Egress
+      ingress:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  name: ingress-nginx
+          ports:
+            - protocol: TCP
+              port: 8080
+      egress:
+        - to:
+            - namespaceSelector: {}
+          ports:
+            - protocol: TCP
+              port: 5432
+            - protocol: TCP
+              port: 6379

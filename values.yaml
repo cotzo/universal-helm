@@ -14,6 +14,21 @@ global:
   annotations: {}
 
 # =============================================================================
+# Node Settings
+# =============================================================================
+
+# -- Node targeting settings. Always lists. Rendered as nodeAffinity matchExpressions.
+nodeSettings:
+  # -- Target OS(es) (kubernetes.io/os)
+  os: []
+  # - linux
+  # - windows
+  # -- Target architecture(s) (kubernetes.io/arch)
+  arch: []
+  # - amd64
+  # - arm64
+
+# =============================================================================
 # Containers
 # =============================================================================
 
