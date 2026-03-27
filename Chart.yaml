@@ -12,5 +12,15 @@ keywords:
   - cronjob
   - daemonset
 icon: https://raw.githubusercontent.com/cotzo/universal-helm/main/images/logo.svg
+home: https://github.com/cotzo/universal-helm
+sources:
+  - https://github.com/cotzo/universal-helm
 maintainers:
   - name: cotzo
+annotations:
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://github.com/cotzo/universal-helm/tree/main/docs
+    - name: Source
+      url: https://github.com/cotzo/universal-helm
