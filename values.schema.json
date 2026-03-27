@@ -106,7 +106,6 @@
     },
     "containers": {
       "type": "object",
-      "minProperties": 1,
       "additionalProperties": { "$ref": "#/definitions/containerSpec" },
       "description": "Map of container name to container spec"
     },
