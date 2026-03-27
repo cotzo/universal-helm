@@ -1,0 +1,32 @@
+{{- if ne .Values.workloadType "StatefulSet" }}
+{{- range $name, $config := .Values.persistence }}
+{{- if not $config.existingClaim }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+{{ include "universal-helm.metadata" (dict "name" (printf "%s-%s" (include "universal-helm.fullname" $) $name) "context" $ "extraAnnotations" $config.annotations "extraLabels" $config.labels) }}
+spec:
+  accessModes:
+    {{- range (default (list "ReadWriteOnce") $config.accessModes) }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ default "1Gi" $config.size }}
+  {{- if $config.storageClass }}
+  {{- if eq $config.storageClass "-" }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ $config.storageClass | quote }}
+  {{- end }}
+  {{- end }}
+  {{- with $config.volumeName }}
+  volumeName: {{ . | quote }}
+  {{- end }}
+  {{- with $config.selector }}
+  selector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

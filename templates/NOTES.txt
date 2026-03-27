@@ -1,0 +1,40 @@
+{{- $fullName := include "universal-helm.fullname" . -}}
+Deployed {{ $fullName }} as {{ .Values.workloadType }}.
+
+{{- if eq .Values.workloadType "CronJob" }}
+
+CronJob schedule: {{ .Values.cronJob.schedule }}
+
+View upcoming jobs:
+  kubectl get cronjobs -n {{ .Release.Namespace }} {{ $fullName }}
+
+{{- else if eq .Values.workloadType "Job" }}
+
+View job status:
+  kubectl get jobs -n {{ .Release.Namespace }} {{ $fullName }}
+
+{{- else }}
+
+{{- range $name, $svc := .Values.services }}
+{{- if $svc }}
+Service: {{ $fullName }}-{{ $name }} ({{ default "ClusterIP" $svc.type }})
+{{- range $svc.ports }}
+  - {{ default "unnamed" .name }}:{{ .port }}{{ if .targetPort }} -> {{ .targetPort }}{{ end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- range $name, $ing := .Values.ingresses }}
+{{- if $ing }}
+
+Ingress {{ $fullName }}-{{ $name }}:
+{{- range $ing.hosts }}
+  - {{ .host }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+Get pods:
+  kubectl get pods -n {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "universal-helm.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+{{- end }}

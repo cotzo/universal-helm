@@ -1,0 +1,344 @@
+workloadType: Deployment
+
+nameOverride: "full-test"
+
+global:
+  labels:
+    team: platform
+  annotations:
+    managed-by: universal-helm
+
+containers:
+  app:
+    image:
+      repository: my-full-app
+      tag: "2.0.0"
+      pullPolicy: Always
+    command: ["/app/server"]
+    args: ["--config", "/etc/config/config.yaml"]
+    ports:
+      http:
+        port: 8080
+      grpc:
+        port: 9090
+      metrics:
+        port: 9091
+    env:
+      - name: APP_ENV
+        value: "production"
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: app-credentials
+            key: api-key
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 512Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+      capabilities:
+        drop:
+          - ALL
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 20
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: http
+      failureThreshold: 30
+      periodSeconds: 10
+    lifecycle:
+      preStop:
+        exec:
+          command: ["/bin/sh", "-c", "sleep 15"]
+    mounts:
+      - path: /tmp
+        volume: tmp
+      - path: /etc/config
+        configMap: app-config
+        readOnly: true
+      - path: /etc/secrets
+        secret: app-credentials
+        readOnly: true
+      - path: /cache
+        persistence: cache
+
+  oauth2-proxy:
+    image:
+      repository: quay.io/oauth2-proxy/oauth2-proxy
+      tag: v7.6.0
+    ports:
+      oauth2-proxy:
+        port: 4180
+    args:
+      - --upstream=http://localhost:8080
+      - --http-address=0.0.0.0:4180
+      - --provider=oidc
+      - --email-domain=*
+    env:
+      - name: OAUTH2_PROXY_CLIENT_ID
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-secret
+            key: client-id
+            external: true
+      - name: OAUTH2_PROXY_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-secret
+            key: client-secret
+            external: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+  log-shipper:
+    image:
+      repository: fluent/fluent-bit
+      tag: "3.0"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+initContainers:
+  init-db:
+    image:
+      repository: busybox
+      tag: "1.36"
+    command: ["sh", "-c", "echo 'Waiting for DB...' && sleep 5"]
+
+podSettings:
+  imagePullSecrets:
+    - name: registry-secret
+  securityContext:
+    fsGroup: 1000
+    runAsUser: 1000
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9091"
+  labels:
+    app.kubernetes.io/component: api
+  volumes:
+    - name: tmp
+      emptyDir: {}
+  nodeSelector:
+    kubernetes.io/os: linux
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "app"
+      effect: "NoSchedule"
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - full-test
+            topologyKey: kubernetes.io/hostname
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: full-test
+  priorityClassName: high-priority
+  terminationGracePeriodSeconds: 30
+
+services:
+  http:
+    type: ClusterIP
+    ports:
+      http:
+        port: 80
+        containerPort: http
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+  grpc:
+    type: ClusterIP
+    ports:
+      grpc:
+        port: 9090
+  metrics:
+    type: ClusterIP
+    ports:
+      metrics:
+        port: 9091
+    annotations:
+      prometheus.io/scrape: "true"
+
+ingresses:
+  public:
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    hosts:
+      - host: app.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: app-tls
+        hosts:
+          - app.example.com
+  api:
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: api.example.com
+        paths:
+          - path: /v1
+            pathType: Prefix
+    tls:
+      - secretName: api-tls
+        hosts:
+          - api.example.com
+
+configMaps:
+  app-config:
+    data:
+      config.yaml: |
+        server:
+          port: 8080
+          grpcPort: 9090
+        logging:
+          level: info
+          format: json
+
+secrets:
+  app-credentials:
+    stringData:
+      api-key: "my-api-key"
+
+persistence:
+  cache:
+    enabled: true
+    storageClass: fast-ssd
+    size: 5Gi
+    accessModes:
+      - ReadWriteOnce
+
+deployment:
+  replicaCount: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: "25%"
+      maxUnavailable: 0
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+
+pdb:
+  enabled: true
+  minAvailable: "50%"
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/my-app-role
+
+rbac:
+  roles:
+    configmap-reader:
+      rules:
+        - apiGroups: [""]
+          resources: ["configmaps"]
+          verbs: ["get", "list", "watch"]
+  roleBindings:
+    configmap-reader:
+      roleRef:
+        name: configmap-reader
+
+monitors:
+  prom-service:
+    kind: service
+    operator: prometheus
+    port: metrics
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s
+    labels:
+      release: prometheus
+  prom-pods:
+    kind: pod
+    operator: prometheus
+    port: metrics
+    path: /metrics
+    interval: 30s
+    podTargetLabels:
+      - app.kubernetes.io/name
+  vm-service:
+    kind: service
+    operator: victoriametrics
+    port: metrics
+    path: /metrics
+    interval: 15s
+  vm-pods:
+    kind: pod
+    operator: victoriametrics
+    port: metrics
+    path: /metrics
+    interval: 30s

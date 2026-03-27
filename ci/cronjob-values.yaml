@@ -1,0 +1,39 @@
+workloadType: CronJob
+
+containers:
+  job:
+    image:
+      repository: my-batch-job
+      tag: "1.0.0"
+    command:
+      - /bin/sh
+      - -c
+    args:
+      - "echo 'Running batch job' && /app/run-job"
+    env:
+      - secretRef:
+          name: db-credentials
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+cronJob:
+  schedule: "0 2 * * *"
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+
+job:
+  backoffLimit: 3
+  activeDeadlineSeconds: 3600
+  ttlSecondsAfterFinished: 86400
+
+secrets:
+  db-credentials:
+    stringData:
+      DB_URL: "postgres://user:pass@db:5432/mydb"

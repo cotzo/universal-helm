@@ -1,0 +1,58 @@
+workloadType: StatefulSet
+
+containers:
+  postgres:
+    image:
+      repository: postgres
+      tag: "16"
+    ports:
+      postgres:
+        port: 5432
+    env:
+      - name: POSTGRES_DB
+        value: "mydb"
+      - name: POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: password
+            external: true
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+    mounts:
+      - path: /var/lib/postgresql/data
+        persistence: data
+
+services:
+  postgres:
+    type: ClusterIP
+    ports:
+      postgres:
+        port: 5432
+
+statefulSet:
+  replicaCount: 3
+  publishNotReadyAddresses: true
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+
+persistence:
+  data:
+    enabled: true
+    storageClass: standard
+    accessModes:
+      - ReadWriteOnce
+    size: 20Gi
+
+pdb:
+  enabled: true
+  maxUnavailable: 1

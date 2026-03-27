@@ -1,0 +1,44 @@
+{{- if eq .Values.workloadType "CronJob" }}
+apiVersion: batch/v1
+kind: CronJob
+{{ include "universal-helm.metadata" (dict "context" $) }}
+spec:
+  schedule: {{ .Values.cronJob.schedule | quote }}
+  {{- with .Values.cronJob.timeZone }}
+  timeZone: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.cronJob.concurrencyPolicy }}
+  concurrencyPolicy: {{ . }}
+  {{- end }}
+  {{- if not (kindIs "invalid" .Values.cronJob.suspend) }}
+  suspend: {{ .Values.cronJob.suspend }}
+  {{- end }}
+  {{- with .Values.cronJob.successfulJobsHistoryLimit }}
+  successfulJobsHistoryLimit: {{ . }}
+  {{- end }}
+  {{- with .Values.cronJob.failedJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ . }}
+  {{- end }}
+  {{- with .Values.cronJob.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ . }}
+  {{- end }}
+  jobTemplate:
+    spec:
+      {{- with .Values.job.backoffLimit }}
+      backoffLimit: {{ . }}
+      {{- end }}
+      {{- with .Values.job.activeDeadlineSeconds }}
+      activeDeadlineSeconds: {{ . }}
+      {{- end }}
+      {{- with .Values.job.ttlSecondsAfterFinished }}
+      ttlSecondsAfterFinished: {{ . }}
+      {{- end }}
+      {{- with .Values.job.completions }}
+      completions: {{ . }}
+      {{- end }}
+      {{- with .Values.job.parallelism }}
+      parallelism: {{ . }}
+      {{- end }}
+      template:
+        {{- include "universal-helm.podTemplate" . | nindent 8 }}
+{{- end }}

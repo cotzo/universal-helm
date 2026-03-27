@@ -1,0 +1,14 @@
+containers:
+  app:
+    image:
+      repository: nginx
+      tag: "1.27"
+    ports:
+      http:
+        port: 80
+
+services:
+  http:
+    ports:
+      http:
+        port: 80

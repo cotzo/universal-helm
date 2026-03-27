@@ -1,0 +1,16 @@
+{{- range $name, $config := .Values.configMaps }}
+{{- if $config }}
+---
+apiVersion: v1
+kind: ConfigMap
+{{ include "universal-helm.metadata" (dict "name" (printf "%s-%s" (include "universal-helm.fullname" $) $name) "context" $ "extraAnnotations" $config.annotations "extraLabels" $config.labels) }}
+{{- with $config.data }}
+data:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with $config.binaryData }}
+binaryData:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}

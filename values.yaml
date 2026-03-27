@@ -1,0 +1,610 @@
+# -- Workload type: Deployment | StatefulSet | CronJob | Job | DaemonSet
+workloadType: Deployment
+
+# -- Override the chart name
+nameOverride: ""
+# -- Override the full release name
+fullnameOverride: ""
+
+# -- Global settings applied to all resources
+global:
+  # -- Labels added to all resources
+  labels: {}
+  # -- Annotations added to all resources
+  annotations: {}
+
+# =============================================================================
+# Containers
+# =============================================================================
+
+# -- Containers map (key = container name, value = container spec).
+# All containers follow the same schema. Each container declares which
+# configMaps/secrets it needs via configMapMounts/secretMounts/configMapEnvFrom/secretEnvFrom.
+containers: {}
+# app:
+#   image:
+#     repository: nginx
+#     tag: "1.27"
+#     pullPolicy: IfNotPresent
+#   command: []
+#   args: []
+#   ports:
+#     http:
+#       port: 80
+#       protocol: TCP  # optional, defaults to TCP
+#     grpc:
+#       port: 9090
+#   env: []
+#   # Literal value
+#   # - name: APP_ENV
+#   #   value: "production"
+#   # From pod field
+#   # - name: POD_NAME
+#   #   valueFrom:
+#   #     fieldRef:
+#   #       fieldPath: metadata.name
+#   # From chart-managed configMap key (name auto-prefixed with <fullname>-)
+#   # - name: LOG_LEVEL
+#   #   valueFrom:
+#   #     configMapKeyRef:
+#   #       name: app-config
+#   #       key: log-level
+#   # From chart-managed secret key
+#   # - name: DB_PASSWORD
+#   #   valueFrom:
+#   #     secretKeyRef:
+#   #       name: db-creds
+#   #       key: password
+#   # From external resource (not managed by this chart, name NOT prefixed)
+#   # - name: EXT_VAR
+#   #   valueFrom:
+#   #     secretKeyRef:
+#   #       name: external-secret
+#   #       key: api-key
+#   #       external: true
+#   # Bulk inject all keys from chart-managed configMap (generates envFrom)
+#   # - configMapRef:
+#   #     name: app-config
+#   # Bulk inject from external secret
+#   # - secretRef:
+#   #     name: external-secret
+#   #     external: true
+#   resources: {}
+#   # requests:
+#   #   cpu: 100m
+#   #   memory: 128Mi
+#   # limits:
+#   #   cpu: 500m
+#   #   memory: 256Mi
+#   securityContext: {}
+#   livenessProbe: {}
+#   readinessProbe: {}
+#   startupProbe: {}
+#   lifecycle: {}
+#   workingDir: ""
+#   # -- Unified mounts list. Each entry has a path and one source field.
+#   mounts: []
+#   # Chart-managed configMap
+#   # - path: /etc/config
+#   #   configMap: app-config    # key from configMaps map, auto-prefixed
+#   #   readOnly: true
+#   #   # subPath: ""
+#   #   # items: []
+#   #   # defaultMode: 0644
+#   # Chart-managed secret
+#   # - path: /etc/secrets
+#   #   secret: app-credentials  # key from secrets map, auto-prefixed
+#   #   readOnly: true
+#   # Chart-managed persistence
+#   # - path: /data
+#   #   persistence: data        # key from persistence map
+#   # Existing pod volume (from podSettings.volumes)
+#   # - path: /tmp
+#   #   volume: tmp
+#   # External configMap (not managed by this chart, NOT prefixed)
+#   # - path: /etc/external
+#   #   configMap: ext-config
+#   #   external: true
+
+# -- Init containers map (key = container name, value = container spec).
+# Same schema as containers. Processed in alphabetical key order.
+# Auto-wired volumeMounts/envFrom are NOT injected into init containers.
+initContainers: {}
+# 01-migrate:
+#   image:
+#     repository: my-app
+#     tag: "1.0.0"
+#   command: ["./migrate"]
+
+# =============================================================================
+# Pod Settings
+# =============================================================================
+
+# -- Pod-level settings applied to the pod template spec.
+podSettings:
+  # -- Image pull secrets
+  imagePullSecrets: []
+  # - name: my-registry-secret
+
+  # -- Pod-level security context
+  securityContext: {}
+  # fsGroup: 1000
+  # runAsUser: 1000
+  # runAsGroup: 1000
+
+  # -- Additional pod annotations
+  annotations: {}
+  # -- Additional pod labels
+  labels: {}
+
+  # -- Explicit pod-level volumes
+  volumes: []
+  # - name: tmp
+  #   emptyDir: {}
+
+  # -- Node selector
+  nodeSelector: {}
+
+  # -- Tolerations
+  tolerations: []
+
+  # -- Affinity rules
+  affinity: {}
+  # podAntiAffinity:
+  #   preferredDuringSchedulingIgnoredDuringExecution:
+  #     - weight: 100
+  #       podAffinityTerm:
+  #         labelSelector:
+  #           matchExpressions:
+  #             - key: app.kubernetes.io/name
+  #               operator: In
+  #               values:
+  #                 - my-app
+  #         topologyKey: kubernetes.io/hostname
+
+  # -- Topology spread constraints
+  topologySpreadConstraints: []
+  # - maxSkew: 1
+  #   topologyKey: topology.kubernetes.io/zone
+  #   whenUnsatisfiable: DoNotSchedule
+  #   labelSelector:
+  #     matchLabels:
+  #       app.kubernetes.io/name: my-app
+
+  # -- Priority class name
+  priorityClassName: ""
+
+  # -- Termination grace period in seconds
+  terminationGracePeriodSeconds: ""
+
+  # -- DNS policy
+  dnsPolicy: ""
+
+  # -- DNS config
+  dnsConfig: {}
+
+  # -- Enable host networking
+  hostNetwork: false
+
+  # -- Restart policy (defaults to OnFailure for Job/CronJob)
+  restartPolicy: ""
+
+# =============================================================================
+# Services
+# =============================================================================
+
+# -- Services to create (map of name -> config).
+# Services are named <fullname>-<key>. Not created for CronJob/Job workloads.
+# For StatefulSets, a headless service is auto-generated from all service ports.
+services: {}
+# http:
+#   type: ClusterIP  # ClusterIP | NodePort | LoadBalancer | ExternalName
+#   headless: false            # set true for clusterIP: None
+#   ports:
+#     http:                    # key = port name
+#       port: 80
+#       containerPort: http    # container port name, defaults to port key name
+#       # protocol: TCP        # defaults to TCP
+#       # nodePort: 30080      # only for NodePort/LoadBalancer
+#   # clusterIP: ""
+#   # loadBalancerIP: ""
+#   # loadBalancerSourceRanges: []
+#   # externalTrafficPolicy: ""  # Cluster | Local
+#   # sessionAffinity: ""
+#   # ipFamilyPolicy: ""
+#   # ipFamilies: []
+#   # publishNotReadyAddresses: false
+#   # selectorLabels: {}  # extra selector labels (merged with default)
+#   annotations: {}
+#   labels: {}
+# grpc:
+#   type: ClusterIP
+#   ports:
+#     - name: grpc
+#       port: 9090
+#       targetPort: 9090
+# metrics:
+#   type: ClusterIP
+#   ports:
+#     - name: metrics
+#       port: 9091
+#       targetPort: 9091
+#   annotations:
+#     prometheus.io/scrape: "true"
+
+# =============================================================================
+# Ingresses
+# =============================================================================
+
+# -- Ingresses to create (map of name -> config).
+# Ingresses are named <fullname>-<key>. Path backends default to the first
+# enabled service unless serviceName/servicePort are specified per path.
+ingresses: {}
+# public:
+#   className: nginx
+#   annotations:
+#     cert-manager.io/cluster-issuer: letsencrypt-prod
+#   labels: {}
+#   hosts:
+#     - host: app.example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#           # serviceName: <fullname>-http  # optional override
+#           # servicePort: 80               # optional override
+#   tls:
+#     - secretName: app-tls
+#       hosts:
+#         - app.example.com
+#   defaultBackend: {}
+# internal:
+#   className: nginx-internal
+#   annotations:
+#     nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8"
+#   hosts:
+#     - host: app.internal.example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+
+# =============================================================================
+# ConfigMaps
+# =============================================================================
+
+# -- ConfigMaps to create (map of name -> config).
+# Mounting and envFrom injection is configured per container via
+# configMapMounts and configMapEnvFrom in the container spec.
+configMaps: {}
+# app-config:
+#   data:
+#     config.yaml: |
+#       key: value
+#   annotations: {}
+#   labels: {}
+
+# =============================================================================
+# Secrets
+# =============================================================================
+
+# -- Secrets to create (map of name -> config).
+# Mounting and envFrom injection is configured per container via
+# secretMounts and secretEnvFrom in the container spec.
+secrets: {}
+# app-secret:
+#   type: Opaque
+#   stringData:
+#     password: "s3cret"
+#   # data: {}  # base64-encoded
+#   annotations: {}
+#   labels: {}
+
+# =============================================================================
+# External Secrets
+# =============================================================================
+
+# -- External secrets (map of name -> config)
+externalSecrets: {}
+# cloud-credentials:
+#   refreshInterval: 1h
+#   secretStoreRef:
+#     name: aws-secrets-manager
+#     kind: SecretStore
+#   target:
+#     name: ""  # defaults to <fullname>-<key>
+#     creationPolicy: Owner
+#   data:
+#     - secretKey: password
+#       remoteRef:
+#         key: /prod/app/password
+#   annotations: {}
+#   labels: {}
+
+# =============================================================================
+# Persistence
+# =============================================================================
+
+# -- Persistent volumes (map of name -> config).
+# For StatefulSets, these become volumeClaimTemplates.
+# For other workloads, standalone PVCs are created.
+# Mounting is configured per container via the mounts list.
+persistence: {}
+# data:
+#   storageClass: ""  # use "-" for empty storageClassName
+#   accessModes:
+#     - ReadWriteOnce
+#   size: 10Gi
+#   existingClaim: ""  # use existing PVC instead of creating one
+#   annotations: {}
+#   labels: {}
+
+# =============================================================================
+# Autoscaling (HPA)
+# =============================================================================
+
+autoscaling:
+  # -- Enable HPA (not applicable to CronJob, Job, DaemonSet)
+  enabled: false
+  # -- Minimum replicas
+  minReplicas: 1
+  # -- Maximum replicas
+  maxReplicas: 10
+  # -- HPA metrics (v2 API)
+  metrics: []
+  # - type: Resource
+  #   resource:
+  #     name: cpu
+  #     target:
+  #       type: Utilization
+  #       averageUtilization: 80
+  # -- HPA scaling behavior
+  behavior: {}
+  # scaleDown:
+  #   stabilizationWindowSeconds: 300
+  # -- HPA annotations
+  annotations: {}
+  # -- HPA labels
+  labels: {}
+
+# =============================================================================
+# Pod Disruption Budget
+# =============================================================================
+
+pdb:
+  # -- Enable PDB (not applicable to CronJob, Job)
+  enabled: false
+  # -- Minimum available pods (number or percentage)
+  minAvailable: ""
+  # -- Maximum unavailable pods (number or percentage)
+  maxUnavailable: ""
+  # -- Unhealthy pod eviction policy
+  unhealthyPodEvictionPolicy: ""
+  # -- PDB annotations
+  annotations: {}
+  # -- PDB labels
+  labels: {}
+
+# =============================================================================
+# Service Account
+# =============================================================================
+
+serviceAccount:
+  # -- Create a service account
+  create: true
+  # -- Service account name (defaults to fullname)
+  name: ""
+  # -- Service account annotations
+  annotations: {}
+  # -- Service account labels
+  labels: {}
+  # -- Automount service account token
+  automountServiceAccountToken: ""
+  # -- Image pull secrets for the service account
+  imagePullSecrets: []
+
+# =============================================================================
+# RBAC
+# =============================================================================
+
+rbac:
+  # -- Roles to create (map of name -> config). Named <fullname>-<key>.
+  roles: {}
+  # configmap-reader:
+  #   rules:
+  #     - apiGroups: [""]
+  #       resources: ["configmaps"]
+  #       verbs: ["get", "list", "watch"]
+  #   annotations: {}
+  #   labels: {}
+
+  # -- ClusterRoles to create (map of name -> config). Named <fullname>-<key>.
+  clusterRoles: {}
+  # node-reader:
+  #   rules:
+  #     - apiGroups: [""]
+  #       resources: ["nodes"]
+  #       verbs: ["get", "list", "watch"]
+
+  # -- RoleBindings to create (map of name -> config). Named <fullname>-<key>.
+  # roleRef.name references a key from rbac.roles (auto-prefixed).
+  # Subjects default to the chart's ServiceAccount if not specified.
+  roleBindings: {}
+  # configmap-reader:
+  #   roleRef:
+  #     name: configmap-reader   # → <fullname>-configmap-reader
+  #     kind: Role               # defaults to Role
+  #   # subjects: []             # defaults to chart's ServiceAccount
+
+  # -- ClusterRoleBindings to create (map of name -> config). Named <fullname>-<key>.
+  # roleRef.name references a key from rbac.clusterRoles (auto-prefixed).
+  clusterRoleBindings: {}
+  # node-reader:
+  #   roleRef:
+  #     name: node-reader        # → <fullname>-node-reader
+  #     kind: ClusterRole        # defaults to ClusterRole
+
+# =============================================================================
+# Monitors (Prometheus Operator / VictoriaMetrics Operator)
+# =============================================================================
+
+# -- Monitors to create (map of name -> config).
+# Each monitor specifies its kind and operator to determine the CRD type:
+#   kind: service | pod
+#   operator: prometheus | victoriametrics
+#
+# Mapping:
+#   service + prometheus       → monitoring.coreos.com/v1 ServiceMonitor
+#   pod + prometheus           → monitoring.coreos.com/v1 PodMonitor
+#   service + victoriametrics  → operator.victoriametrics.com/v1beta1 VMServiceScrape
+#   pod + victoriametrics      → operator.victoriametrics.com/v1beta1 VMPodScrape
+monitors: {}
+# prom-metrics:
+#   kind: service                    # defaults to service
+#   operator: prometheus             # defaults to prometheus
+#   port: metrics
+#   path: /metrics
+#   interval: 15s
+#   scrapeTimeout: 10s
+#   scheme: ""
+#   honorLabels: false
+#   honorTimestamps: true
+#   followRedirects: true
+#   params: {}
+#   tlsConfig: {}
+#   bearerTokenSecret: {}
+#   basicAuth: {}
+#   authorization: {}
+#   oauth2: {}
+#   proxyURL: ""
+#   metricRelabelings: []
+#   relabelings: []
+#   endpoints: []                    # full override (replaces convenience fields)
+#   selector: {}                     # extra matchLabels merged with selectorLabels
+#   namespaceSelector: {}
+#   jobLabel: ""
+#   targetLabels: []                 # service kind only
+#   podTargetLabels: []              # pod kind only
+#   sampleLimit: 0
+#   labels: {}
+#   annotations: {}
+# vm-metrics:
+#   kind: service
+#   operator: victoriametrics
+#   port: metrics
+#   path: /metrics
+#   interval: 30s
+#   vmScrapeParams: {}               # VM-specific: vm_scrape_params
+#   maxScrapeSize: ""                # VM-specific: max_scrape_size
+#   seriesLimit: 0                   # VM-specific: seriesLimit
+# pod-metrics:
+#   kind: pod
+#   operator: prometheus
+#   port: metrics
+#   path: /metrics
+#   interval: 15s
+#   podTargetLabels:
+#     - app
+
+# =============================================================================
+# Workload-Specific Settings
+# =============================================================================
+
+# -- Deployment-specific settings
+deployment:
+  # -- Number of replicas
+  replicaCount: 1
+  # -- Deployment strategy
+  strategy: {}
+  # type: RollingUpdate
+  # rollingUpdate:
+  #   maxSurge: 25%
+  #   maxUnavailable: 25%
+  # -- Min ready seconds
+  minReadySeconds: ""
+  # -- Revision history limit
+  revisionHistoryLimit: ""
+
+# -- StatefulSet-specific settings
+statefulSet:
+  # -- Number of replicas
+  replicaCount: 1
+  # -- Headless service name (defaults to <fullname>-headless)
+  serviceName: ""
+  # -- Publish not ready addresses on headless service
+  publishNotReadyAddresses: false
+  # -- Pod management policy: OrderedReady or Parallel
+  podManagementPolicy: ""
+  # -- Update strategy
+  updateStrategy: {}
+  # type: RollingUpdate
+  # rollingUpdate:
+  #   partition: 0
+  # -- Min ready seconds
+  minReadySeconds: ""
+  # -- Revision history limit
+  revisionHistoryLimit: ""
+  # -- Ordinals configuration
+  ordinals: {}
+  # -- PVC retention policy
+  persistentVolumeClaimRetentionPolicy: {}
+  # whenDeleted: Retain
+  # whenScaled: Retain
+
+# -- DaemonSet-specific settings
+daemonSet:
+  # -- Update strategy
+  updateStrategy: {}
+  # type: RollingUpdate
+  # rollingUpdate:
+  #   maxUnavailable: 1
+  # -- Min ready seconds
+  minReadySeconds: ""
+  # -- Revision history limit
+  revisionHistoryLimit: ""
+
+# -- CronJob-specific settings
+cronJob:
+  # -- Cron schedule expression (required for CronJob workloadType)
+  schedule: "0 * * * *"
+  # -- Timezone
+  timeZone: ""
+  # -- Concurrency policy: Allow, Forbid, Replace
+  concurrencyPolicy: ""
+  # -- Suspend the cron job
+  suspend: false
+  # -- Successful jobs history limit
+  successfulJobsHistoryLimit: ""
+  # -- Failed jobs history limit
+  failedJobsHistoryLimit: ""
+  # -- Starting deadline seconds
+  startingDeadlineSeconds: ""
+
+# -- Job-specific settings (also used by CronJob's jobTemplate)
+job:
+  # -- Backoff limit
+  backoffLimit: ""
+  # -- Active deadline seconds
+  activeDeadlineSeconds: ""
+  # -- TTL seconds after finished
+  ttlSecondsAfterFinished: ""
+  # -- Number of completions
+  completions: ""
+  # -- Parallelism
+  parallelism: ""
+  # -- Completion mode: NonIndexed or Indexed
+  completionMode: ""
+  # -- Suspend the job
+  suspend: false
+
+# =============================================================================
+# Extra Resources (escape hatch)
+# =============================================================================
+
+# -- Extra Kubernetes resources to create (list of full manifests)
+# Supports templating via tpl.
+extraResources: []
+# - apiVersion: v1
+#   kind: ConfigMap
+#   metadata:
+#     name: "{{ include \"universal-helm.fullname\" . }}-extra"
+#   data:
+#     key: value

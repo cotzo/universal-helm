@@ -1,0 +1,21 @@
+{{- if eq .Values.workloadType "DaemonSet" }}
+apiVersion: apps/v1
+kind: DaemonSet
+{{ include "universal-helm.metadata" (dict "context" $) }}
+spec:
+  {{- with .Values.daemonSet.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.daemonSet.minReadySeconds }}
+  minReadySeconds: {{ . }}
+  {{- end }}
+  {{- with .Values.daemonSet.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "universal-helm.selectorLabels" . | nindent 6 }}
+  template:
+    {{- include "universal-helm.podTemplate" . | nindent 4 }}
+{{- end }}

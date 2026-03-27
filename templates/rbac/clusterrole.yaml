@@ -1,0 +1,18 @@
+{{- range $name, $role := .Values.rbac.clusterRoles }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ printf "%s-%s" (include "universal-helm.fullname" $) $name }}
+  labels:
+    {{- include "universal-helm.labels" $ | nindent 4 }}
+    {{- with $role.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $role.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+rules:
+  {{- toYaml $role.rules | nindent 2 }}
+{{- end }}

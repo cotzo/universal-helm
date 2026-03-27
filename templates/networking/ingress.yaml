@@ -1,0 +1,54 @@
+{{- $fullName := include "universal-helm.fullname" . -}}
+{{- /* Resolve default service name: first enabled service in the map */ -}}
+{{- $defaultSvcName := "" -}}
+{{- $defaultSvcPort := 80 -}}
+{{- range $name, $svc := .Values.services -}}
+{{- if and $svc (not $defaultSvcName) -}}
+{{- $defaultSvcName = printf "%s-%s" $fullName $name -}}
+{{- range $portName, $portCfg := $svc.ports -}}
+{{- $defaultSvcPort = $portCfg.port -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- range $name, $ing := .Values.ingresses }}
+{{- if $ing }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+{{ include "universal-helm.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $ing.annotations "extraLabels" $ing.labels) }}
+spec:
+  {{- with $ing.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if $ing.tls }}
+  tls:
+    {{- range $ing.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  {{- with $ing.defaultBackend }}
+  defaultBackend:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range $ing.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ default "Prefix" .pathType }}
+            backend:
+              service:
+                name: {{ default $defaultSvcName .serviceName }}
+                port:
+                  number: {{ default $defaultSvcPort .servicePort }}
+          {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,157 @@
+{{- $fullName := include "universal-helm.fullname" . -}}
+{{- range $name, $mon := .Values.monitors }}
+{{- if $mon }}
+{{- $kind := default "service" $mon.kind -}}
+{{- $operator := default "prometheus" $mon.operator -}}
+
+{{- /* Resolve apiVersion and K8s kind */ -}}
+{{- $apiVersion := "" -}}
+{{- $k8sKind := "" -}}
+{{- $endpointsField := "" -}}
+{{- if eq $operator "prometheus" -}}
+  {{- $apiVersion = "monitoring.coreos.com/v1" -}}
+  {{- if eq $kind "service" -}}
+    {{- $k8sKind = "ServiceMonitor" -}}
+    {{- $endpointsField = "endpoints" -}}
+  {{- else if eq $kind "pod" -}}
+    {{- $k8sKind = "PodMonitor" -}}
+    {{- $endpointsField = "podMetricsEndpoints" -}}
+  {{- else -}}
+    {{- fail (printf "monitors.%s: invalid kind %q. Must be service or pod" $name $kind) -}}
+  {{- end -}}
+{{- else if eq $operator "victoriametrics" -}}
+  {{- $apiVersion = "operator.victoriametrics.com/v1beta1" -}}
+  {{- if eq $kind "service" -}}
+    {{- $k8sKind = "VMServiceScrape" -}}
+    {{- $endpointsField = "endpoints" -}}
+  {{- else if eq $kind "pod" -}}
+    {{- $k8sKind = "VMPodScrape" -}}
+    {{- $endpointsField = "podMetricsEndpoints" -}}
+  {{- else -}}
+    {{- fail (printf "monitors.%s: invalid kind %q. Must be service or pod" $name $kind) -}}
+  {{- end -}}
+{{- else }}
+  {{- fail (printf "monitors.%s: invalid operator %q. Must be prometheus or victoriametrics" $name $operator) }}
+{{- end }}
+---
+apiVersion: {{ $apiVersion }}
+kind: {{ $k8sKind }}
+{{ include "universal-helm.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $mon.annotations "extraLabels" $mon.labels) }}
+spec:
+  {{- with $mon.jobLabel }}
+  jobLabel: {{ . }}
+  {{- end }}
+  {{- if eq $kind "service" }}
+  {{- with $mon.targetLabels }}
+  targetLabels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- with $mon.podTargetLabels }}
+  podTargetLabels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $mon.sampleLimit }}
+  sampleLimit: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "universal-helm.selectorLabels" $ | nindent 6 }}
+      {{- with $mon.selector }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+  {{- with $mon.namespaceSelector }}
+  namespaceSelector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{ $endpointsField }}:
+    {{- if $mon.endpoints }}
+    {{- toYaml $mon.endpoints | nindent 4 }}
+    {{- else }}
+    - port: {{ default "http" $mon.port }}
+      {{- with $mon.path }}
+      path: {{ . }}
+      {{- end }}
+      {{- with $mon.interval }}
+      interval: {{ . }}
+      {{- end }}
+      {{- with $mon.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      {{- with $mon.scheme }}
+      scheme: {{ . }}
+      {{- end }}
+      {{- with $mon.params }}
+      params:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if not (kindIs "invalid" $mon.honorLabels) }}
+      honorLabels: {{ $mon.honorLabels }}
+      {{- end }}
+      {{- if not (kindIs "invalid" $mon.honorTimestamps) }}
+      honorTimestamps: {{ $mon.honorTimestamps }}
+      {{- end }}
+      {{- if not (kindIs "invalid" $mon.followRedirects) }}
+      {{- if eq $operator "victoriametrics" }}
+      follow_redirects: {{ $mon.followRedirects }}
+      {{- else }}
+      followRedirects: {{ $mon.followRedirects }}
+      {{- end }}
+      {{- end }}
+      {{- with $mon.tlsConfig }}
+      tlsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $mon.bearerTokenSecret }}
+      bearerTokenSecret:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $mon.basicAuth }}
+      basicAuth:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $mon.authorization }}
+      authorization:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $mon.oauth2 }}
+      oauth2:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $mon.proxyURL }}
+      proxyURL: {{ . }}
+      {{- end }}
+      {{- /* VM-specific scrape params */ -}}
+      {{- if eq $operator "victoriametrics" }}
+      {{- with $mon.vmScrapeParams }}
+      vm_scrape_params:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $mon.maxScrapeSize }}
+      max_scrape_size: {{ . }}
+      {{- end }}
+      {{- with $mon.seriesLimit }}
+      seriesLimit: {{ . }}
+      {{- end }}
+      {{- end }}
+      {{- with $mon.metricRelabelings }}
+      {{- if eq $operator "victoriametrics" }}
+      metricRelabelConfigs:
+        {{- toYaml . | nindent 8 }}
+      {{- else }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      {{- with $mon.relabelings }}
+      {{- if eq $operator "victoriametrics" }}
+      relabelConfigs:
+        {{- toYaml . | nindent 8 }}
+      {{- else }}
+      relabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
