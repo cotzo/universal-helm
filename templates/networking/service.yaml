@@ -63,6 +63,9 @@ spec:
   {{- with $svc.externalTrafficPolicy }}
   externalTrafficPolicy: {{ . }}
   {{- end }}
+  {{- with $svc.trafficDistribution }}
+  trafficDistribution: {{ . }}
+  {{- end }}
   {{- with $svc.sessionAffinity }}
   sessionAffinity: {{ . }}
   {{- end }}

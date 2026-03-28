@@ -99,6 +99,11 @@ containers:
       limits:
         cpu: "1"
         memory: 512Mi
+    resizePolicy:
+      - resourceName: cpu
+        restartPolicy: NotRequired
+      - resourceName: memory
+        restartPolicy: RestartContainer
     securityContext:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: true
@@ -237,6 +242,19 @@ initContainers:
             key: host
             external: true
 
+  01-log-collector:
+    image:
+      repository: fluent/fluent-bit
+      tag: "3.0"
+    restartPolicy: Always
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+      limits:
+        cpu: 50m
+        memory: 64Mi
+
   02-migrate:
     image:
       repository: my-full-app
@@ -341,6 +359,7 @@ podSettings:
 services:
   http:
     type: ClusterIP
+    trafficDistribution: PreferSameNode
     ports:
       http:
         port: 80

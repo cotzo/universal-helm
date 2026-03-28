@@ -91,6 +91,14 @@ containers: {}
 #   # limits:
 #   #   cpu: 500m
 #   #   memory: 256Mi
+#   # -- In-place resize policy (K8s 1.35+). Controls restart behavior on resource changes.
+#   resizePolicy: []
+#   # - resourceName: cpu
+#   #   restartPolicy: NotRequired
+#   # - resourceName: memory
+#   #   restartPolicy: RestartContainer
+#   # -- Restart policy for init containers. Set to "Always" for native sidecar (K8s 1.33+).
+#   restartPolicy: ""
 #   securityContext: {}
 #   healthChecks:
 #     liveness:
@@ -241,6 +249,7 @@ services: {}
 #   # loadBalancerIP: ""
 #   # loadBalancerSourceRanges: []
 #   # externalTrafficPolicy: ""  # Cluster | Local
+#   # trafficDistribution: ""    # PreferSameNode | PreferSameZone (K8s 1.35+)
 #   # sessionAffinity: ""
 #   # ipFamilyPolicy: ""
 #   # ipFamilies: []
@@ -623,6 +632,8 @@ job:
   parallelism: ""
   # -- Completion mode: NonIndexed or Indexed
   completionMode: ""
+  # -- Pod replacement policy: Failed or TerminatingOrFailed (K8s 1.34+)
+  podReplacementPolicy: ""
   # -- Suspend the job
   suspend: false
 

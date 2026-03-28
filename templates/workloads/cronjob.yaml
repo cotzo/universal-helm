@@ -39,6 +39,9 @@ spec:
       {{- with .Values.job.parallelism }}
       parallelism: {{ . }}
       {{- end }}
+      {{- with .Values.job.podReplacementPolicy }}
+      podReplacementPolicy: {{ . }}
+      {{- end }}
       template:
         {{- include "chartpack.podTemplate" . | nindent 8 }}
 {{- end }}

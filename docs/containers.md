@@ -182,6 +182,43 @@ containers:
 
 [Probes reference](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
 
+## In-Place Resource Resize (K8s 1.35+)
+
+Update CPU/memory without restarting pods using `resizePolicy`:
+
+```yaml
+containers:
+  app:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    resizePolicy:
+      - resourceName: cpu
+        restartPolicy: NotRequired       # resize without restart
+      - resourceName: memory
+        restartPolicy: RestartContainer   # restart required for memory
+```
+
+[In-place resource resize reference](https://kubernetes.io/docs/concepts/workloads/pods/#resizing-a-container)
+
+## AppArmor Profiles (K8s 1.31+)
+
+Configure via `securityContext` (passthrough):
+
+```yaml
+containers:
+  app:
+    securityContext:
+      appArmorProfile:
+        type: RuntimeDefault   # RuntimeDefault | Localhost | Unconfined
+```
+
+[AppArmor reference](https://kubernetes.io/docs/tutorials/security/apparmor/)
+
 ## Init Containers
 
 Same schema as containers. Processed in **alphabetical key order** -- prefix keys with numbers to control ordering.
@@ -207,3 +244,27 @@ initContainers:
 ```
 
 [Init containers reference](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/)
+
+## Native Sidecar Containers (K8s 1.33+)
+
+Init containers with `restartPolicy: Always` run as native sidecars -- they start before main containers, stay running throughout the pod lifecycle, and support probes.
+
+```yaml
+initContainers:
+  01-log-collector:
+    image:
+      repository: fluent/fluent-bit
+      tag: "3.0"
+    restartPolicy: Always
+    healthChecks:
+      liveness:
+        httpGet:
+          path: /api/v1/health
+          port: 2020
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+```
+
+[Sidecar containers reference](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/)

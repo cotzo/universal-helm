@@ -90,8 +90,15 @@ Usage: {{ include "chartpack.containers.renderContainer" (dict "name" "app" "con
   envFrom:
     {{- toYaml $envFrom | nindent 4 }}
   {{- end }}
+  {{- with $config.restartPolicy }}
+  restartPolicy: {{ . }}
+  {{- end }}
   {{- with $config.resources }}
   resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $config.resizePolicy }}
+  resizePolicy:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- /* Build volumeMounts from unified mounts list */ -}}

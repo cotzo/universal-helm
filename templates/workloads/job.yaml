@@ -21,6 +21,9 @@ spec:
   {{- with .Values.job.completionMode }}
   completionMode: {{ . }}
   {{- end }}
+  {{- with .Values.job.podReplacementPolicy }}
+  podReplacementPolicy: {{ . }}
+  {{- end }}
   {{- if not (kindIs "invalid" .Values.job.suspend) }}
   suspend: {{ .Values.job.suspend }}
   {{- end }}
