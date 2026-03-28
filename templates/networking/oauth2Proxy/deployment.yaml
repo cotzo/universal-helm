@@ -5,35 +5,10 @@
 {{- $proxyServiceName := include "chartpack.networking.oauth2Proxy.serviceName" (dict "key" $name "context" $) }}
 {{- $port := default 4180 $proxy.port }}
 
-{{- /* Resolve upstream: explicit or auto-derived from ingress/route default backend */ -}}
+{{- /* Deployment mode requires explicit upstream */ -}}
 {{- $upstream := $proxy.upstream -}}
 {{- if not $upstream -}}
-{{- /* Check ingresses that reference this proxy — derive from default service */ -}}
-{{- range $ingName, $ing := $.Values.ingresses -}}
-{{- if and $ing (eq (default "" $ing.oauth2Proxy) $name) (not $upstream) -}}
-{{- range $svcName, $svc := $.Values.services -}}
-{{- if and $svc (not $upstream) (not $svc.headless) -}}
-{{- range $pName, $pCfg := $svc.ports -}}
-{{- if not $upstream -}}
-{{- $upstream = printf "http://%s-%s:%s" $fullName $svcName (toString $pCfg.port) -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
-{{- /* Check routes that reference this proxy — derive from first backendRef */ -}}
-{{- range $routeName, $route := $.Values.gatewayApi.routes -}}
-{{- if and $route (eq (default "" $route.oauth2Proxy) $name) (not $upstream) -}}
-{{- range $route.rules -}}
-{{- range .backendRefs -}}
-{{- if not $upstream -}}
-{{- $upstream = printf "http://%s-%s:%s" $fullName .name (toString .port) -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
+{{- fail (printf "oauth2Proxies.%s: upstream is required when mode is deployment (e.g., upstream: http://<fullname>-<service>:<port>)" $name) -}}
 {{- end }}
 ---
 apiVersion: apps/v1

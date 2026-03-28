@@ -294,7 +294,8 @@ oauth2Proxies: {}
 #   issuerUrl: https://auth.corp.example.com
 #   emailDomains:
 #     - corp.example.com
-#   # upstream: ""               # auto-derived: sidecar=localhost:<container-port>, deployment=<service-url>
+#   # upstream: ""               # sidecar: auto-derived as localhost:<container-port>
+#   #                            # deployment: REQUIRED (e.g., http://<fullname>-<service>:<port>)
 #   extraArgs: {}                # key-value → --key=value
 #   args: []                     # additional raw args
 #   env:                         # same unified env map as containers

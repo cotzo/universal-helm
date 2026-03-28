@@ -52,7 +52,6 @@
           },
           "additionalProperties": false
         },
-        "restartPolicy": { "type": "string", "enum": ["Always", ""], "description": "Set to Always for native sidecar (K8s 1.33+)" },
         "resizePolicy": {
           "type": "array",
           "description": "In-place resize policy (K8s 1.35+)",
@@ -98,6 +97,16 @@
           }
         }
       }
+    },
+    "initContainerSpec": {
+      "allOf": [
+        { "$ref": "#/definitions/containerSpec" },
+        {
+          "properties": {
+            "restartPolicy": { "type": "string", "enum": ["Always", ""], "description": "Set to Always for native sidecar (K8s 1.33+)" }
+          }
+        }
+      ]
     }
   },
   "properties": {
@@ -123,7 +132,7 @@
     },
     "initContainers": {
       "type": "object",
-      "additionalProperties": { "$ref": "#/definitions/containerSpec" },
+      "additionalProperties": { "$ref": "#/definitions/initContainerSpec" },
       "description": "Map of init container name to container spec (processed in alphabetical key order)"
     },
     "nodeSettings": {

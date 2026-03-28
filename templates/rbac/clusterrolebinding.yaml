@@ -9,7 +9,7 @@ metadata:
     {{- with $binding.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- $annotations := merge (default (dict) $binding.annotations) (default (dict) $.Values.global.annotations) }}
+  {{- $annotations := merge (dict) (default (dict) $binding.annotations) (default (dict) $.Values.global.annotations) }}
   {{- with $annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
