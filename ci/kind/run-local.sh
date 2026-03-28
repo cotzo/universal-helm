@@ -54,7 +54,6 @@ log_step "Installing CRDs..."
 START=$(date +%s)
 
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml 2>/dev/null
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/experimental-install.yaml 2>/dev/null || true
 
 kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/crds/rollout-crd.yaml 2>/dev/null
 kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/crds/experiment-crd.yaml 2>/dev/null
