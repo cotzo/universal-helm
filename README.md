@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/banner.jpeg" alt="ChartPack" width="800">
+  <img src="docs/images/banner.jpeg" alt="ChartPack" width="800">
 </p>
 
 
