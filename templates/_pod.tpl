@@ -24,10 +24,14 @@ spec:
   securityContext:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- if .Values.initContainers }}
+  {{- $oauth2Sidecars := include "chartpack.networking.oauth2Proxy.sidecars" . -}}
+  {{- if or .Values.initContainers $oauth2Sidecars }}
   initContainers:
     {{- range $name, $config := .Values.initContainers }}
     {{- include "chartpack.containers.renderContainer" (dict "name" $name "config" $config "context" $) | nindent 4 }}
+    {{- end }}
+    {{- if $oauth2Sidecars }}
+    {{- $oauth2Sidecars | nindent 4 }}
     {{- end }}
   {{- end }}
   containers:

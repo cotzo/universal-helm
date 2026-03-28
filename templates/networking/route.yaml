@@ -1,0 +1,92 @@
+{{- $fullName := include "chartpack.fullname" . -}}
+{{- range $name, $route := .Values.gatewayApi.routes }}
+{{- if $route }}
+{{- $kind := default "HTTPRoute" $route.kind -}}
+{{- $routeName := printf "%s-%s" $fullName $name -}}
+
+{{- /* Resolve apiVersion from kind */ -}}
+{{- $apiVersion := "" -}}
+{{- if or (eq $kind "HTTPRoute") (eq $kind "GRPCRoute") (eq $kind "TLSRoute") -}}
+  {{- $apiVersion = "gateway.networking.k8s.io/v1" -}}
+{{- else if or (eq $kind "TCPRoute") (eq $kind "UDPRoute") -}}
+  {{- $apiVersion = "gateway.networking.k8s.io/v1alpha2" -}}
+{{- else -}}
+  {{- fail (printf "gatewayApi.routes.%s: invalid kind %q. Must be HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, or UDPRoute" $name $kind) -}}
+{{- end }}
+
+{{- /* Check if oauth2 proxy rewiring is needed */ -}}
+{{- $useOauth2 := false -}}
+{{- $proxyPort := 4180 -}}
+{{- $proxySvcName := "" -}}
+{{- if $route.oauth2Proxy -}}
+{{- $useOauth2 = true -}}
+{{- $proxyCfg := index $.Values.oauth2Proxies $route.oauth2Proxy -}}
+{{- $proxyPort = (default 4180 $proxyCfg.port) -}}
+{{- if eq (default "sidecar" $proxyCfg.mode) "deployment" -}}
+{{- $proxySvcName = include "chartpack.networking.oauth2Proxy.serviceName" (dict "key" $route.oauth2Proxy "context" $) -}}
+{{- end -}}
+{{- end }}
+---
+apiVersion: {{ $apiVersion }}
+kind: {{ $kind }}
+{{ include "chartpack.metadata" (dict "name" $routeName "context" $ "extraAnnotations" $route.annotations "extraLabels" $route.labels) }}
+spec:
+  parentRefs:
+    {{- range $route.parentRefs }}
+    - name: {{ .name }}
+      {{- with .namespace }}
+      namespace: {{ . }}
+      {{- end }}
+      {{- with .sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+      {{- with .port }}
+      port: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- with $route.hostnames }}
+  hostnames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range $route.rules }}
+    - {{- with .matches }}
+      matches:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .filters }}
+      filters:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .timeouts }}
+      timeouts:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if and $useOauth2 $proxySvcName }}
+      {{- /* deployment mode: point to proxy service */ -}}
+      backendRefs:
+        - name: {{ $proxySvcName }}
+          port: {{ $proxyPort }}
+      {{- else if and $useOauth2 .backendRefs }}
+      {{- /* sidecar mode: keep original backends but change port to proxy, preserve weight */ -}}
+      backendRefs:
+        {{- range .backendRefs }}
+        - name: {{ printf "%s-%s" $fullName .name }}
+          port: {{ $proxyPort }}
+          {{- with .weight }}
+          weight: {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- else if .backendRefs }}
+      backendRefs:
+        {{- range .backendRefs }}
+        - name: {{ printf "%s-%s" $fullName .name }}
+          port: {{ .port }}
+          {{- with .weight }}
+          weight: {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

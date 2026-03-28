@@ -94,12 +94,15 @@ podSettings:
 
 ### Topology Spread Constraints
 
+Supports `minDomains` (GA in K8s 1.30) for cluster autoscaler integration.
+
 ```yaml
 podSettings:
   topologySpreadConstraints:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: DoNotSchedule
+      minDomains: 3              # K8s 1.30+ — minimum number of domains
       labelSelector:
         matchLabels:
           app.kubernetes.io/name: my-app

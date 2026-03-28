@@ -71,41 +71,52 @@ Validate env references to chart-managed resources.
 */}}
 {{- define "chartpack.validation.containers.env" -}}
 {{- range $cName, $c := .Values.containers }}
-{{- range $c.env }}
+{{- range $envName, $envCfg := $c.env }}
 
-{{- if .valueFrom }}
-{{- if .valueFrom.configMapKeyRef }}
-{{- if not .valueFrom.configMapKeyRef.external }}
-{{- if not (hasKey $.Values.configMaps .valueFrom.configMapKeyRef.name) }}
-{{- fail (printf "containers.%s.env: configMapKeyRef name %q not found in configMaps map (add external: true for external resources)" $cName .valueFrom.configMapKeyRef.name) }}
+{{- if $envCfg.valueFrom }}
+{{- if $envCfg.valueFrom.configMapKeyRef }}
+{{- if not $envCfg.valueFrom.configMapKeyRef.external }}
+{{- if not (hasKey $.Values.configMaps $envCfg.valueFrom.configMapKeyRef.name) }}
+{{- fail (printf "containers.%s.env.%s: configMapKeyRef name %q not found in configMaps map (add external: true for external resources)" $cName $envName $envCfg.valueFrom.configMapKeyRef.name) }}
 {{- end }}
 {{- end }}
 {{- end }}
-{{- if .valueFrom.secretKeyRef }}
-{{- if not .valueFrom.secretKeyRef.external }}
-{{- if not (hasKey $.Values.secrets .valueFrom.secretKeyRef.name) }}
-{{- fail (printf "containers.%s.env: secretKeyRef name %q not found in secrets map (add external: true for external resources)" $cName .valueFrom.secretKeyRef.name) }}
+{{- if $envCfg.valueFrom.secretKeyRef }}
+{{- if not $envCfg.valueFrom.secretKeyRef.external }}
+{{- if not (hasKey $.Values.secrets $envCfg.valueFrom.secretKeyRef.name) }}
+{{- fail (printf "containers.%s.env.%s: secretKeyRef name %q not found in secrets map (add external: true for external resources)" $cName $envName $envCfg.valueFrom.secretKeyRef.name) }}
 {{- end }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{- if .configMapRef }}
-{{- if not .configMapRef.external }}
-{{- if not (hasKey $.Values.configMaps .configMapRef.name) }}
-{{- fail (printf "containers.%s.env: configMapRef name %q not found in configMaps map (add external: true for external resources)" $cName .configMapRef.name) }}
 {{- end }}
 {{- end }}
 {{- end }}
 
-{{- if .secretRef }}
-{{- if not .secretRef.external }}
-{{- if not (hasKey $.Values.secrets .secretRef.name) }}
-{{- fail (printf "containers.%s.env: secretRef name %q not found in secrets map (add external: true for external resources)" $cName .secretRef.name) }}
+{{- if $envCfg.configMapRef }}
+{{- if not $envCfg.configMapRef.external }}
+{{- if not (hasKey $.Values.configMaps $envCfg.configMapRef.name) }}
+{{- fail (printf "containers.%s.env.%s: configMapRef name %q not found in configMaps map (add external: true for external resources)" $cName $envName $envCfg.configMapRef.name) }}
 {{- end }}
 {{- end }}
 {{- end }}
 
+{{- if $envCfg.secretRef }}
+{{- if not $envCfg.secretRef.external }}
+{{- if not (hasKey $.Values.secrets $envCfg.secretRef.name) }}
+{{- fail (printf "containers.%s.env.%s: secretRef name %q not found in secrets map (add external: true for external resources)" $cName $envName $envCfg.secretRef.name) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate restartPolicy is only set on initContainers, not containers.
+*/}}
+{{- define "chartpack.validation.containers.restartPolicy" -}}
+{{- range $name, $c := .Values.containers }}
+{{- if $c.restartPolicy }}
+{{- fail (printf "containers.%s.restartPolicy: restartPolicy is only valid on initContainers (native sidecars), not containers" $name) }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -118,4 +129,5 @@ Run all container validations.
 {{- include "chartpack.validation.containers.images" . }}
 {{- include "chartpack.validation.containers.mounts" . }}
 {{- include "chartpack.validation.containers.env" . }}
+{{- include "chartpack.validation.containers.restartPolicy" . }}
 {{- end }}

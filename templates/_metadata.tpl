@@ -14,7 +14,7 @@ metadata:
     {{- with .extraLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- $annotations := merge (default (dict) .extraAnnotations) (default (dict) $ctx.Values.global.annotations) }}
+  {{- $annotations := merge (dict) (default (dict) .extraAnnotations) (default (dict) $ctx.Values.global.annotations) }}
   {{- with $annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

@@ -41,55 +41,58 @@ containers:
         port: 9091
     env:
       # Literal values
-      - name: APP_ENV
+      APP_ENV:
         value: "production"
-      - name: LOG_FORMAT
+      LOG_FORMAT:
         value: "json"
       # From pod fields
-      - name: POD_NAME
+      POD_NAME:
         valueFrom:
           fieldRef:
             fieldPath: metadata.name
-      - name: POD_NAMESPACE
+      POD_NAMESPACE:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      - name: POD_IP
+      POD_IP:
         valueFrom:
           fieldRef:
             fieldPath: status.podIP
       # From resource field
-      - name: CPU_LIMIT
+      CPU_LIMIT:
         valueFrom:
           resourceFieldRef:
             resource: limits.cpu
       # From chart-managed secret key (auto-prefixed)
-      - name: API_KEY
+      API_KEY:
         valueFrom:
           secretKeyRef:
             name: app-credentials
             key: api-key
       # From chart-managed configMap key (auto-prefixed)
-      - name: LOG_LEVEL
+      LOG_LEVEL:
         valueFrom:
           configMapKeyRef:
             name: app-config
             key: log-level
       # From external secret (NOT prefixed)
-      - name: DATABASE_URL
+      DATABASE_URL:
         valueFrom:
           secretKeyRef:
             name: external-db-secret
             key: url
             external: true
       # Bulk inject all keys from chart-managed configMap
-      - configMapRef:
+      bulk-env-config:
+        configMapRef:
           name: env-config
       # Bulk inject from chart-managed secret
-      - secretRef:
+      bulk-env-secrets:
+        secretRef:
           name: env-secrets
       # Bulk inject from external configMap
-      - configMapRef:
+      bulk-external-config:
+        configMapRef:
           name: external-shared-config
           external: true
     resources:
@@ -99,6 +102,11 @@ containers:
       limits:
         cpu: "1"
         memory: 512Mi
+    resizePolicy:
+      - resourceName: cpu
+        restartPolicy: NotRequired
+      - resourceName: memory
+        restartPolicy: RestartContainer
     securityContext:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: true
@@ -158,49 +166,6 @@ containers:
         external: true
         readOnly: true
 
-  oauth2-proxy:
-    image:
-      repository: quay.io/oauth2-proxy/oauth2-proxy
-      tag: v7.6.0
-    ports:
-      oauth2-proxy:
-        port: 4180
-    args:
-      - --upstream=http://localhost:8080
-      - --http-address=0.0.0.0:4180
-      - --provider=oidc
-      - --email-domain=*
-      - --cookie-secure=true
-    env:
-      - name: OAUTH2_PROXY_CLIENT_ID
-        valueFrom:
-          secretKeyRef:
-            name: oauth2-secret
-            key: client-id
-            external: true
-      - name: OAUTH2_PROXY_CLIENT_SECRET
-        valueFrom:
-          secretKeyRef:
-            name: oauth2-secret
-            key: client-secret
-            external: true
-      - name: OAUTH2_PROXY_COOKIE_SECRET
-        valueFrom:
-          secretKeyRef:
-            name: oauth2-secret
-            key: cookie-secret
-            external: true
-    resources:
-      requests:
-        cpu: 50m
-        memory: 64Mi
-      limits:
-        cpu: 100m
-        memory: 128Mi
-    securityContext:
-      readOnlyRootFilesystem: true
-      runAsNonRoot: true
-
   log-shipper:
     image:
       repository: fluent/fluent-bit
@@ -230,12 +195,25 @@ initContainers:
     command: ["sh", "-c"]
     args: ["until nc -z db-service 5432; do echo waiting for db; sleep 2; done"]
     env:
-      - name: DB_HOST
+      DB_HOST:
         valueFrom:
           secretKeyRef:
             name: external-db-secret
             key: host
             external: true
+
+  01-log-collector:
+    image:
+      repository: fluent/fluent-bit
+      tag: "3.0"
+    restartPolicy: Always
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+      limits:
+        cpu: 50m
+        memory: 64Mi
 
   02-migrate:
     image:
@@ -243,7 +221,7 @@ initContainers:
       tag: "2.0.0"
     command: ["/app/migrate", "--up"]
     env:
-      - name: DATABASE_URL
+      DATABASE_URL:
         valueFrom:
           secretKeyRef:
             name: external-db-secret
@@ -335,12 +313,54 @@ podSettings:
         value: "2"
 
 # =============================================================================
+# OAuth2 Proxies
+# =============================================================================
+
+oauth2Proxies:
+  corporate:
+    mode: sidecar
+    image:
+      repository: quay.io/oauth2-proxy/oauth2-proxy
+      tag: v7.7.0
+    provider: oidc
+    issuerUrl: https://auth.corp.example.com
+    emailDomains:
+      - corp.example.com
+    env:
+      CLIENT_ID:
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-corp-secret
+            key: client-id
+            external: true
+      CLIENT_SECRET:
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-corp-secret
+            key: client-secret
+            external: true
+      COOKIE_SECRET:
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-corp-secret
+            key: cookie-secret
+            external: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+# =============================================================================
 # Services — ClusterIP, NodePort, headless, LoadBalancer
 # =============================================================================
 
 services:
   http:
     type: ClusterIP
+    trafficDistribution: PreferSameNode
     ports:
       http:
         port: 80
@@ -383,6 +403,7 @@ services:
 
 ingresses:
   public:
+    oauth2Proxy: corporate
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -431,6 +452,98 @@ ingresses:
             pathType: Prefix
           - path: /admin
             pathType: Prefix
+
+# =============================================================================
+# Gateway API Routes — HTTPRoute, GRPCRoute, TLSRoute
+# =============================================================================
+
+gatewayApi:
+  routes:
+    http:
+      kind: HTTPRoute
+      parentRefs:
+        - name: main-gateway
+          namespace: gateway-system
+          sectionName: https
+      hostnames:
+        - app.example.com
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - name: http
+              port: 80
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /api
+            - headers:
+                - name: X-Api-Version
+                  value: v2
+          backendRefs:
+            - name: http
+              port: 80
+              weight: 90
+            - name: http
+              port: 80
+              weight: 10
+          timeouts:
+            request: 30s
+            backendRequest: 15s
+      policies:
+        envoy:
+          loadBalancer:
+            type: LeastRequest
+          circuitBreaker:
+            maxConnections: 2048
+            maxPendingRequests: 512
+          retry:
+            numRetries: 3
+          timeout:
+            tcp:
+              connectTimeout: 10s
+            http:
+              connectionIdleTimeout: 60s
+          rateLimit:
+            type: Local
+            rules:
+              - limit:
+                  requests: 100
+                  unit: Second
+          tcpKeepalive:
+            probes: 3
+            idleTime: 60s
+            interval: 10s
+    grpc:
+      kind: GRPCRoute
+      parentRefs:
+        - name: main-gateway
+          namespace: gateway-system
+          sectionName: grpc
+      hostnames:
+        - grpc.example.com
+      rules:
+        - matches:
+            - method:
+                service: myapp.v1.ItemService
+                method: GetItem
+          backendRefs:
+            - name: grpc
+              port: 9090
+    tls-passthrough:
+      kind: TLSRoute
+      parentRefs:
+        - name: main-gateway
+          namespace: gateway-system
+          sectionName: tls-passthrough
+      hostnames:
+        - secure.example.com
+      rules:
+        - backendRefs:
+            - name: http
+              port: 443
 
 # =============================================================================
 # ConfigMaps — app config, env vars, sidecar config
@@ -497,6 +610,19 @@ secrets:
     type: kubernetes.io/dockerconfigjson
     data:
       .dockerconfigjson: eyJhdXRocyI6e319
+
+  generated-creds:
+    generate:
+      api-key:
+        length: 32
+        symbols: 0
+      webhook-secret:
+        length: 64
+        encoding: hex
+      session-key:
+        length: 48
+        noUpper: true
+        allowRepeat: true
 
 # =============================================================================
 # External Secrets — AWS Secrets Manager + Vault

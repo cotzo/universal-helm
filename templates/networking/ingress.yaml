@@ -13,6 +13,21 @@
 
 {{- range $name, $ing := .Values.ingresses }}
 {{- if $ing }}
+
+{{- /* Determine backend: oauth2-proxy (deployment or sidecar) or direct */ -}}
+{{- $backendSvcName := $defaultSvcName -}}
+{{- $backendSvcPort := $defaultSvcPort -}}
+{{- if $ing.oauth2Proxy -}}
+{{- $proxyCfg := index $.Values.oauth2Proxies $ing.oauth2Proxy -}}
+{{- $proxyPort := (default 4180 $proxyCfg.port) -}}
+{{- if eq (default "sidecar" $proxyCfg.mode) "deployment" -}}
+{{- $backendSvcName = include "chartpack.networking.oauth2Proxy.serviceName" (dict "key" $ing.oauth2Proxy "context" $) -}}
+{{- $backendSvcPort = $proxyPort -}}
+{{- else -}}
+{{- /* sidecar mode: same service, but proxy port */ -}}
+{{- $backendSvcPort = $proxyPort -}}
+{{- end -}}
+{{- end }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -45,9 +60,9 @@ spec:
             pathType: {{ default "Prefix" .pathType }}
             backend:
               service:
-                name: {{ default $defaultSvcName .serviceName }}
+                name: {{ default $backendSvcName .serviceName }}
                 port:
-                  number: {{ default $defaultSvcPort .servicePort }}
+                  number: {{ default $backendSvcPort .servicePort }}
           {{- end }}
     {{- end }}
 {{- end }}

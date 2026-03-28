@@ -49,41 +49,43 @@ containers: {}
 #       protocol: TCP  # optional, defaults to TCP
 #     grpc:
 #       port: 9090
-#   env: []
-#   # Literal value
-#   # - name: APP_ENV
-#   #   value: "production"
+#   env: {}
+#   # Literal value — key = env var name
+#   #   APP_ENV:
+#   #     value: "production"
 #   # From pod field
-#   # - name: POD_NAME
-#   #   valueFrom:
-#   #     fieldRef:
-#   #       fieldPath: metadata.name
-#   # From chart-managed configMap key (name auto-prefixed with <fullname>-)
-#   # - name: LOG_LEVEL
-#   #   valueFrom:
-#   #     configMapKeyRef:
-#   #       name: app-config
-#   #       key: log-level
+#   #   POD_NAME:
+#   #     valueFrom:
+#   #       fieldRef:
+#   #         fieldPath: metadata.name
+#   # From chart-managed configMap key (auto-prefixed)
+#   #   LOG_LEVEL:
+#   #     valueFrom:
+#   #       configMapKeyRef:
+#   #         name: app-config
+#   #         key: log-level
 #   # From chart-managed secret key
-#   # - name: DB_PASSWORD
-#   #   valueFrom:
-#   #     secretKeyRef:
-#   #       name: db-creds
-#   #       key: password
-#   # From external resource (not managed by this chart, name NOT prefixed)
-#   # - name: EXT_VAR
-#   #   valueFrom:
-#   #     secretKeyRef:
-#   #       name: external-secret
-#   #       key: api-key
-#   #       external: true
-#   # Bulk inject all keys from chart-managed configMap (generates envFrom)
-#   # - configMapRef:
-#   #     name: app-config
+#   #   DB_PASSWORD:
+#   #     valueFrom:
+#   #       secretKeyRef:
+#   #         name: db-creds
+#   #         key: password
+#   # From external resource (NOT prefixed)
+#   #   EXT_VAR:
+#   #     valueFrom:
+#   #       secretKeyRef:
+#   #         name: external-secret
+#   #         key: api-key
+#   #         external: true
+#   # Bulk inject from chart-managed configMap (→ envFrom) — key is identifier
+#   #   bulk-app-config:
+#   #     configMapRef:
+#   #       name: app-config
 #   # Bulk inject from external secret
-#   # - secretRef:
-#   #     name: external-secret
-#   #     external: true
+#   #   bulk-ext-secret:
+#   #     secretRef:
+#   #       name: external-secret
+#   #       external: true
 #   resources: {}
 #   # requests:
 #   #   cpu: 100m
@@ -91,6 +93,14 @@ containers: {}
 #   # limits:
 #   #   cpu: 500m
 #   #   memory: 256Mi
+#   # -- In-place resize policy (K8s 1.35+). Controls restart behavior on resource changes.
+#   resizePolicy: []
+#   # - resourceName: cpu
+#   #   restartPolicy: NotRequired
+#   # - resourceName: memory
+#   #   restartPolicy: RestartContainer
+#   # -- Restart policy for init containers. Set to "Always" for native sidecar (K8s 1.33+).
+#   restartPolicy: ""
 #   securityContext: {}
 #   healthChecks:
 #     liveness:
@@ -241,6 +251,7 @@ services: {}
 #   # loadBalancerIP: ""
 #   # loadBalancerSourceRanges: []
 #   # externalTrafficPolicy: ""  # Cluster | Local
+#   # trafficDistribution: ""    # PreferSameNode | PreferSameZone (K8s 1.35+)
 #   # sessionAffinity: ""
 #   # ipFamilyPolicy: ""
 #   # ipFamilies: []
@@ -264,14 +275,64 @@ services: {}
 #     prometheus.io/scrape: "true"
 
 # =============================================================================
+# OAuth2 Proxies
+# =============================================================================
+
+# -- OAuth2 proxies (map of name -> config).
+# Each proxy gets its own Deployment + Service, created only if referenced by
+# an ingress or route via the oauth2Proxy field.
+# Traffic flow: Ingress/Route → oauth2-proxy → original backend service.
+oauth2Proxies: {}
+# corporate:
+#   mode: sidecar                # sidecar (default) | deployment
+#   image:
+#     repository: quay.io/oauth2-proxy/oauth2-proxy
+#     tag: v7.7.0
+#   replicas: 1                  # only for deployment mode
+#   port: 4180
+#   provider: oidc               # oidc | google | github | azure | gitlab | etc.
+#   issuerUrl: https://auth.corp.example.com
+#   emailDomains:
+#     - corp.example.com
+#   # upstream: ""               # sidecar: auto-derived as localhost:<container-port>
+#   #                            # deployment: REQUIRED (e.g., http://<fullname>-<service>:<port>)
+#   extraArgs: {}                # key-value → --key=value
+#   args: []                     # additional raw args
+#   env:                         # same unified env map as containers
+#     CLIENT_ID:
+#       valueFrom:
+#         secretKeyRef:
+#           name: oauth2-corp-secret
+#           key: client-id
+#           external: true
+#     CLIENT_SECRET:
+#       valueFrom:
+#         secretKeyRef:
+#           name: oauth2-corp-secret
+#           key: client-secret
+#           external: true
+#     COOKIE_SECRET:
+#       valueFrom:
+#         secretKeyRef:
+#           name: oauth2-corp-secret
+#           key: cookie-secret
+#           external: true
+#   resources: {}
+#   securityContext: {}
+#   annotations: {}
+#   labels: {}
+
+# =============================================================================
 # Ingresses
 # =============================================================================
 
 # -- Ingresses to create (map of name -> config).
 # Ingresses are named <fullname>-<key>. Path backends default to the first
 # enabled service unless serviceName/servicePort are specified per path.
+# Set oauth2Proxy to a key from oauth2Proxies to route through the proxy.
 ingresses: {}
 # public:
+#   oauth2Proxy: corporate         # routes traffic through oauth2Proxies.corporate
 #   className: nginx
 #   annotations:
 #     cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -297,6 +358,127 @@ ingresses: {}
 #       paths:
 #         - path: /
 #           pathType: Prefix
+
+# =============================================================================
+# Gateway API Routes
+# =============================================================================
+
+# -- Gateway API configuration.
+# Gateways are NOT created by this chart — they are pre-existing infrastructure.
+# Routes reference Gateways via parentRefs.
+gatewayApi:
+  # -- Routes to create (map of name -> config).
+  # Each route specifies its kind to determine the CRD type.
+  #   kind: HTTPRoute | GRPCRoute | TLSRoute | TCPRoute | UDPRoute
+  #
+  # HTTPRoute/GRPCRoute/TLSRoute use gateway.networking.k8s.io/v1
+  # TCPRoute/UDPRoute use gateway.networking.k8s.io/v1alpha2
+  routes: {}
+# http:
+#   kind: HTTPRoute                    # defaults to HTTPRoute
+#   parentRefs:
+#     - name: my-gateway
+#       namespace: gateway-system       # optional
+#       sectionName: https              # optional — gateway listener name
+#   hostnames:
+#     - app.example.com
+#   rules:
+#     - matches:
+#         - path:
+#             type: PathPrefix
+#             value: /
+#       backendRefs:
+#         - name: http                  # key from services map, auto-prefixed
+#           port: 80
+#       filters: []                     # optional: requestHeaderModifier, requestRedirect, etc.
+#       timeouts: {}                    # optional: request, backendRequest
+#   # -- Policies attached to this route
+#   policies:
+#     # -- Envoy Gateway BackendTrafficPolicy (gateway.envoyproxy.io/v1alpha1)
+#     envoy:
+#       loadBalancer:
+#         type: LeastRequest            # RoundRobin | LeastRequest | Random | ConsistentHash
+#       circuitBreaker:
+#         maxConnections: 1024
+#         maxPendingRequests: 1024
+#         maxParallelRequests: 1024
+#       retry:
+#         numRetries: 3
+#       timeout:
+#         tcp:
+#           connectTimeout: 10s
+#         http:
+#           connectionIdleTimeout: 60s
+#       rateLimit:
+#         type: Local
+#         rules:
+#           - limit:
+#               requests: 100
+#               unit: Second
+#       healthCheck:
+#         active:
+#           type: HTTP
+#           http:
+#             path: /healthz
+#       tcpKeepalive:
+#         probes: 3
+#         idleTime: 60s
+#         interval: 10s
+#       faultInjection:
+#         delay:
+#           fixedDelay: 100ms
+#           percentage: 1
+#       useClientProtocol: false
+#       # compression: []
+#       # http2: {}
+#       # dns: {}
+#       # proxyProtocol: {}
+#       # connection: {}
+#   annotations: {}
+#   labels: {}
+# grpc:
+#   kind: GRPCRoute
+#   parentRefs:
+#     - name: my-gateway
+#   hostnames:
+#     - grpc.example.com
+#   rules:
+#     - matches:
+#         - method:
+#             service: my.service
+#             method: GetItem
+#       backendRefs:
+#         - name: grpc
+#           port: 9090
+# tls-passthrough:
+#   kind: TLSRoute
+#   parentRefs:
+#     - name: my-gateway
+#       sectionName: tls
+#   hostnames:
+#     - secure.example.com
+#   rules:
+#     - backendRefs:
+#         - name: http
+#           port: 443
+# tcp:
+#   kind: TCPRoute
+#   parentRefs:
+#     - name: my-gateway
+#       sectionName: postgres
+#   rules:
+#     - backendRefs:
+#         - name: postgres
+#           port: 5432
+# udp:
+#   kind: UDPRoute
+#   parentRefs:
+#     - name: my-gateway
+#       sectionName: dns
+#   rules:
+#     - backendRefs:
+#         - name: dns
+#           port: 53
 
 # =============================================================================
 # ConfigMaps
@@ -326,6 +508,22 @@ secrets: {}
 #   stringData:
 #     password: "s3cret"
 #   # data: {}  # base64-encoded
+#   # -- Auto-generate random values via ESO Password generators (ArgoCD-safe).
+#   # Each key creates a Password generator + ExternalSecret with creationPolicy: Merge.
+#   # generate:
+#   #   api-key:
+#   #     length: 32           # default: 32
+#   #     # digits: 6          # number of digits (default: 25% of length)
+#   #     # symbols: 0         # number of symbols (default: 25% of length)
+#   #     # symbolCharacters: "!@#$%"
+#   #     # noUpper: false
+#   #     # allowRepeat: false
+#   #     # encoding: raw      # raw | base64 | base64url | base32 | hex
+#   #   webhook-secret:
+#   #     length: 64
+#   #     symbols: 0
+#   #     encoding: hex
+#   # generateRefreshInterval: "0"  # "0" = generate once, never rotate
 #   annotations: {}
 #   labels: {}
 
@@ -428,7 +626,7 @@ serviceAccount:
   # -- Service account labels
   labels: {}
   # -- Automount service account token
-  automountServiceAccountToken: ""
+  # automountServiceAccountToken: true
   # -- Image pull secrets for the service account
   imagePullSecrets: []
 
@@ -623,6 +821,8 @@ job:
   parallelism: ""
   # -- Completion mode: NonIndexed or Indexed
   completionMode: ""
+  # -- Pod replacement policy: Failed or TerminatingOrFailed (K8s 1.34+)
+  podReplacementPolicy: ""
   # -- Suspend the job
   suspend: false
 

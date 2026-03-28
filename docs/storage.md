@@ -11,7 +11,7 @@ persistence:
   data:
     storageClass: standard
     accessModes:
-      - ReadWriteOnce            # ReadWriteOnce | ReadWriteMany | ReadOnlyMany
+      - ReadWriteOnce            # ReadWriteOnce | ReadWriteMany | ReadOnlyMany | ReadWriteOncePod (1.29+)
     size: 10Gi
     annotations: {}
     labels: {}

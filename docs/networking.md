@@ -61,6 +61,7 @@ services:
     loadBalancerIP: ""
     loadBalancerSourceRanges: []
     externalTrafficPolicy: ""    # Cluster | Local
+    trafficDistribution: ""     # PreferSameNode | PreferSameZone (K8s 1.35+)
     sessionAffinity: ""
     ipFamilyPolicy: ""
     ipFamilies: []

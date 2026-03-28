@@ -32,12 +32,11 @@
           }
         },
         "env": {
-          "type": "array",
-          "description": "Unified env list. Entries with 'name' become K8s env vars. Entries with only configMapRef/secretRef become envFrom.",
-          "items": {
+          "type": "object",
+          "description": "Unified env map. Key = env var name (for value/valueFrom entries) or identifier (for configMapRef/secretRef bulk entries).",
+          "additionalProperties": {
             "type": "object",
             "properties": {
-              "name": { "type": "string" },
               "value": { "type": "string" },
               "valueFrom": { "type": "object" },
               "configMapRef": { "type": "object" },
@@ -52,6 +51,18 @@
             "limits": { "type": "object" }
           },
           "additionalProperties": false
+        },
+        "resizePolicy": {
+          "type": "array",
+          "description": "In-place resize policy (K8s 1.35+)",
+          "items": {
+            "type": "object",
+            "required": ["resourceName", "restartPolicy"],
+            "properties": {
+              "resourceName": { "type": "string" },
+              "restartPolicy": { "type": "string", "enum": ["NotRequired", "RestartContainer"] }
+            }
+          }
         },
         "securityContext": { "type": "object" },
         "healthChecks": {
@@ -86,6 +97,16 @@
           }
         }
       }
+    },
+    "initContainerSpec": {
+      "allOf": [
+        { "$ref": "#/definitions/containerSpec" },
+        {
+          "properties": {
+            "restartPolicy": { "type": "string", "enum": ["Always", ""], "description": "Set to Always for native sidecar (K8s 1.33+)" }
+          }
+        }
+      ]
     }
   },
   "properties": {
@@ -111,7 +132,7 @@
     },
     "initContainers": {
       "type": "object",
-      "additionalProperties": { "$ref": "#/definitions/containerSpec" },
+      "additionalProperties": { "$ref": "#/definitions/initContainerSpec" },
       "description": "Map of init container name to container spec (processed in alphabetical key order)"
     },
     "nodeSettings": {
@@ -178,11 +199,37 @@
           "loadBalancerIP": { "type": "string" },
           "loadBalancerSourceRanges": { "type": "array", "items": { "type": "string" } },
           "externalTrafficPolicy": { "type": "string", "enum": ["Cluster", "Local", ""] },
+          "trafficDistribution": { "type": "string", "description": "Traffic distribution: PreferSameNode or PreferSameZone (K8s 1.35+)" },
           "sessionAffinity": { "type": "string" },
           "ipFamilyPolicy": { "type": "string" },
           "ipFamilies": { "type": "array", "items": { "type": "string" } },
           "publishNotReadyAddresses": { "type": "boolean" },
           "selectorLabels": { "type": "object", "additionalProperties": { "type": "string" } },
+          "annotations": { "type": "object" },
+          "labels": { "type": "object" }
+        }
+      }
+    },
+    "oauth2Proxies": {
+      "type": "object",
+      "description": "Map of oauth2 proxy name to proxy config",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "mode": { "type": "string", "enum": ["sidecar", "deployment"], "description": "sidecar (default) runs in app pod, deployment creates separate pods" },
+          "image": { "type": "object" },
+          "replicas": { "type": "integer", "description": "Only for deployment mode" },
+          "port": { "type": "integer" },
+          "portName": { "type": "string", "description": "Port name suffix (default: proxy)" },
+          "provider": { "type": "string" },
+          "issuerUrl": { "type": "string" },
+          "emailDomains": { "type": "array", "items": { "type": "string" } },
+          "upstream": { "type": "string", "description": "Override auto-derived upstream URL" },
+          "extraArgs": { "type": "object", "additionalProperties": { "type": "string" } },
+          "args": { "type": "array", "items": { "type": "string" } },
+          "env": { "type": "object" },
+          "resources": { "type": "object" },
+          "securityContext": { "type": "object" },
           "annotations": { "type": "object" },
           "labels": { "type": "object" }
         }
@@ -194,6 +241,7 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
+          "oauth2Proxy": { "type": "string", "description": "Key from oauth2Proxies map" },
           "className": { "type": "string" },
           "annotations": { "type": "object" },
           "labels": { "type": "object" },
@@ -234,6 +282,67 @@
         }
       }
     },
+    "gatewayApi": {
+      "type": "object",
+      "properties": {
+        "routes": {
+          "type": "object",
+          "description": "Gateway API routes map",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "oauth2Proxy": { "type": "string", "description": "Key from oauth2Proxies map" },
+              "kind": { "type": "string", "enum": ["HTTPRoute", "GRPCRoute", "TLSRoute", "TCPRoute", "UDPRoute"] },
+              "parentRefs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "namespace": { "type": "string" },
+                    "sectionName": { "type": "string" },
+                    "port": { "type": "integer" }
+                  }
+                }
+              },
+              "hostnames": { "type": "array", "items": { "type": "string" } },
+              "rules": { "type": "array", "items": { "type": "object" } },
+              "policies": {
+                "type": "object",
+                "properties": {
+                  "envoy": {
+                    "type": "object",
+                    "description": "Envoy Gateway BackendTrafficPolicy settings",
+                    "properties": {
+                      "loadBalancer": { "type": "object" },
+                      "circuitBreaker": { "type": "object" },
+                      "retry": { "type": "object" },
+                      "timeout": { "type": "object" },
+                      "rateLimit": { "type": "object" },
+                      "healthCheck": { "type": "object" },
+                      "connection": { "type": "object" },
+                      "tcpKeepalive": { "type": "object" },
+                      "faultInjection": { "type": "object" },
+                      "useClientProtocol": { "type": "boolean" },
+                      "proxyProtocol": { "type": "object" },
+                      "compression": { "type": "array" },
+                      "http2": { "type": "object" },
+                      "dns": { "type": "object" },
+                      "annotations": { "type": "object" },
+                      "labels": { "type": "object" }
+                    }
+                  }
+                }
+              },
+              "annotations": { "type": "object" },
+              "labels": { "type": "object" }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "configMaps": {
       "type": "object",
       "additionalProperties": {
@@ -254,6 +363,23 @@
           "type": { "type": "string" },
           "data": { "type": "object" },
           "stringData": { "type": "object", "additionalProperties": { "type": "string" } },
+          "generate": {
+            "type": "object",
+            "description": "Auto-generate random values via ESO Password generators",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "length": { "type": "integer" },
+                "digits": { "type": "integer" },
+                "symbols": { "type": "integer" },
+                "symbolCharacters": { "type": "string" },
+                "noUpper": { "type": "boolean" },
+                "allowRepeat": { "type": "boolean" },
+                "encoding": { "type": "string", "enum": ["raw", "base64", "base64url", "base32", "hex"] }
+              }
+            }
+          },
+          "generateRefreshInterval": { "type": "string", "description": "Refresh interval for generated secrets. 0 = generate once." },
           "annotations": { "type": "object" },
           "labels": { "type": "object" }
         }
@@ -329,7 +455,7 @@
         "name": { "type": "string" },
         "annotations": { "type": "object" },
         "labels": { "type": "object" },
-        "automountServiceAccountToken": { "type": ["boolean", "string"] },
+        "automountServiceAccountToken": { "type": "boolean" },
         "imagePullSecrets": { "type": "array" }
       },
       "additionalProperties": false
@@ -440,6 +566,7 @@
         "completions": { "type": ["integer", "string"] },
         "parallelism": { "type": ["integer", "string"] },
         "completionMode": { "type": "string", "enum": ["NonIndexed", "Indexed", ""] },
+        "podReplacementPolicy": { "type": "string", "enum": ["Failed", "TerminatingOrFailed", ""], "description": "Pod replacement policy (K8s 1.34+)" },
         "suspend": { "type": "boolean" }
       },
       "additionalProperties": false
