@@ -1,6 +1,4 @@
-# Storage
-
-## Persistence
+# Persistence
 
 Persistence entries define PVC storage. For **StatefulSets**, they become [volumeClaimTemplates](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#volume-claim-templates). For all other workload types, standalone PVCs are created.
 

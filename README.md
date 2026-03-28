@@ -28,7 +28,7 @@ Multiple [Services](https://kubernetes.io/docs/concepts/services-networking/serv
 ### Configuration & Secrets
 Manage [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/), [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) (Opaque, TLS, Docker registry), and [External Secrets](https://external-secrets.io/) (AWS Secrets Manager, Vault, etc.). Auto-generate random secrets via [ESO Password generators](https://external-secrets.io/latest/api/generator/password/) — ArgoCD-safe, no `helm lookup` needed. Auto-rollout on config changes via checksum annotations.
 
-### Storage
+### Persistence
 [Persistent volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) with automatic PVC creation for Deployments and volumeClaimTemplate generation for StatefulSets. Supports existing claims, storage classes, and access modes.
 
 ### Autoscaling & Availability

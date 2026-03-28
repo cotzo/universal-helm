@@ -1,7 +1,7 @@
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "chartpack.serviceAccountName" -}}
+{{- define "chartpack.rbac.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
 {{- default (include "chartpack.fullname" .) .Values.serviceAccount.name }}
 {{- else }}

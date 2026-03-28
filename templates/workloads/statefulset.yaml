@@ -6,7 +6,7 @@ spec:
   {{- if not (or .Values.autoscaling.enabled .Values.keda.enabled) }}
   replicas: {{ .Values.statefulSet.replicaCount }}
   {{- end }}
-  serviceName: {{ include "chartpack.headlessServiceName" . }}
+  serviceName: {{ include "chartpack.networking.headlessServiceName" . }}
   {{- with .Values.statefulSet.podManagementPolicy }}
   podManagementPolicy: {{ . }}
   {{- end }}
@@ -33,7 +33,7 @@ spec:
       {{- include "chartpack.selectorLabels" . | nindent 6 }}
   template:
     {{- include "chartpack.podTemplate" . | nindent 4 }}
-  {{- $vcts := include "chartpack.storage.volumeClaimTemplates" . }}
+  {{- $vcts := include "chartpack.persistence.volumeClaimTemplates" . }}
   {{- if $vcts }}
   volumeClaimTemplates:
     {{- $vcts | nindent 4 }}

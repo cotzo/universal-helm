@@ -1,7 +1,7 @@
 {{/*
 Return the appropriate headless service name for StatefulSets
 */}}
-{{- define "chartpack.headlessServiceName" -}}
+{{- define "chartpack.networking.headlessServiceName" -}}
 {{- if .Values.statefulSet.serviceName }}
 {{- .Values.statefulSet.serviceName }}
 {{- else }}
@@ -11,8 +11,8 @@ Return the appropriate headless service name for StatefulSets
 
 {{/*
 Return the service name for a given service key.
-Usage: {{ include "chartpack.serviceName" (dict "key" "http" "context" $) }}
+Usage: {{ include "chartpack.networking.serviceName" (dict "key" "http" "context" $) }}
 */}}
-{{- define "chartpack.serviceName" -}}
+{{- define "chartpack.networking.serviceName" -}}
 {{- printf "%s-%s" (include "chartpack.fullname" .context) .key }}
 {{- end }}
