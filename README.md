@@ -20,10 +20,10 @@ Instead of maintaining separate charts per application, define your entire deplo
 ## Features
 
 ### Workloads
-Deploy any Kubernetes workload type from a single chart: [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/), [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/), [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/), [CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/), and [Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/). StatefulSets get automatic headless services and volume claim templates.
+Deploy any Kubernetes workload type from a single chart: [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/), [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/), [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/), [CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/), [Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/), and [Argo Rollout](https://argoproj.github.io/rollouts/) with canary/blue-green strategies. StatefulSets get automatic headless services and volume claim templates.
 
 ### Networking
-Multiple [Services](https://kubernetes.io/docs/concepts/services-networking/service/) per release (ClusterIP, NodePort, LoadBalancer, headless), multiple [Ingresses](https://kubernetes.io/docs/concepts/services-networking/ingress/) with different controllers and TLS configs, and [Gateway API](https://gateway-api.sigs.k8s.io/) routes (HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute) with traffic splitting, header matching, and timeouts. Service ports reference container ports by name for type-safe wiring.
+Multiple [Services](https://kubernetes.io/docs/concepts/services-networking/service/) per release (ClusterIP, NodePort, LoadBalancer, headless), multiple [Ingresses](https://kubernetes.io/docs/concepts/services-networking/ingress/) with different controllers and TLS configs, and [Gateway API](https://gateway-api.sigs.k8s.io/) routes (HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute) with traffic splitting, header matching, and timeouts. [Envoy Gateway](https://gateway.envoyproxy.io/) BackendTrafficPolicy support for rate limiting, circuit breaking, retries, and load balancing. Service ports reference container ports by name for type-safe wiring.
 
 ### Configuration & Secrets
 Manage [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/), [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) (Opaque, TLS, Docker registry), and [External Secrets](https://external-secrets.io/) (AWS Secrets Manager, Vault, etc.). Auto-generate random secrets via [ESO Password generators](https://external-secrets.io/latest/api/generator/password/) — ArgoCD-safe, no `helm lookup` needed. Auto-rollout on config changes via checksum annotations.
@@ -32,7 +32,7 @@ Manage [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/
 [Persistent volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) with automatic PVC creation for Deployments and volumeClaimTemplate generation for StatefulSets. Supports existing claims, storage classes, and access modes.
 
 ### Autoscaling & Availability
-[HPA v2](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) with CPU, memory, and custom metrics. [Pod Disruption Budgets](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for safe rollouts and node maintenance.
+[HPA v2](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) with CPU, memory, and custom metrics. [KEDA](https://keda.sh/) event-driven autoscaling with ScaledObjects (Deployments) and ScaledJobs (Jobs) — supports any KEDA trigger (SQS, Kafka, Prometheus, etc.). [Pod Disruption Budgets](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for safe rollouts and node maintenance.
 
 ### Monitoring
 [Prometheus Operator](https://prometheus-operator.dev/) and [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) support. Create multiple ServiceMonitors, PodMonitors, VMServiceScrapes, and VMPodScrapes from a single `monitors` map.
@@ -100,14 +100,14 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 
 | Guide | Description |
 |-------|-------------|
-| [Workload Types](docs/workloads.md) | Deployment, StatefulSet, DaemonSet, CronJob, Job |
+| [Workload Types](docs/workloads.md) | Deployment, StatefulSet, DaemonSet, CronJob, Job, Argo Rollout |
 | [Containers](docs/containers.md) | Container spec, env, mounts, health checks, init containers |
 | [Networking](docs/networking.md) | Services, ingresses, headless services |
-| [Gateway API Routes](docs/routes.md) | HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute |
+| [Gateway API Routes](docs/routes.md) | HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute, Envoy policies |
 | [OAuth2 Proxy](docs/oauth2-proxy.md) | Automatic oauth2-proxy integration for ingresses and routes |
-| [Configuration](docs/configuration.md) | ConfigMaps, Secrets, External Secrets |
-| [Storage](docs/storage.md) | Persistence, PVCs, StatefulSet volume claim templates |
-| [Autoscaling & Availability](docs/autoscaling.md) | HPA, PDB |
+| [Configuration](docs/configuration.md) | ConfigMaps, Secrets, External Secrets, generated secrets |
+| [Persistence](docs/persistence.md) | PVCs, StatefulSet volume claim templates |
+| [Autoscaling & Availability](docs/autoscaling.md) | HPA, KEDA (ScaledObject, ScaledJob), PDB |
 | [RBAC](docs/rbac.md) | ServiceAccount, Roles, ClusterRoles, Bindings |
 | [Monitoring](docs/monitoring.md) | Prometheus and VictoriaMetrics monitors |
 | [Scheduling](docs/scheduling.md) | Node settings, affinity, tolerations, topology spread |
@@ -126,7 +126,12 @@ See the [`ci/`](ci/) directory for tested example configurations:
 | [`minimal-values.yaml`](ci/minimal-values.yaml) | Simplest possible deployment |
 | [`deployment-values.yaml`](ci/deployment-values.yaml) | Deployment with ingress, HPA, monitoring |
 | [`statefulset-values.yaml`](ci/statefulset-values.yaml) | StatefulSet with persistence |
+| [`daemonset-values.yaml`](ci/daemonset-values.yaml) | DaemonSet with pod monitoring |
 | [`cronjob-values.yaml`](ci/cronjob-values.yaml) | Scheduled batch job |
+| [`job-values.yaml`](ci/job-values.yaml) | One-shot job |
+| [`rollout-values.yaml`](ci/rollout-values.yaml) | Argo Rollout with canary strategy |
+| [`keda-values.yaml`](ci/keda-values.yaml) | KEDA ScaledObject with Deployment |
+| [`scaledjob-values.yaml`](ci/scaledjob-values.yaml) | KEDA ScaledJob with SQS trigger |
 | [`full-values.yaml`](ci/full-values.yaml) | Every feature exercised |
 
 ## License

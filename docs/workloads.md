@@ -3,7 +3,7 @@
 The `workloadType` field selects which Kubernetes workload controller to create. Only one is active per release.
 
 ```yaml
-workloadType: Deployment  # Deployment | StatefulSet | DaemonSet | CronJob | Job
+workloadType: Deployment  # Deployment | StatefulSet | DaemonSet | CronJob | Job | Rollout
 ```
 
 ## Deployment
@@ -98,3 +98,55 @@ job:
 ```
 
 [Kubernetes Job reference](https://kubernetes.io/docs/concepts/workloads/controllers/job/)
+
+## Rollout
+
+[Argo Rollouts](https://argoproj.github.io/rollouts/) workload for progressive delivery with canary or blue-green strategies. Requires the Argo Rollouts controller installed in the cluster.
+
+```yaml
+workloadType: Rollout
+rollout:
+  replicaCount: 3
+  strategy:
+    canary:
+      steps:
+        - setWeight: 20
+        - pause: { duration: 30s }
+        - setWeight: 50
+        - pause: { duration: 30s }
+  revisionHistoryLimit: 5
+  minReadySeconds: 30
+  # restartAt: "2026-03-01T03:00:00Z"   # optional scheduled restart
+  # analysis:                             # optional background analysis
+  #   templates:
+  #     - templateName: success-rate
+```
+
+### Blue-Green Strategy
+
+```yaml
+rollout:
+  replicaCount: 3
+  strategy:
+    blueGreen:
+      activeService: stable
+      previewService: canary
+      autoPromotionEnabled: true
+      autoPromotionSeconds: 60
+
+services:
+  stable:
+    ports:
+      http:
+        port: 80
+  canary:
+    ports:
+      http:
+        port: 80
+```
+
+HPA, PDB, and KEDA all work with Rollouts -- the chart automatically sets `scaleTargetRef` to the Rollout resource.
+
+[Argo Rollouts documentation](https://argoproj.github.io/rollouts/) |
+[Canary strategy](https://argoproj.github.io/rollouts/features/canary/) |
+[Blue-green strategy](https://argoproj.github.io/rollouts/features/bluegreen/)

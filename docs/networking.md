@@ -111,3 +111,7 @@ ingresses:
 
 [Ingress reference](https://kubernetes.io/docs/concepts/services-networking/ingress/) |
 [Ingress controllers](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/)
+
+## Gateway API Routes
+
+For Gateway API based routing (HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute) and Envoy Gateway traffic policies, see [Gateway API Routes](routes.md).

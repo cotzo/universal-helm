@@ -51,6 +51,87 @@ When `autoscaling.enabled: true`, the `replicaCount` field in the workload confi
 [HPA reference](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) |
 [HPA walkthrough](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/)
 
+## KEDA
+
+[KEDA](https://keda.sh/) provides event-driven autoscaling. When `keda.enabled: true`, the chart creates a **ScaledObject** (for Deployment, StatefulSet, or Rollout) or a **ScaledJob** (for Job workloads). KEDA and HPA are mutually exclusive -- enabling KEDA suppresses the HPA `replicaCount`.
+
+### ScaledObject (Deployment / StatefulSet / Rollout)
+
+```yaml
+keda:
+  enabled: true
+  pollingInterval: 30
+  cooldownPeriod: 300
+  idleReplicaCount: 0              # 0 = scale to zero when idle
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus:9090
+        query: sum(rate(http_requests_total{service="my-app"}[2m]))
+        threshold: "100"
+  fallback:
+    failureThreshold: 3
+    replicas: 5
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+  annotations: {}
+  labels: {}
+```
+
+### ScaledJob (Job)
+
+When `workloadType: Job`, KEDA creates a ScaledJob that spawns Job pods in response to events:
+
+```yaml
+workloadType: Job
+keda:
+  enabled: true
+  pollingInterval: 15
+  maxReplicaCount: 10
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  scalingStrategy:
+    strategy: default              # default | custom | accurate
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        queueURL: https://sqs.us-east-1.amazonaws.com/123456789/my-queue
+        queueLength: "5"
+        awsRegion: us-east-1
+```
+
+### Common Trigger Examples
+
+```yaml
+# Cron schedule
+triggers:
+  - type: cron
+    metadata:
+      timezone: UTC
+      start: "0 8 * * 1-5"
+      end: "0 18 * * 1-5"
+      desiredReplicas: "5"
+
+# Kafka consumer lag
+triggers:
+  - type: kafka
+    metadata:
+      bootstrapServers: kafka:9092
+      consumerGroup: my-group
+      topic: my-topic
+      lagThreshold: "50"
+```
+
+[KEDA documentation](https://keda.sh/docs/) |
+[Scaler catalog](https://keda.sh/docs/scalers/) |
+[ScaledObject spec](https://keda.sh/docs/concepts/scaling-deployments/) |
+[ScaledJob spec](https://keda.sh/docs/concepts/scaling-jobs/)
+
 ## Pod Disruption Budget
 
 Ensures minimum availability during voluntary disruptions. Applies to Deployment, StatefulSet, and DaemonSet.

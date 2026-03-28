@@ -171,5 +171,70 @@ routes:
 
 `backendRefs[].name` references a key from the `services` map and is auto-prefixed with `<fullname>-`. The `port` is the service port number.
 
+## Envoy Gateway Traffic Policies
+
+When using [Envoy Gateway](https://gateway.envoyproxy.io/) as your Gateway implementation, you can attach a `BackendTrafficPolicy` to any route via the `policies.envoy` key:
+
+```yaml
+gatewayApi:
+  routes:
+    web:
+      kind: HTTPRoute
+      parentRefs:
+        - name: my-gateway
+      hostnames:
+        - app.example.com
+      rules:
+        - backendRefs:
+            - name: http
+              port: 80
+      policies:
+        envoy:
+          loadBalancer:
+            type: LeastRequest
+          circuitBreaker:
+            maxConnections: 2048
+            maxPendingRequests: 512
+          retry:
+            numRetries: 3
+          rateLimit:
+            global:
+              rules:
+                - limit:
+                    requests: 100
+                    unit: Second
+          timeout:
+            tcp:
+              connectTimeout: 10s
+            http:
+              connectionIdleTimeout: 60s
+          tcpKeepalive:
+            probes: 3
+            idleTime: 60s
+            interval: 10s
+```
+
+Each route with `policies.envoy` generates a `BackendTrafficPolicy` resource (`gateway.envoyproxy.io/v1alpha1`) that targets that route.
+
+### Available Policy Fields
+
+| Field | Description |
+|-------|-------------|
+| `loadBalancer` | Algorithm: RoundRobin, LeastRequest, Random, ConsistentHash |
+| `circuitBreaker` | Connection and request limits |
+| `retry` | Retry count and conditions |
+| `rateLimit` | Rate limiting rules |
+| `timeout` | TCP and HTTP timeouts |
+| `healthCheck` | Active health checking |
+| `tcpKeepalive` | TCP keep-alive configuration |
+| `faultInjection` | Delay/abort injection for testing |
+| `useClientProtocol` | Preserve client protocol (HTTP/1.1 vs HTTP/2) |
+| `compression` | Response compression |
+| `http2` | HTTP/2 settings |
+| `dns` | DNS resolution settings |
+
+[Envoy Gateway docs](https://gateway.envoyproxy.io/) |
+[BackendTrafficPolicy API](https://gateway.envoyproxy.io/docs/api/extension_types/#backendtrafficpolicy)
+
 [Gateway API reference](https://gateway-api.sigs.k8s.io/) |
 [API specification](https://gateway-api.sigs.k8s.io/reference/spec/)
