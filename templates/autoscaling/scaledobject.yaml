@@ -13,8 +13,8 @@ spec:
   {{- with .Values.keda.cooldownPeriod }}
   cooldownPeriod: {{ . }}
   {{- end }}
-  {{- with .Values.keda.idleReplicaCount }}
-  idleReplicaCount: {{ . }}
+  {{- if or (kindIs "int64" .Values.keda.idleReplicaCount) (kindIs "float64" .Values.keda.idleReplicaCount) }}
+  idleReplicaCount: {{ .Values.keda.idleReplicaCount }}
   {{- end }}
   minReplicaCount: {{ .Values.keda.minReplicaCount }}
   maxReplicaCount: {{ .Values.keda.maxReplicaCount }}
