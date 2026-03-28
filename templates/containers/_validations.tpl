@@ -111,6 +111,17 @@ Validate env references to chart-managed resources.
 {{- end }}
 
 {{/*
+Validate restartPolicy is only set on initContainers, not containers.
+*/}}
+{{- define "chartpack.validation.containers.restartPolicy" -}}
+{{- range $name, $c := .Values.containers }}
+{{- if $c.restartPolicy }}
+{{- fail (printf "containers.%s.restartPolicy: restartPolicy is only valid on initContainers (native sidecars), not containers" $name) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Run all container validations.
 */}}
 {{- define "chartpack.validation.containers" -}}
@@ -118,4 +129,5 @@ Run all container validations.
 {{- include "chartpack.validation.containers.images" . }}
 {{- include "chartpack.validation.containers.mounts" . }}
 {{- include "chartpack.validation.containers.env" . }}
+{{- include "chartpack.validation.containers.restartPolicy" . }}
 {{- end }}

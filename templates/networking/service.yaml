@@ -89,6 +89,17 @@ spec:
       nodePort: {{ $portCfg.nodePort }}
       {{- end }}
     {{- end }}
+    {{- /* Auto-inject oauth2 proxy sidecar ports */ -}}
+    {{- range $proxyName, $proxyCfg := $.Values.oauth2Proxies }}
+    {{- if and $proxyCfg (eq (default "sidecar" $proxyCfg.mode) "sidecar") }}
+    {{- if include "chartpack.networking.oauth2Proxy.needed" (dict "key" $proxyName "context" $) }}
+    - name: oauth2-{{ $proxyName }}
+      port: {{ default 4180 $proxyCfg.port }}
+      targetPort: oauth2-{{ default "proxy" $proxyCfg.portName }}
+      protocol: TCP
+    {{- end }}
+    {{- end }}
+    {{- end }}
   selector:
     {{- include "chartpack.selectorLabels" $ | nindent 4 }}
     {{- with $svc.selectorLabels }}

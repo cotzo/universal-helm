@@ -68,11 +68,14 @@ spec:
         - name: {{ $proxySvcName }}
           port: {{ $proxyPort }}
       {{- else if and $useOauth2 .backendRefs }}
-      {{- /* sidecar mode: keep original backends but change port to proxy */ -}}
+      {{- /* sidecar mode: keep original backends but change port to proxy, preserve weight */ -}}
       backendRefs:
         {{- range .backendRefs }}
         - name: {{ printf "%s-%s" $fullName .name }}
           port: {{ $proxyPort }}
+          {{- with .weight }}
+          weight: {{ . }}
+          {{- end }}
         {{- end }}
       {{- else if .backendRefs }}
       backendRefs:

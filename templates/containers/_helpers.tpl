@@ -30,10 +30,10 @@ Usage: {{ include "chartpack.containers.renderContainer" (dict "name" "app" "con
   {{- $envList := list -}}
   {{- $envFrom := list -}}
   {{- range $envName, $envCfg := $config.env -}}
-  {{- if or $envCfg.value $envCfg.valueFrom -}}
+  {{- if or (hasKey $envCfg "value") $envCfg.valueFrom -}}
   {{- /* Individual env var — key is the env var name */ -}}
-  {{- if $envCfg.value }}
-  {{- $envList = append $envList (dict "name" $envName "value" $envCfg.value) -}}
+  {{- if hasKey $envCfg "value" }}
+  {{- $envList = append $envList (dict "name" $envName "value" ($envCfg.value | toString)) -}}
   {{- else if $envCfg.valueFrom }}
   {{- $vf := dict -}}
   {{- if $envCfg.valueFrom.fieldRef }}
