@@ -455,6 +455,74 @@ ingresses:
             pathType: Prefix
 
 # =============================================================================
+# Gateway API Routes — HTTPRoute, GRPCRoute, TLSRoute
+# =============================================================================
+
+gatewayApi:
+  routes:
+    http:
+      kind: HTTPRoute
+      parentRefs:
+        - name: main-gateway
+          namespace: gateway-system
+          sectionName: https
+      hostnames:
+        - app.example.com
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - name: http
+              port: 80
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /api
+            - headers:
+                - name: X-Api-Version
+                  value: v2
+          backendRefs:
+            - name: http
+              port: 80
+              weight: 90
+            - name: http
+              port: 80
+              weight: 10
+          timeouts:
+            request: 30s
+            backendRequest: 15s
+    grpc:
+      kind: GRPCRoute
+      parentRefs:
+        - name: main-gateway
+          namespace: gateway-system
+          sectionName: grpc
+      hostnames:
+        - grpc.example.com
+      rules:
+        - matches:
+            - method:
+                service: myapp.v1.ItemService
+                method: GetItem
+          backendRefs:
+            - name: grpc
+              port: 9090
+    tls-passthrough:
+      kind: TLSRoute
+      parentRefs:
+        - name: main-gateway
+          namespace: gateway-system
+          sectionName: tls-passthrough
+      hostnames:
+        - secure.example.com
+      rules:
+        - backendRefs:
+            - name: http
+              port: 443
+
+# =============================================================================
 # ConfigMaps — app config, env vars, sidecar config
 # =============================================================================
 

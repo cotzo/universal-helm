@@ -310,6 +310,85 @@ ingresses: {}
 #           pathType: Prefix
 
 # =============================================================================
+# Gateway API Routes
+# =============================================================================
+
+# -- Gateway API configuration.
+# Gateways are NOT created by this chart — they are pre-existing infrastructure.
+# Routes reference Gateways via parentRefs.
+gatewayApi:
+  # -- Routes to create (map of name -> config).
+  # Each route specifies its kind to determine the CRD type.
+  #   kind: HTTPRoute | GRPCRoute | TLSRoute | TCPRoute | UDPRoute
+  #
+  # HTTPRoute/GRPCRoute/TLSRoute use gateway.networking.k8s.io/v1
+  # TCPRoute/UDPRoute use gateway.networking.k8s.io/v1alpha2
+  routes: {}
+# http:
+#   kind: HTTPRoute                    # defaults to HTTPRoute
+#   parentRefs:
+#     - name: my-gateway
+#       namespace: gateway-system       # optional
+#       sectionName: https              # optional — gateway listener name
+#   hostnames:
+#     - app.example.com
+#   rules:
+#     - matches:
+#         - path:
+#             type: PathPrefix
+#             value: /
+#       backendRefs:
+#         - name: http                  # key from services map, auto-prefixed
+#           port: 80
+#       filters: []                     # optional: requestHeaderModifier, requestRedirect, etc.
+#       timeouts: {}                    # optional: request, backendRequest
+#   annotations: {}
+#   labels: {}
+# grpc:
+#   kind: GRPCRoute
+#   parentRefs:
+#     - name: my-gateway
+#   hostnames:
+#     - grpc.example.com
+#   rules:
+#     - matches:
+#         - method:
+#             service: my.service
+#             method: GetItem
+#       backendRefs:
+#         - name: grpc
+#           port: 9090
+# tls-passthrough:
+#   kind: TLSRoute
+#   parentRefs:
+#     - name: my-gateway
+#       sectionName: tls
+#   hostnames:
+#     - secure.example.com
+#   rules:
+#     - backendRefs:
+#         - name: http
+#           port: 443
+# tcp:
+#   kind: TCPRoute
+#   parentRefs:
+#     - name: my-gateway
+#       sectionName: postgres
+#   rules:
+#     - backendRefs:
+#         - name: postgres
+#           port: 5432
+# udp:
+#   kind: UDPRoute
+#   parentRefs:
+#     - name: my-gateway
+#       sectionName: dns
+#   rules:
+#     - backendRefs:
+#         - name: dns
+#           port: 53
+
+# =============================================================================
 # ConfigMaps
 # =============================================================================
 

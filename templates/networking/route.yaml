@@ -1,0 +1,63 @@
+{{- $fullName := include "chartpack.fullname" . -}}
+{{- range $name, $route := .Values.gatewayApi.routes }}
+{{- if $route }}
+{{- $kind := default "HTTPRoute" $route.kind -}}
+
+{{- /* Resolve apiVersion from kind */ -}}
+{{- $apiVersion := "" -}}
+{{- if or (eq $kind "HTTPRoute") (eq $kind "GRPCRoute") (eq $kind "TLSRoute") -}}
+  {{- $apiVersion = "gateway.networking.k8s.io/v1" -}}
+{{- else if or (eq $kind "TCPRoute") (eq $kind "UDPRoute") -}}
+  {{- $apiVersion = "gateway.networking.k8s.io/v1alpha2" -}}
+{{- else -}}
+  {{- fail (printf "routes.%s: invalid kind %q. Must be HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, or UDPRoute" $name $kind) -}}
+{{- end }}
+---
+apiVersion: {{ $apiVersion }}
+kind: {{ $kind }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $route.annotations "extraLabels" $route.labels) }}
+spec:
+  parentRefs:
+    {{- range $route.parentRefs }}
+    - name: {{ .name }}
+      {{- with .namespace }}
+      namespace: {{ . }}
+      {{- end }}
+      {{- with .sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+      {{- with .port }}
+      port: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- with $route.hostnames }}
+  hostnames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range $route.rules }}
+    - {{- with .matches }}
+      matches:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .filters }}
+      filters:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .timeouts }}
+      timeouts:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .backendRefs }}
+      backendRefs:
+        {{- range .backendRefs }}
+        - name: {{ printf "%s-%s" $fullName .name }}
+          port: {{ .port }}
+          {{- with .weight }}
+          weight: {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

@@ -247,6 +247,39 @@
         }
       }
     },
+    "gatewayApi": {
+      "type": "object",
+      "properties": {
+        "routes": {
+          "type": "object",
+          "description": "Gateway API routes map",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "kind": { "type": "string", "enum": ["HTTPRoute", "GRPCRoute", "TLSRoute", "TCPRoute", "UDPRoute"] },
+              "parentRefs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "namespace": { "type": "string" },
+                    "sectionName": { "type": "string" },
+                    "port": { "type": "integer" }
+                  }
+                }
+              },
+              "hostnames": { "type": "array", "items": { "type": "string" } },
+              "rules": { "type": "array", "items": { "type": "object" } },
+              "annotations": { "type": "object" },
+              "labels": { "type": "object" }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "configMaps": {
       "type": "object",
       "additionalProperties": {

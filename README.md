@@ -21,7 +21,7 @@ Instead of maintaining separate charts per application, define your entire deplo
 Deploy any Kubernetes workload type from a single chart: [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/), [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/), [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/), [CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/), and [Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/). StatefulSets get automatic headless services and volume claim templates.
 
 ### Networking
-Multiple [Services](https://kubernetes.io/docs/concepts/services-networking/service/) per release (ClusterIP, NodePort, LoadBalancer, headless), multiple [Ingresses](https://kubernetes.io/docs/concepts/services-networking/ingress/) with different controllers and TLS configs. Service ports reference container ports by name for type-safe wiring.
+Multiple [Services](https://kubernetes.io/docs/concepts/services-networking/service/) per release (ClusterIP, NodePort, LoadBalancer, headless), multiple [Ingresses](https://kubernetes.io/docs/concepts/services-networking/ingress/) with different controllers and TLS configs, and [Gateway API](https://gateway-api.sigs.k8s.io/) routes (HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute) with traffic splitting, header matching, and timeouts. Service ports reference container ports by name for type-safe wiring.
 
 ### Configuration & Secrets
 Manage [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/), [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) (Opaque, TLS, Docker registry), and [External Secrets](https://external-secrets.io/) (AWS Secrets Manager, Vault, etc.). Auto-rollout on config changes via checksum annotations.
@@ -83,6 +83,7 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 | [Workload Types](docs/workloads.md) | Deployment, StatefulSet, DaemonSet, CronJob, Job |
 | [Containers](docs/containers.md) | Container spec, env, mounts, health checks, init containers |
 | [Networking](docs/networking.md) | Services, ingresses, headless services |
+| [Gateway API Routes](docs/routes.md) | HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute |
 | [Configuration](docs/configuration.md) | ConfigMaps, Secrets, External Secrets |
 | [Storage](docs/storage.md) | Persistence, PVCs, StatefulSet volume claim templates |
 | [Autoscaling & Availability](docs/autoscaling.md) | HPA, PDB |
