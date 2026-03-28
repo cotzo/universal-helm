@@ -11,6 +11,7 @@ keywords:
   - statefulset
   - cronjob
   - daemonset
+  - argo-rollouts
 icon: https://raw.githubusercontent.com/cotzo/chartpack/main/docs/images/logo.png
 home: https://github.com/cotzo/chartpack
 sources:

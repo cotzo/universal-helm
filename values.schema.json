@@ -112,7 +112,7 @@
   "properties": {
     "workloadType": {
       "type": "string",
-      "enum": ["Deployment", "StatefulSet", "CronJob", "Job", "DaemonSet"],
+      "enum": ["Deployment", "StatefulSet", "CronJob", "Job", "DaemonSet", "Rollout"],
       "description": "Kubernetes workload type to deploy"
     },
     "nameOverride": { "type": "string" },
@@ -509,6 +509,18 @@
           "annotations": { "type": "object" }
         }
       }
+    },
+    "rollout": {
+      "type": "object",
+      "properties": {
+        "replicaCount": { "type": "integer", "minimum": 0, "description": "Number of replicas" },
+        "strategy": { "type": "object", "description": "Argo Rollout strategy (canary or blueGreen)" },
+        "minReadySeconds": { "type": ["integer", "string"] },
+        "revisionHistoryLimit": { "type": ["integer", "string"] },
+        "restartAt": { "type": "string", "description": "Restart at time (RFC 3339 format)" },
+        "analysis": { "type": "object", "description": "Background analysis configuration" }
+      },
+      "additionalProperties": false
     },
     "deployment": {
       "type": "object",

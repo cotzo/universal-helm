@@ -1,0 +1,32 @@
+{{- include "chartpack.validate" . -}}
+{{- if eq .Values.workloadType "Rollout" }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+{{ include "chartpack.metadata" (dict "context" $) }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.rollout.replicaCount }}
+  {{- end }}
+  {{- with .Values.rollout.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.rollout.minReadySeconds }}
+  minReadySeconds: {{ . }}
+  {{- end }}
+  {{- with .Values.rollout.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ . }}
+  {{- end }}
+  {{- with .Values.rollout.restartAt }}
+  restartAt: {{ . }}
+  {{- end }}
+  {{- with .Values.rollout.analysis }}
+  analysis:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "chartpack.selectorLabels" . | nindent 6 }}
+  template:
+    {{- include "chartpack.podTemplate" . | nindent 4 }}
+{{- end }}

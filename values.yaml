@@ -737,6 +737,41 @@ monitors: {}
 # Workload-Specific Settings
 # =============================================================================
 
+# -- Argo Rollout-specific settings (requires Argo Rollouts controller)
+rollout:
+  # -- Number of replicas
+  replicaCount: 1
+  # -- Rollout strategy (canary or blueGreen)
+  strategy: {}
+  # canary:
+  #   steps:
+  #     - setWeight: 20
+  #     - pause: { duration: 30s }
+  #     - setWeight: 50
+  #     - pause: { duration: 30s }
+  #   canaryService: my-app-canary
+  #   stableService: my-app-stable
+  #   trafficRouting:
+  #     nginx:
+  #       stableIngress: my-app
+  # blueGreen:
+  #   activeService: my-app-active
+  #   previewService: my-app-preview
+  #   autoPromotionEnabled: true
+  #   autoPromotionSeconds: 30
+  # -- Min ready seconds
+  minReadySeconds: ""
+  # -- Revision history limit
+  revisionHistoryLimit: ""
+  # -- Restart at time (RFC 3339 format)
+  restartAt: ""
+  # -- Background analysis to run during an update
+  analysis: {}
+  # successfulRunHistoryLimit: 1
+  # unsuccessfulRunHistoryLimit: 3
+  # templates:
+  #   - templateName: my-analysis
+
 # -- Deployment-specific settings
 deployment:
   # -- Number of replicas

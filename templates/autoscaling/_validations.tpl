@@ -21,9 +21,9 @@ Validate HPA is only enabled for compatible workload types.
 */}}
 {{- define "chartpack.validation.autoscaling.hpa" -}}
 {{- if .Values.autoscaling.enabled }}
-{{- $compatible := list "Deployment" "StatefulSet" }}
+{{- $compatible := list "Deployment" "StatefulSet" "Rollout" }}
 {{- if not (has .Values.workloadType $compatible) }}
-{{- fail (printf "autoscaling: not applicable to workloadType %s (only Deployment, StatefulSet)" .Values.workloadType) }}
+{{- fail (printf "autoscaling: not applicable to workloadType %s (only Deployment, StatefulSet, Rollout)" .Values.workloadType) }}
 {{- end }}
 {{- if and .Values.autoscaling.minReplicas .Values.autoscaling.maxReplicas }}
 {{- if gt (int .Values.autoscaling.minReplicas) (int .Values.autoscaling.maxReplicas) }}
