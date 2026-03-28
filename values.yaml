@@ -674,28 +674,25 @@ pdb:
   labels: {}
 
 # =============================================================================
-# Service Account
-# =============================================================================
-
-serviceAccount:
-  # -- Create a service account
-  create: true
-  # -- Service account name (defaults to fullname)
-  name: ""
-  # -- Service account annotations
-  annotations: {}
-  # -- Service account labels
-  labels: {}
-  # -- Automount service account token
-  # automountServiceAccountToken: true
-  # -- Image pull secrets for the service account
-  imagePullSecrets: []
-
-# =============================================================================
 # RBAC
 # =============================================================================
 
 rbac:
+  # -- Service account configuration
+  serviceAccount:
+    # -- Create a service account
+    create: true
+    # -- Service account name (defaults to fullname)
+    name: ""
+    # -- Service account annotations
+    annotations: {}
+    # -- Service account labels
+    labels: {}
+    # -- Automount service account token
+    # automountServiceAccountToken: true
+    # -- Image pull secrets for the service account
+    imagePullSecrets: []
+
   # -- Roles to create (map of name -> config). Named <fullname>-<key>.
   roles: {}
   # configmap-reader:

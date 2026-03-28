@@ -47,9 +47,9 @@ autoscaling:
 pdb:
   enabled: true
   minAvailable: 1
-serviceAccount:
-  create: true
 rbac:
+  serviceAccount:
+    create: true
   roles:
     reader:
       rules:

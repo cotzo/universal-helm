@@ -775,14 +775,14 @@ deployment:
 # Service Account + RBAC
 # =============================================================================
 
-serviceAccount:
-  create: true
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/my-app-role
-  labels:
-    app.kubernetes.io/component: serviceaccount
-
 rbac:
+  serviceAccount:
+    create: true
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/my-app-role
+    labels:
+      app.kubernetes.io/component: serviceaccount
+
   roles:
     configmap-reader:
       rules:

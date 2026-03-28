@@ -487,21 +487,21 @@
       },
       "additionalProperties": false
     },
-    "serviceAccount": {
-      "type": "object",
-      "properties": {
-        "create": { "type": "boolean" },
-        "name": { "type": "string" },
-        "annotations": { "type": "object" },
-        "labels": { "type": "object" },
-        "automountServiceAccountToken": { "type": "boolean" },
-        "imagePullSecrets": { "type": "array" }
-      },
-      "additionalProperties": false
-    },
     "rbac": {
       "type": "object",
       "properties": {
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "create": { "type": "boolean" },
+            "name": { "type": "string" },
+            "annotations": { "type": "object" },
+            "labels": { "type": "object" },
+            "automountServiceAccountToken": { "type": "boolean" },
+            "imagePullSecrets": { "type": "array" }
+          },
+          "additionalProperties": false
+        },
         "roles": { "type": "object", "additionalProperties": { "type": "object" } },
         "clusterRoles": { "type": "object", "additionalProperties": { "type": "object" } },
         "roleBindings": { "type": "object", "additionalProperties": { "type": "object" } },

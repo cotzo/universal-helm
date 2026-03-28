@@ -45,8 +45,9 @@ tests:
           ports:
             http:
               port: 80
-      serviceAccount:
-        create: false
+      rbac:
+        serviceAccount:
+          create: false
     asserts:
       - hasDocuments:
           count: 0
@@ -66,10 +67,11 @@ tests:
           ports:
             http:
               port: 80
-      serviceAccount:
-        create: true
-        annotations:
-          eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/my-role
+      rbac:
+        serviceAccount:
+          create: true
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/my-role
     asserts:
       - equal:
           path: metadata.annotations["eks.amazonaws.com/role-arn"]

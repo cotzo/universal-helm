@@ -351,9 +351,10 @@ tests:
           ports:
             http:
               port: 80
-      serviceAccount:
-        create: true
-        name: custom-sa
+      rbac:
+        serviceAccount:
+          create: true
+          name: custom-sa
     asserts:
       - equal:
           path: spec.template.spec.serviceAccountName
