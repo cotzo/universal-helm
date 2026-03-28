@@ -24,4 +24,5 @@ Run all networking validations.
 */}}
 {{- define "chartpack.validation.networking" -}}
 {{- include "chartpack.validation.networking.servicePorts" . }}
+{{- include "chartpack.validation.networking.oauth2Proxy" . }}
 {{- end }}

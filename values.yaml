@@ -275,14 +275,63 @@ services: {}
 #     prometheus.io/scrape: "true"
 
 # =============================================================================
+# OAuth2 Proxies
+# =============================================================================
+
+# -- OAuth2 proxies (map of name -> config).
+# Each proxy gets its own Deployment + Service, created only if referenced by
+# an ingress or route via the oauth2Proxy field.
+# Traffic flow: Ingress/Route → oauth2-proxy → original backend service.
+oauth2Proxies: {}
+# corporate:
+#   mode: sidecar                # sidecar (default) | deployment
+#   image:
+#     repository: quay.io/oauth2-proxy/oauth2-proxy
+#     tag: v7.7.0
+#   replicas: 1                  # only for deployment mode
+#   port: 4180
+#   provider: oidc               # oidc | google | github | azure | gitlab | etc.
+#   issuerUrl: https://auth.corp.example.com
+#   emailDomains:
+#     - corp.example.com
+#   # upstream: ""               # auto-derived: sidecar=localhost:<container-port>, deployment=<service-url>
+#   extraArgs: {}                # key-value → --key=value
+#   args: []                     # additional raw args
+#   env:                         # same unified env map as containers
+#     CLIENT_ID:
+#       valueFrom:
+#         secretKeyRef:
+#           name: oauth2-corp-secret
+#           key: client-id
+#           external: true
+#     CLIENT_SECRET:
+#       valueFrom:
+#         secretKeyRef:
+#           name: oauth2-corp-secret
+#           key: client-secret
+#           external: true
+#     COOKIE_SECRET:
+#       valueFrom:
+#         secretKeyRef:
+#           name: oauth2-corp-secret
+#           key: cookie-secret
+#           external: true
+#   resources: {}
+#   securityContext: {}
+#   annotations: {}
+#   labels: {}
+
+# =============================================================================
 # Ingresses
 # =============================================================================
 
 # -- Ingresses to create (map of name -> config).
 # Ingresses are named <fullname>-<key>. Path backends default to the first
 # enabled service unless serviceName/servicePort are specified per path.
+# Set oauth2Proxy to a key from oauth2Proxies to route through the proxy.
 ingresses: {}
 # public:
+#   oauth2Proxy: corporate         # routes traffic through oauth2Proxies.corporate
 #   className: nginx
 #   annotations:
 #     cert-manager.io/cluster-issuer: letsencrypt-prod

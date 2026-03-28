@@ -201,12 +201,37 @@
         }
       }
     },
+    "oauth2Proxies": {
+      "type": "object",
+      "description": "Map of oauth2 proxy name to proxy config",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "mode": { "type": "string", "enum": ["sidecar", "deployment"], "description": "sidecar (default) runs in app pod, deployment creates separate pods" },
+          "image": { "type": "object" },
+          "replicas": { "type": "integer", "description": "Only for deployment mode" },
+          "port": { "type": "integer" },
+          "provider": { "type": "string" },
+          "issuerUrl": { "type": "string" },
+          "emailDomains": { "type": "array", "items": { "type": "string" } },
+          "upstream": { "type": "string", "description": "Override auto-derived upstream URL" },
+          "extraArgs": { "type": "object", "additionalProperties": { "type": "string" } },
+          "args": { "type": "array", "items": { "type": "string" } },
+          "env": { "type": "object" },
+          "resources": { "type": "object" },
+          "securityContext": { "type": "object" },
+          "annotations": { "type": "object" },
+          "labels": { "type": "object" }
+        }
+      }
+    },
     "ingresses": {
       "type": "object",
       "description": "Map of ingress name to ingress config",
       "additionalProperties": {
         "type": "object",
         "properties": {
+          "oauth2Proxy": { "type": "string", "description": "Key from oauth2Proxies map" },
           "className": { "type": "string" },
           "annotations": { "type": "object" },
           "labels": { "type": "object" },
@@ -256,6 +281,7 @@
           "additionalProperties": {
             "type": "object",
             "properties": {
+              "oauth2Proxy": { "type": "string", "description": "Key from oauth2Proxies map" },
               "kind": { "type": "string", "enum": ["HTTPRoute", "GRPCRoute", "TLSRoute", "TCPRoute", "UDPRoute"] },
               "parentRefs": {
                 "type": "array",

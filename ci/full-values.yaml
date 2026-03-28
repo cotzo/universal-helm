@@ -166,49 +166,6 @@ containers:
         external: true
         readOnly: true
 
-  oauth2-proxy:
-    image:
-      repository: quay.io/oauth2-proxy/oauth2-proxy
-      tag: v7.6.0
-    ports:
-      oauth2-proxy:
-        port: 4180
-    args:
-      - --upstream=http://localhost:8080
-      - --http-address=0.0.0.0:4180
-      - --provider=oidc
-      - --email-domain=*
-      - --cookie-secure=true
-    env:
-      OAUTH2_PROXY_CLIENT_ID:
-        valueFrom:
-          secretKeyRef:
-            name: oauth2-secret
-            key: client-id
-            external: true
-      OAUTH2_PROXY_CLIENT_SECRET:
-        valueFrom:
-          secretKeyRef:
-            name: oauth2-secret
-            key: client-secret
-            external: true
-      OAUTH2_PROXY_COOKIE_SECRET:
-        valueFrom:
-          secretKeyRef:
-            name: oauth2-secret
-            key: cookie-secret
-            external: true
-    resources:
-      requests:
-        cpu: 50m
-        memory: 64Mi
-      limits:
-        cpu: 100m
-        memory: 128Mi
-    securityContext:
-      readOnlyRootFilesystem: true
-      runAsNonRoot: true
-
   log-shipper:
     image:
       repository: fluent/fluent-bit
@@ -356,6 +313,47 @@ podSettings:
         value: "2"
 
 # =============================================================================
+# OAuth2 Proxies
+# =============================================================================
+
+oauth2Proxies:
+  corporate:
+    mode: sidecar
+    image:
+      repository: quay.io/oauth2-proxy/oauth2-proxy
+      tag: v7.7.0
+    provider: oidc
+    issuerUrl: https://auth.corp.example.com
+    emailDomains:
+      - corp.example.com
+    env:
+      CLIENT_ID:
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-corp-secret
+            key: client-id
+            external: true
+      CLIENT_SECRET:
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-corp-secret
+            key: client-secret
+            external: true
+      COOKIE_SECRET:
+        valueFrom:
+          secretKeyRef:
+            name: oauth2-corp-secret
+            key: cookie-secret
+            external: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+# =============================================================================
 # Services — ClusterIP, NodePort, headless, LoadBalancer
 # =============================================================================
 
@@ -405,6 +403,7 @@ services:
 
 ingresses:
   public:
+    oauth2Proxy: corporate
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod

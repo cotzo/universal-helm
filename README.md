@@ -35,6 +35,9 @@ Manage [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/
 ### Monitoring
 [Prometheus Operator](https://prometheus-operator.dev/) and [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) support. Create multiple ServiceMonitors, PodMonitors, VMServiceScrapes, and VMPodScrapes from a single `monitors` map.
 
+### OAuth2 Proxy
+Declarative [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) integration. Define proxies with their provider settings, then reference them on any ingress or route. The chart auto-creates the proxy infrastructure and rewires traffic. Supports sidecar mode (native K8s 1.33+ sidecar in the app pod) or deployment mode (separate pods). Upstream URL auto-derived from your service configuration.
+
 ### RBAC
 Full [RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) support: ServiceAccount with IAM annotations (EKS, GKE), Roles, ClusterRoles, and Bindings with automatic name resolution.
 
@@ -84,6 +87,7 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 | [Containers](docs/containers.md) | Container spec, env, mounts, health checks, init containers |
 | [Networking](docs/networking.md) | Services, ingresses, headless services |
 | [Gateway API Routes](docs/routes.md) | HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute |
+| [OAuth2 Proxy](docs/oauth2-proxy.md) | Automatic oauth2-proxy integration for ingresses and routes |
 | [Configuration](docs/configuration.md) | ConfigMaps, Secrets, External Secrets |
 | [Storage](docs/storage.md) | Persistence, PVCs, StatefulSet volume claim templates |
 | [Autoscaling & Availability](docs/autoscaling.md) | HPA, PDB |

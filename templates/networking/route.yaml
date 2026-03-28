@@ -13,6 +13,19 @@
 {{- else -}}
   {{- fail (printf "gatewayApi.routes.%s: invalid kind %q. Must be HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, or UDPRoute" $name $kind) -}}
 {{- end }}
+
+{{- /* Check if oauth2 proxy rewiring is needed */ -}}
+{{- $useOauth2 := false -}}
+{{- $proxyPort := 4180 -}}
+{{- $proxySvcName := "" -}}
+{{- if $route.oauth2Proxy -}}
+{{- $useOauth2 = true -}}
+{{- $proxyCfg := index $.Values.oauth2Proxies $route.oauth2Proxy -}}
+{{- $proxyPort = (default 4180 $proxyCfg.port) -}}
+{{- if eq (default "sidecar" $proxyCfg.mode) "deployment" -}}
+{{- $proxySvcName = include "chartpack.networking.oauth2Proxy.serviceName" (dict "key" $route.oauth2Proxy "context" $) -}}
+{{- end -}}
+{{- end }}
 ---
 apiVersion: {{ $apiVersion }}
 kind: {{ $kind }}
@@ -49,7 +62,19 @@ spec:
       timeouts:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .backendRefs }}
+      {{- if and $useOauth2 $proxySvcName }}
+      {{- /* deployment mode: point to proxy service */ -}}
+      backendRefs:
+        - name: {{ $proxySvcName }}
+          port: {{ $proxyPort }}
+      {{- else if and $useOauth2 .backendRefs }}
+      {{- /* sidecar mode: keep original backends but change port to proxy */ -}}
+      backendRefs:
+        {{- range .backendRefs }}
+        - name: {{ printf "%s-%s" $fullName .name }}
+          port: {{ $proxyPort }}
+        {{- end }}
+      {{- else if .backendRefs }}
       backendRefs:
         {{- range .backendRefs }}
         - name: {{ printf "%s-%s" $fullName .name }}

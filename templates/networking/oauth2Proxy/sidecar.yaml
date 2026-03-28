@@ -1,0 +1,5 @@
+{{/*
+This file does not render resources directly.
+Sidecar injection is handled by the _helpers.tpl renderSidecar template,
+called from _pod.tpl.
+*/}}
