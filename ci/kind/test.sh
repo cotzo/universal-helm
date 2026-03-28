@@ -77,15 +77,89 @@ echo "============================================"
 echo "  Tier 1: Resource Creation Tests"
 echo "============================================"
 
-tier1_test "t1-deploy" "ci/deployment-values.yaml" deployment service configmap ingress horizontalpodautoscaler poddisruptionbudget serviceaccount
+tier1_test "t1-deploy" "ci/deployment-values.yaml" deployment service configmap ingress horizontalpodautoscaler poddisruptionbudget serviceaccount servicemonitor
 tier1_test "t1-sts" "ci/statefulset-values.yaml" statefulset service serviceaccount
-tier1_test "t1-ds" "ci/daemonset-values.yaml" daemonset service serviceaccount
+tier1_test "t1-ds" "ci/daemonset-values.yaml" daemonset service serviceaccount podmonitor
 tier1_test "t1-cj" "ci/cronjob-values.yaml" cronjob secret serviceaccount
 tier1_test "t1-job" "ci/job-values.yaml" job serviceaccount
-tier1_test "t1-rollout" "ci/rollout-values.yaml" service horizontalpodautoscaler poddisruptionbudget serviceaccount
-tier1_test "t1-keda" "ci/keda-values.yaml" deployment service serviceaccount
-tier1_test "t1-sj" "ci/scaledjob-values.yaml" serviceaccount
-tier1_test "t1-full" "ci/full-values.yaml" deployment service configmap secret ingress horizontalpodautoscaler poddisruptionbudget serviceaccount role rolebinding clusterrole clusterrolebinding persistentvolumeclaim
+tier1_test "t1-rollout" "ci/rollout-values.yaml" rollout service horizontalpodautoscaler poddisruptionbudget serviceaccount
+tier1_test "t1-keda" "ci/keda-values.yaml" deployment scaledobject service serviceaccount
+tier1_test "t1-sj" "ci/scaledjob-values.yaml" scaledjob serviceaccount
+tier1_test "t1-full" "ci/full-values.yaml" deployment service configmap secret ingress horizontalpodautoscaler poddisruptionbudget serviceaccount role rolebinding clusterrole clusterrolebinding persistentvolumeclaim httproute grpcroute tlsroute backendtrafficpolicy servicemonitor podmonitor vmservicescrape vmpodscrape externalsecret
+
+echo ""
+echo "============================================"
+echo "  Tier 1.5: Autowiring Content Tests"
+echo "============================================"
+
+log_info "Tier 1.5: Installing 't1-wiring' from ci/full-values.yaml"
+if helm install "t1-wiring" "$CHART_DIR" -n "$NAMESPACE" -f "ci/full-values.yaml" --wait=false --timeout 60s 2>&1; then
+  RELEASE_NAME="t1-wiring-full-test"
+
+  # oauth2Proxy deployment mode: proxy Deployment + Service created
+  if kubectl get deployment -n "$NAMESPACE" "${RELEASE_NAME}-oauth2-gateway-auth" -o name 2>/dev/null | grep -q .; then
+    log_pass "autowiring: oauth2Proxy deployment-mode Deployment exists"
+  else
+    log_fail "autowiring: oauth2Proxy deployment-mode Deployment missing"
+  fi
+  if kubectl get service -n "$NAMESPACE" "${RELEASE_NAME}-oauth2-gateway-auth" -o name 2>/dev/null | grep -q .; then
+    log_pass "autowiring: oauth2Proxy deployment-mode Service exists"
+  else
+    log_fail "autowiring: oauth2Proxy deployment-mode Service missing"
+  fi
+
+  # oauth2Proxy sidecar mode: sidecar injected as initContainer
+  INIT_CONTAINERS=$(kubectl get deployment -n "$NAMESPACE" "${RELEASE_NAME}" -o jsonpath='{.spec.template.spec.initContainers[*].name}' 2>/dev/null)
+  if echo "$INIT_CONTAINERS" | grep -q "oauth2-corporate"; then
+    log_pass "autowiring: oauth2Proxy sidecar injected into pod"
+  else
+    log_fail "autowiring: oauth2Proxy sidecar not found in initContainers (got: $INIT_CONTAINERS)"
+  fi
+
+  # Ingress backend port rewritten to 4180 (sidecar mode)
+  INGRESS_PORT=$(kubectl get ingress -n "$NAMESPACE" "${RELEASE_NAME}-public" -o jsonpath='{.spec.rules[0].http.paths[0].backend.service.port.number}' 2>/dev/null)
+  if [ "$INGRESS_PORT" = "4180" ]; then
+    log_pass "autowiring: ingress backend port rewritten to 4180 (sidecar)"
+  else
+    log_fail "autowiring: ingress backend port expected 4180, got $INGRESS_PORT"
+  fi
+
+  # Ingress without oauth2Proxy keeps default service port (not 4180)
+  API_PORT=$(kubectl get ingress -n "$NAMESPACE" "${RELEASE_NAME}-api" -o jsonpath='{.spec.rules[0].http.paths[0].backend.service.port.number}' 2>/dev/null)
+  if [ "$API_PORT" != "4180" ] && [ -n "$API_PORT" ]; then
+    log_pass "autowiring: ingress without proxy keeps default service port ($API_PORT)"
+  else
+    log_fail "autowiring: ingress without proxy should not have port 4180"
+  fi
+
+  # HTTPRoute backendRefs rewritten to proxy service (deployment mode)
+  ROUTE_BACKEND=$(kubectl get httproute -n "$NAMESPACE" "${RELEASE_NAME}-http" -o jsonpath='{.spec.rules[0].backendRefs[0].name}' 2>/dev/null)
+  ROUTE_PORT=$(kubectl get httproute -n "$NAMESPACE" "${RELEASE_NAME}-http" -o jsonpath='{.spec.rules[0].backendRefs[0].port}' 2>/dev/null)
+  if [ "$ROUTE_BACKEND" = "${RELEASE_NAME}-oauth2-gateway-auth" ]; then
+    log_pass "autowiring: HTTPRoute backendRef rewritten to proxy service"
+  else
+    log_fail "autowiring: HTTPRoute backendRef expected '${RELEASE_NAME}-oauth2-gateway-auth', got '$ROUTE_BACKEND'"
+  fi
+  if [ "$ROUTE_PORT" = "4180" ]; then
+    log_pass "autowiring: HTTPRoute backendRef port rewritten to 4180"
+  else
+    log_fail "autowiring: HTTPRoute backendRef port expected 4180, got $ROUTE_PORT"
+  fi
+
+  # GRPCRoute without proxy keeps original backendRefs
+  GRPC_BACKEND=$(kubectl get grpcroute -n "$NAMESPACE" "${RELEASE_NAME}-grpc" -o jsonpath='{.spec.rules[0].backendRefs[0].name}' 2>/dev/null)
+  GRPC_PORT=$(kubectl get grpcroute -n "$NAMESPACE" "${RELEASE_NAME}-grpc" -o jsonpath='{.spec.rules[0].backendRefs[0].port}' 2>/dev/null)
+  if [ "$GRPC_BACKEND" = "${RELEASE_NAME}-grpc" ] && [ "$GRPC_PORT" = "9090" ]; then
+    log_pass "autowiring: GRPCRoute without proxy keeps original backend"
+  else
+    log_fail "autowiring: GRPCRoute expected '${RELEASE_NAME}-grpc:9090', got '$GRPC_BACKEND:$GRPC_PORT'"
+  fi
+
+  helm uninstall "t1-wiring" -n "$NAMESPACE" --wait --timeout 60s 2>/dev/null || true
+  sleep 2
+else
+  log_fail "autowiring: helm install failed"
+fi
 
 echo ""
 echo "============================================"

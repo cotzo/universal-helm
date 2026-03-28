@@ -50,6 +50,22 @@ spec:
   {{- end }}
   rules:
     {{- range $route.rules }}
+    {{- $refs := list -}}
+    {{- if and $useOauth2 $proxySvcName -}}
+      {{- $refs = list (dict "name" $proxySvcName "port" $proxyPort) -}}
+    {{- else if and $useOauth2 .backendRefs -}}
+      {{- range .backendRefs -}}
+        {{- $ref := dict "name" (printf "%s-%s" $fullName .name) "port" $proxyPort -}}
+        {{- if .weight }}{{ $ref = merge $ref (dict "weight" .weight) }}{{ end -}}
+        {{- $refs = append $refs $ref -}}
+      {{- end -}}
+    {{- else if .backendRefs -}}
+      {{- range .backendRefs -}}
+        {{- $ref := dict "name" (printf "%s-%s" $fullName .name) "port" .port -}}
+        {{- if .weight }}{{ $ref = merge $ref (dict "weight" .weight) }}{{ end -}}
+        {{- $refs = append $refs $ref -}}
+      {{- end -}}
+    {{- end }}
     - {{- with .matches }}
       matches:
         {{- toYaml . | nindent 8 }}
@@ -62,30 +78,9 @@ spec:
       timeouts:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if and $useOauth2 $proxySvcName }}
-      {{- /* deployment mode: point to proxy service */ -}}
+      {{- with $refs }}
       backendRefs:
-        - name: {{ $proxySvcName }}
-          port: {{ $proxyPort }}
-      {{- else if and $useOauth2 .backendRefs }}
-      {{- /* sidecar mode: keep original backends but change port to proxy, preserve weight */ -}}
-      backendRefs:
-        {{- range .backendRefs }}
-        - name: {{ printf "%s-%s" $fullName .name }}
-          port: {{ $proxyPort }}
-          {{- with .weight }}
-          weight: {{ . }}
-          {{- end }}
-        {{- end }}
-      {{- else if .backendRefs }}
-      backendRefs:
-        {{- range .backendRefs }}
-        - name: {{ printf "%s-%s" $fullName .name }}
-          port: {{ .port }}
-          {{- with .weight }}
-          weight: {{ . }}
-          {{- end }}
-        {{- end }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- end }}
 {{- end }}
