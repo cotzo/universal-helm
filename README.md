@@ -63,7 +63,7 @@ These are only required if you enable the corresponding feature in your values. 
 | Argo Rollouts | [Argo Rollouts](https://argoproj.github.io/rollouts/) | `workloadType: Rollout` | v1.6+ |
 | Gateway API routes | [Gateway API CRDs](https://gateway-api.sigs.k8s.io/) | `gatewayApi.routes` | v1.2+ |
 | Envoy traffic policies | [Envoy Gateway](https://gateway.envoyproxy.io/) | `gatewayApi.routes.*.policies.envoy` | v1.0+ |
-| KEDA autoscaling | [KEDA](https://keda.sh/) | `keda.enabled: true` | v2.12+ |
+| KEDA autoscaling | [KEDA](https://keda.sh/) | `autoscaling.keda.enabled: true` | v2.12+ |
 | External secrets | [External Secrets Operator](https://external-secrets.io/) | `externalSecrets` | v0.9+ / v2.0+ |
 | Generated secrets | [External Secrets Operator](https://external-secrets.io/) (Password generator) | `secrets.*.generate` | v0.9+ / v2.0+ |
 | Prometheus monitoring | [Prometheus Operator](https://prometheus-operator.dev/) | `monitors` (operator: prometheus) | v0.70+ |

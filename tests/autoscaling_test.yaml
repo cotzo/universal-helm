@@ -23,9 +23,10 @@ tests:
             http:
               port: 80
       autoscaling:
-        enabled: true
-        minReplicas: 2
-        maxReplicas: 5
+        hpa:
+          enabled: true
+          minReplicas: 2
+          maxReplicas: 5
     asserts:
       - isKind:
           of: HorizontalPodAutoscaler
@@ -49,7 +50,8 @@ tests:
             http:
               port: 80
       autoscaling:
-        enabled: false
+        hpa:
+          enabled: false
     asserts:
       - hasDocuments:
           count: 0
@@ -71,9 +73,10 @@ tests:
             http:
               port: 80
       autoscaling:
-        enabled: true
-        minReplicas: 1
-        maxReplicas: 5
+        hpa:
+          enabled: true
+          minReplicas: 1
+          maxReplicas: 5
     asserts:
       - equal:
           path: spec.scaleTargetRef.apiVersion
@@ -96,9 +99,10 @@ tests:
             http:
               port: 80
       autoscaling:
-        enabled: true
-        minReplicas: 1
-        maxReplicas: 5
+        hpa:
+          enabled: true
+          minReplicas: 1
+          maxReplicas: 5
     asserts:
       - equal:
           path: spec.scaleTargetRef.apiVersion
@@ -120,9 +124,10 @@ tests:
             http:
               port: 80
       autoscaling:
-        enabled: true
-        minReplicas: 3
-        maxReplicas: 15
+        hpa:
+          enabled: true
+          minReplicas: 3
+          maxReplicas: 15
     asserts:
       - equal:
           path: spec.minReplicas
@@ -148,16 +153,17 @@ tests:
             http:
               port: 80
       autoscaling:
-        enabled: true
-        minReplicas: 1
-        maxReplicas: 10
-        metrics:
-          - type: Resource
-            resource:
-              name: cpu
-              target:
-                type: Utilization
-                averageUtilization: 80
+        hpa:
+          enabled: true
+          minReplicas: 1
+          maxReplicas: 10
+          metrics:
+            - type: Resource
+              resource:
+                name: cpu
+                target:
+                  type: Utilization
+                  averageUtilization: 80
     asserts:
       - contains:
           path: spec.metrics
@@ -185,12 +191,13 @@ tests:
             http:
               port: 80
       autoscaling:
-        enabled: true
-        minReplicas: 1
-        maxReplicas: 10
-        behavior:
-          scaleDown:
-            stabilizationWindowSeconds: 300
+        hpa:
+          enabled: true
+          minReplicas: 1
+          maxReplicas: 10
+          behavior:
+            scaleDown:
+              stabilizationWindowSeconds: 300
     asserts:
       - equal:
           path: spec.behavior.scaleDown.stabilizationWindowSeconds
@@ -336,17 +343,18 @@ tests:
           ports:
             http:
               port: 80
-      keda:
-        enabled: true
-        minReplicaCount: 1
-        maxReplicaCount: 10
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 0 * * *"
-              end: "0 23 * * *"
-              desiredReplicas: "2"
+      autoscaling:
+        keda:
+          enabled: true
+          minReplicaCount: 1
+          maxReplicaCount: 10
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 0 * * *"
+                end: "0 23 * * *"
+                desiredReplicas: "2"
     asserts:
       - isKind:
           of: ScaledObject
@@ -370,17 +378,18 @@ tests:
           ports:
             http:
               port: 80
-      keda:
-        enabled: true
-        minReplicaCount: 1
-        maxReplicaCount: 10
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 0 * * *"
-              end: "0 23 * * *"
-              desiredReplicas: "2"
+      autoscaling:
+        keda:
+          enabled: true
+          minReplicaCount: 1
+          maxReplicaCount: 10
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 0 * * *"
+                end: "0 23 * * *"
+                desiredReplicas: "2"
     asserts:
       - hasDocuments:
           count: 0
@@ -401,19 +410,20 @@ tests:
           ports:
             http:
               port: 80
-      keda:
-        enabled: true
-        minReplicaCount: 1
-        maxReplicaCount: 10
-        pollingInterval: 30
-        cooldownPeriod: 60
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 0 * * *"
-              end: "0 23 * * *"
-              desiredReplicas: "2"
+      autoscaling:
+        keda:
+          enabled: true
+          minReplicaCount: 1
+          maxReplicaCount: 10
+          pollingInterval: 30
+          cooldownPeriod: 60
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 0 * * *"
+                end: "0 23 * * *"
+                desiredReplicas: "2"
     asserts:
       - equal:
           path: spec.pollingInterval
@@ -439,17 +449,18 @@ tests:
           ports:
             http:
               port: 80
-      keda:
-        enabled: true
-        minReplicaCount: 1
-        maxReplicaCount: 10
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 0 * * *"
-              end: "0 23 * * *"
-              desiredReplicas: "2"
+      autoscaling:
+        keda:
+          enabled: true
+          minReplicaCount: 1
+          maxReplicaCount: 10
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 0 * * *"
+                end: "0 23 * * *"
+                desiredReplicas: "2"
     asserts:
       - contains:
           path: spec.triggers
@@ -480,17 +491,18 @@ tests:
           ports:
             http:
               port: 80
-      keda:
-        enabled: true
-        minReplicaCount: 1
-        maxReplicaCount: 10
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 0 * * *"
-              end: "0 23 * * *"
-              desiredReplicas: "2"
+      autoscaling:
+        keda:
+          enabled: true
+          minReplicaCount: 1
+          maxReplicaCount: 10
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 0 * * *"
+                end: "0 23 * * *"
+                desiredReplicas: "2"
     asserts:
       - isKind:
           of: ScaledJob
@@ -516,17 +528,18 @@ tests:
               port: 80
       job:
         backoffLimit: 3
-      keda:
-        enabled: true
-        minReplicaCount: 1
-        maxReplicaCount: 10
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 0 * * *"
-              end: "0 23 * * *"
-              desiredReplicas: "2"
+      autoscaling:
+        keda:
+          enabled: true
+          minReplicaCount: 1
+          maxReplicaCount: 10
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 0 * * *"
+                end: "0 23 * * *"
+                desiredReplicas: "2"
     asserts:
       - equal:
           path: spec.jobTargetRef.backoffLimit
@@ -548,19 +561,20 @@ tests:
           ports:
             http:
               port: 80
-      keda:
-        enabled: true
-        minReplicaCount: 1
-        maxReplicaCount: 10
-        scalingStrategy:
-          strategy: default
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 0 * * *"
-              end: "0 23 * * *"
-              desiredReplicas: "2"
+      autoscaling:
+        keda:
+          enabled: true
+          minReplicaCount: 1
+          maxReplicaCount: 10
+          scalingStrategy:
+            strategy: default
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 0 * * *"
+                end: "0 23 * * *"
+                desiredReplicas: "2"
     asserts:
       - equal:
           path: spec.scalingStrategy.strategy

@@ -252,15 +252,16 @@ tests:
           ports:
             http:
               port: 80
-      keda:
-        enabled: true
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 8 * * *"
-              end: "0 18 * * *"
-              desiredReplicas: "1"
+      autoscaling:
+        keda:
+          enabled: true
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 8 * * *"
+                end: "0 18 * * *"
+                desiredReplicas: "1"
     asserts:
       - hasDocuments:
           count: 0

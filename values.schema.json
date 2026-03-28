@@ -426,46 +426,52 @@
     "autoscaling": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "minReplicas": { "type": "integer", "minimum": 1 },
-        "maxReplicas": { "type": "integer", "minimum": 1 },
-        "metrics": { "type": "array", "items": { "type": "object" } },
-        "behavior": { "type": "object" },
-        "annotations": { "type": "object" },
-        "labels": { "type": "object" }
-      },
-      "additionalProperties": false
-    },
-    "keda": {
-      "type": "object",
-      "properties": {
-        "enabled": { "type": "boolean" },
-        "minReplicaCount": { "type": "integer", "minimum": 0 },
-        "maxReplicaCount": { "type": "integer", "minimum": 1 },
-        "pollingInterval": { "type": ["integer", "string"] },
-        "cooldownPeriod": { "type": ["integer", "string"] },
-        "idleReplicaCount": { "type": ["integer", "string"] },
-        "fallback": { "type": "object" },
-        "advanced": { "type": "object" },
-        "triggers": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["type", "metadata"],
-            "properties": {
-              "type": { "type": "string" },
-              "name": { "type": "string" },
-              "metadata": { "type": "object" },
-              "authenticationRef": { "type": "object" },
-              "metricType": { "type": "string" }
-            }
-          }
+        "hpa": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "minReplicas": { "type": "integer", "minimum": 1 },
+            "maxReplicas": { "type": "integer", "minimum": 1 },
+            "metrics": { "type": "array", "items": { "type": "object" } },
+            "behavior": { "type": "object" },
+            "annotations": { "type": "object" },
+            "labels": { "type": "object" }
+          },
+          "additionalProperties": false
         },
-        "successfulJobsHistoryLimit": { "type": ["integer", "string"], "description": "ScaledJob: successful jobs history limit" },
-        "failedJobsHistoryLimit": { "type": ["integer", "string"], "description": "ScaledJob: failed jobs history limit" },
-        "scalingStrategy": { "type": "object", "description": "ScaledJob: scaling strategy configuration" },
-        "annotations": { "type": "object" },
-        "labels": { "type": "object" }
+        "keda": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "minReplicaCount": { "type": "integer", "minimum": 0 },
+            "maxReplicaCount": { "type": "integer", "minimum": 1 },
+            "pollingInterval": { "type": ["integer", "string"] },
+            "cooldownPeriod": { "type": ["integer", "string"] },
+            "idleReplicaCount": { "type": ["integer", "string"] },
+            "fallback": { "type": "object" },
+            "advanced": { "type": "object" },
+            "triggers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["type", "metadata"],
+                "properties": {
+                  "type": { "type": "string" },
+                  "name": { "type": "string" },
+                  "metadata": { "type": "object" },
+                  "authenticationRef": { "type": "object" },
+                  "metricType": { "type": "string" }
+                }
+              }
+            },
+            "successfulJobsHistoryLimit": { "type": ["integer", "string"], "description": "ScaledJob: successful jobs history limit" },
+            "failedJobsHistoryLimit": { "type": ["integer", "string"], "description": "ScaledJob: failed jobs history limit" },
+            "scalingStrategy": { "type": "object", "description": "ScaledJob: scaling strategy configuration" },
+            "annotations": { "type": "object" },
+            "labels": { "type": "object" }
+          },
+          "additionalProperties": false
+        }
       },
       "additionalProperties": false
     },

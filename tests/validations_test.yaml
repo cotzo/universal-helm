@@ -243,7 +243,8 @@ tests:
           image:
             repository: nginx
       autoscaling:
-        enabled: true
+        hpa:
+          enabled: true
     asserts:
       - failedTemplate:
           errorMessage: "autoscaling: not applicable to workloadType Job (only Deployment, StatefulSet, Rollout)"
@@ -255,9 +256,10 @@ tests:
           image:
             repository: nginx
       autoscaling:
-        enabled: true
-        minReplicas: 10
-        maxReplicas: 5
+        hpa:
+          enabled: true
+          minReplicas: 10
+          maxReplicas: 5
     asserts:
       - failedTemplate:
           errorMessage: "autoscaling: minReplicas (10) must be <= maxReplicas (5)"
@@ -269,16 +271,17 @@ tests:
           image:
             repository: nginx
       autoscaling:
-        enabled: true
-      keda:
-        enabled: true
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 8 * * *"
-              end: "0 18 * * *"
-              desiredReplicas: "1"
+        hpa:
+          enabled: true
+        keda:
+          enabled: true
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 8 * * *"
+                end: "0 18 * * *"
+                desiredReplicas: "1"
     asserts:
       - failedTemplate:
           errorMessage: "keda: cannot enable both keda and autoscaling (HPA) — they would conflict"
@@ -290,15 +293,16 @@ tests:
         app:
           image:
             repository: nginx
-      keda:
-        enabled: true
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 8 * * *"
-              end: "0 18 * * *"
-              desiredReplicas: "1"
+      autoscaling:
+        keda:
+          enabled: true
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 8 * * *"
+                end: "0 18 * * *"
+                desiredReplicas: "1"
     asserts:
       - failedTemplate:
           errorMessage: "keda: not applicable to workloadType DaemonSet (only Deployment, StatefulSet, Rollout, Job)"
@@ -309,9 +313,10 @@ tests:
         app:
           image:
             repository: nginx
-      keda:
-        enabled: true
-        triggers: []
+      autoscaling:
+        keda:
+          enabled: true
+          triggers: []
     asserts:
       - failedTemplate:
           errorMessage: "keda: triggers are required when keda is enabled"
@@ -322,17 +327,18 @@ tests:
         app:
           image:
             repository: nginx
-      keda:
-        enabled: true
-        minReplicaCount: 10
-        maxReplicaCount: 5
-        triggers:
-          - type: cron
-            metadata:
-              timezone: UTC
-              start: "0 8 * * *"
-              end: "0 18 * * *"
-              desiredReplicas: "1"
+      autoscaling:
+        keda:
+          enabled: true
+          minReplicaCount: 10
+          maxReplicaCount: 5
+          triggers:
+            - type: cron
+              metadata:
+                timezone: UTC
+                start: "0 8 * * *"
+                end: "0 18 * * *"
+                desiredReplicas: "1"
     asserts:
       - failedTemplate:
           errorMessage: "keda: minReplicaCount (10) must be <= maxReplicaCount (5)"

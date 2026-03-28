@@ -33,16 +33,17 @@ configMaps:
 deployment:
   replicaCount: 2
 autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 5
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 80
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 80
 pdb:
   enabled: true
   minAvailable: 1

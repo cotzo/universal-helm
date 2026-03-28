@@ -571,92 +571,89 @@ persistence: {}
 # =============================================================================
 
 autoscaling:
-  # -- Enable HPA (not applicable to CronJob, Job, DaemonSet)
-  enabled: false
-  # -- Minimum replicas
-  minReplicas: 1
-  # -- Maximum replicas
-  maxReplicas: 10
-  # -- HPA metrics (v2 API)
-  metrics: []
-  # - type: Resource
-  #   resource:
-  #     name: cpu
-  #     target:
-  #       type: Utilization
-  #       averageUtilization: 80
-  # -- HPA scaling behavior
-  behavior: {}
-  # scaleDown:
-  #   stabilizationWindowSeconds: 300
-  # -- HPA annotations
-  annotations: {}
-  # -- HPA labels
-  labels: {}
+  # -- HPA configuration (not applicable to CronJob, Job, DaemonSet)
+  hpa:
+    enabled: false
+    # -- Minimum replicas
+    minReplicas: 1
+    # -- Maximum replicas
+    maxReplicas: 10
+    # -- HPA metrics (v2 API)
+    metrics: []
+    # - type: Resource
+    #   resource:
+    #     name: cpu
+    #     target:
+    #       type: Utilization
+    #       averageUtilization: 80
+    # -- HPA scaling behavior
+    behavior: {}
+    # scaleDown:
+    #   stabilizationWindowSeconds: 300
+    # -- HPA annotations
+    annotations: {}
+    # -- HPA labels
+    labels: {}
 
-# =============================================================================
-# KEDA Autoscaling (ScaledObject)
-# =============================================================================
-
-keda:
-  # -- Enable KEDA ScaledObject/ScaledJob (not applicable to CronJob, DaemonSet)
+  # -- KEDA configuration (not applicable to CronJob, DaemonSet)
   # Creates a ScaledObject for Deployment/StatefulSet/Rollout, or a ScaledJob for Job.
-  # Cannot be used together with autoscaling.enabled (HPA)
-  enabled: false
-  # -- Minimum replicas
-  minReplicaCount: 1
-  # -- Maximum replicas
-  maxReplicaCount: 10
-  # -- Polling interval in seconds
-  pollingInterval: ""
-  # -- Cooldown period in seconds
-  cooldownPeriod: ""
-  # -- Number of replicas when idle (0 = scale to zero)
-  idleReplicaCount: ""
-  # -- Fallback configuration
-  fallback: {}
-  # failureThreshold: 3
-  # replicas: 5
-  # -- Advanced configuration (HPA settings, restore to original replica count, scaling modifiers)
-  advanced: {}
-  # horizontalPodAutoscalerConfig:
-  #   behavior:
-  #     scaleDown:
-  #       stabilizationWindowSeconds: 300
-  # restoreToOriginalReplicaCount: true
-  # scalingModifiers:
-  #   formula: ""
-  #   target: ""
-  #   activationTarget: ""
-  #   metricType: ""
-  # -- KEDA triggers (required when enabled)
-  triggers: []
-  # - type: prometheus
-  #   metadata:
-  #     serverAddress: http://prometheus:9090
-  #     query: sum(rate(http_requests_total{deployment="my-app"}[2m]))
-  #     threshold: "100"
-  # - type: cron
-  #   metadata:
-  #     timezone: Europe/Bucharest
-  #     start: "0 8 * * *"
-  #     end: "0 18 * * *"
-  #     desiredReplicas: "5"
-  # -- ScaledJob: successful jobs history limit
-  successfulJobsHistoryLimit: ""
-  # -- ScaledJob: failed jobs history limit
-  failedJobsHistoryLimit: ""
-  # -- ScaledJob: scaling strategy
-  scalingStrategy: {}
-  # strategy: default           # default, custom, accurate
-  # customScalingQueueLengthDeduction: 1
-  # customScalingRunningJobPercentage: "0.5"
-  # pendingPodConditions: []
-  # multipleScalersCalculation: ""
-  # -- ScaledObject/ScaledJob annotations
-  annotations: {}
-  # -- ScaledObject/ScaledJob labels
-  labels: {}
+  # Cannot be used together with autoscaling.hpa (they would conflict)
+  keda:
+    enabled: false
+    # -- Minimum replicas
+    minReplicaCount: 1
+    # -- Maximum replicas
+    maxReplicaCount: 10
+    # -- Polling interval in seconds
+    pollingInterval: ""
+    # -- Cooldown period in seconds
+    cooldownPeriod: ""
+    # -- Number of replicas when idle (0 = scale to zero)
+    idleReplicaCount: ""
+    # -- Fallback configuration
+    fallback: {}
+    # failureThreshold: 3
+    # replicas: 5
+    # -- Advanced configuration (HPA settings, restore to original replica count, scaling modifiers)
+    advanced: {}
+    # horizontalPodAutoscalerConfig:
+    #   behavior:
+    #     scaleDown:
+    #       stabilizationWindowSeconds: 300
+    # restoreToOriginalReplicaCount: true
+    # scalingModifiers:
+    #   formula: ""
+    #   target: ""
+    #   activationTarget: ""
+    #   metricType: ""
+    # -- KEDA triggers (required when enabled)
+    triggers: []
+    # - type: prometheus
+    #   metadata:
+    #     serverAddress: http://prometheus:9090
+    #     query: sum(rate(http_requests_total{deployment="my-app"}[2m]))
+    #     threshold: "100"
+    # - type: cron
+    #   metadata:
+    #     timezone: Europe/Bucharest
+    #     start: "0 8 * * *"
+    #     end: "0 18 * * *"
+    #     desiredReplicas: "5"
+    # -- ScaledJob: successful jobs history limit
+    successfulJobsHistoryLimit: ""
+    # -- ScaledJob: failed jobs history limit
+    failedJobsHistoryLimit: ""
+    # -- ScaledJob: scaling strategy
+    scalingStrategy: {}
+    # strategy: default           # default, custom, accurate
+    # customScalingQueueLengthDeduction: 1
+    # customScalingRunningJobPercentage: "0.5"
+    # pendingPodConditions: []
+    # multipleScalersCalculation: ""
+    # -- ScaledObject/ScaledJob annotations
+    annotations: {}
+    # -- ScaledObject/ScaledJob labels
+    labels: {}
 
 # =============================================================================
 # Pod Disruption Budget
