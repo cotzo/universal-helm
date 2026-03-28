@@ -786,6 +786,31 @@ monitors: {}
 #     - app
 
 # =============================================================================
+# Alerting Rules
+# =============================================================================
+
+# -- Alerting rules (map of name -> config).
+# Creates PrometheusRule or VMRule resources depending on operator.
+#   prometheus      → monitoring.coreos.com/v1 PrometheusRule
+#   victoriametrics → operator.victoriametrics.com/v1beta1 VMRule
+alerting: {}
+# app-alerts:
+#   operator: prometheus             # defaults to prometheus
+#   groups:
+#     - name: high-error-rate
+#       interval: 1m
+#       rules:
+#         - alert: HighErrorRate
+#           expr: rate(http_errors_total[5m]) > 0.1
+#           for: 5m
+#           labels:
+#             severity: critical
+#           annotations:
+#             summary: "High error rate on {{ $labels.instance }}"
+#   annotations: {}
+#   labels: {}
+
+# =============================================================================
 # Grafana Dashboards
 # =============================================================================
 

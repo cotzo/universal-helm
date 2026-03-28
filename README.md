@@ -37,6 +37,9 @@ Manage [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/
 ### Monitoring
 [Prometheus Operator](https://prometheus-operator.dev/) and [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) support. Create multiple ServiceMonitors, PodMonitors, VMServiceScrapes, and VMPodScrapes from a single `monitors` map.
 
+### Alerting
+[PrometheusRule](https://prometheus-operator.dev/docs/developer/alerting/) and [VMRule](https://docs.victoriametrics.com/operator/resources/vmrule/) alerting/recording rules from the `alerting` map. Same operator switch pattern as monitoring — set `operator: prometheus` or `operator: victoriametrics` per rule set. Groups use standard PromQL syntax.
+
 ### Dashboards
 [Grafana Operator](https://grafana-operator.github.io/grafana-operator/) GrafanaDashboard resources from the `dashboards.grafana` map. Supports inline JSON, grafana.com references, URL-sourced dashboards, ConfigMap references, and Jsonnet.
 
@@ -70,7 +73,9 @@ These are only required if you enable the corresponding feature in your values. 
 | External secrets | [External Secrets Operator](https://external-secrets.io/) | `config.externalSecrets` | v0.9+ / v2.0+ |
 | Generated secrets | [External Secrets Operator](https://external-secrets.io/) (Password generator) | `config.secrets.*.generate` | v0.9+ / v2.0+ |
 | Prometheus monitoring | [Prometheus Operator](https://prometheus-operator.dev/) | `monitors` (operator: prometheus) | v0.70+ |
+| Prometheus alerting | [Prometheus Operator](https://prometheus-operator.dev/) | `alerting` (operator: prometheus) | v0.70+ |
 | VictoriaMetrics monitoring | [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) | `monitors` (operator: victoriametrics) | v0.44+ |
+| VictoriaMetrics alerting | [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) | `alerting` (operator: victoriametrics) | v0.44+ |
 | Grafana dashboards | [Grafana Operator](https://grafana-operator.github.io/grafana-operator/) | `dashboards.grafana` | v5.22+ |
 
 ## Quick Start
@@ -115,6 +120,7 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 | [Autoscaling & Availability](docs/autoscaling.md) | HPA, KEDA (ScaledObject, ScaledJob), PDB |
 | [RBAC](docs/rbac.md) | ServiceAccount, Roles, ClusterRoles, Bindings |
 | [Monitoring](docs/monitoring.md) | Prometheus and VictoriaMetrics monitors |
+| [Alerting](docs/alerting.md) | PrometheusRule and VMRule alerting/recording rules |
 | [Dashboards](docs/dashboards.md) | Grafana Operator dashboards (inline JSON, grafana.com, URL) |
 | [Scheduling](docs/scheduling.md) | Node settings, affinity, tolerations, topology spread |
 | [Advanced](docs/advanced.md) | Extra resources, global settings, pod settings |

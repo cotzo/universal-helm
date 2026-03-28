@@ -559,6 +559,34 @@
         }
       }
     },
+    "alerting": {
+      "type": "object",
+      "description": "Map of alerting rule name to config (PrometheusRule or VMRule)",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["groups"],
+        "properties": {
+          "operator": { "type": "string", "enum": ["prometheus", "victoriametrics"], "description": "prometheus → PrometheusRule, victoriametrics → VMRule" },
+          "groups": {
+            "type": "array",
+            "description": "Rule groups (standard Prometheus/VM rule group format)",
+            "items": {
+              "type": "object",
+              "required": ["name", "rules"],
+              "properties": {
+                "name": { "type": "string" },
+                "interval": { "type": "string" },
+                "limit": { "type": "integer" },
+                "labels": { "type": "object" },
+                "rules": { "type": "array", "items": { "type": "object" } }
+              }
+            }
+          },
+          "annotations": { "type": "object" },
+          "labels": { "type": "object" }
+        }
+      }
+    },
     "dashboards": {
       "type": "object",
       "properties": {

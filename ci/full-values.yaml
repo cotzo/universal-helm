@@ -871,6 +871,47 @@ monitors:
       - app.kubernetes.io/name
 
 # =============================================================================
+# Alerting Rules — PrometheusRule + VMRule
+# =============================================================================
+
+alerting:
+  prom-app-alerts:
+    operator: prometheus
+    groups:
+      - name: app-alerts
+        interval: 1m
+        rules:
+          - alert: HighErrorRate
+            expr: rate(http_errors_total{job="full-test"}[5m]) > 0.1
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: High error rate detected
+          - alert: PodCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total{namespace="default"}[15m]) > 0
+            for: 10m
+            labels:
+              severity: warning
+      - name: recordings
+        rules:
+          - record: job:http_requests:rate5m
+            expr: sum(rate(http_requests_total[5m])) by (job)
+  vm-infra-alerts:
+    operator: victoriametrics
+    groups:
+      - name: infra-alerts
+        concurrency: 2
+        rules:
+          - alert: HighMemoryUsage
+            expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Node memory usage above 90%
+
+# =============================================================================
 # Grafana Dashboards
 # =============================================================================
 
