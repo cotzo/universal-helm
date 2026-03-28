@@ -352,6 +352,27 @@ oauth2Proxies:
       limits:
         cpu: 100m
         memory: 128Mi
+  gateway-auth:
+    mode: deployment
+    upstream: http://localhost:80
+    image:
+      repository: quay.io/oauth2-proxy/oauth2-proxy
+      tag: v7.7.0
+    provider: oidc
+    issuerUrl: https://auth.corp.example.com
+    emailDomains:
+      - corp.example.com
+    env:
+      CLIENT_ID:
+        value: "test-client"
+      CLIENT_SECRET:
+        value: "test-secret"
+      COOKIE_SECRET:
+        value: "test-cookie-secret-1234567890ab"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
 
 # =============================================================================
 # Services — ClusterIP, NodePort, headless, LoadBalancer
@@ -461,6 +482,7 @@ gatewayApi:
   routes:
     http:
       kind: HTTPRoute
+      oauth2Proxy: gateway-auth
       parentRefs:
         - name: main-gateway
           namespace: gateway-system
@@ -507,11 +529,11 @@ gatewayApi:
             http:
               connectionIdleTimeout: 60s
           rateLimit:
-            type: Local
-            rules:
-              - limit:
-                  requests: 100
-                  unit: Second
+            global:
+              rules:
+                - limit:
+                    requests: 100
+                    unit: Second
           tcpKeepalive:
             probes: 3
             idleTime: 60s
@@ -598,9 +620,9 @@ secrets:
   tls-certs:
     type: kubernetes.io/tls
     data:
-      tls.crt: LS0tLS1CRUdJTi...
-      tls.key: LS0tLS1CRUdJTi...
-      ca.crt: LS0tLS1CRUdJTi...
+      tls.crt: ZHVtbXktY2VydA==
+      tls.key: ZHVtbXkta2V5AA==
+      ca.crt: ZHVtbXktY2EBAA==
   env-secrets:
     stringData:
       SMTP_PASSWORD: "smtp-pass"

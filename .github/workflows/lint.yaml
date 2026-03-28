@@ -10,10 +10,10 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
 
       - name: Helm lint (default values)
         run: helm lint .
@@ -32,13 +32,27 @@ jobs:
             helm template test . --values "$f" > /dev/null
           done
 
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5
+
+      - name: Install helm-unittest
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git --verify=false
+
+      - name: Run unit tests
+        run: helm unittest .
+
   kubeconform:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
 
       - name: Install kubeconform
         run: |
@@ -51,6 +65,6 @@ jobs:
             echo "--- Validating with $f ---"
             helm template test . --values "$f" \
               | kubeconform -summary \
-                -skip ServiceMonitor,PodMonitor,VMServiceScrape,VMPodScrape,ExternalSecret,Password,BackendTrafficPolicy,HTTPRoute,GRPCRoute,TLSRoute,TCPRoute,UDPRoute \
+                -skip ServiceMonitor,PodMonitor,VMServiceScrape,VMPodScrape,ExternalSecret,Password,BackendTrafficPolicy,HTTPRoute,GRPCRoute,TLSRoute,TCPRoute,UDPRoute,ScaledObject,ScaledJob,Rollout \
                 -kubernetes-version 1.35.0
           done

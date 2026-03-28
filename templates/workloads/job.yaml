@@ -1,4 +1,4 @@
-{{- if eq .Values.workloadType "Job" }}
+{{- if and (eq .Values.workloadType "Job") (not .Values.keda.enabled) }}
 apiVersion: batch/v1
 kind: Job
 {{ include "chartpack.metadata" (dict "context" $) }}

@@ -1,0 +1,112 @@
+suite: OAuth2 Proxy rendering (deployment and sidecar modes)
+templates:
+  - templates/networking/oauth2Proxy/deployment.yaml
+  - templates/workloads/deployment.yaml
+tests:
+  # ---------------------------------------------------------------------------
+  # Deployment mode
+  # ---------------------------------------------------------------------------
+  - it: should render oauth2-proxy Deployment when mode is deployment and referenced by ingress
+    template: templates/networking/oauth2Proxy/deployment.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      oauth2Proxies:
+        corp:
+          mode: deployment
+          image:
+            repository: quay.io/oauth2-proxy/oauth2-proxy
+            tag: v7.7.0
+          upstream: "http://RELEASE-NAME-chartpack-http:80"
+      ingresses:
+        public:
+          oauth2Proxy: corp
+          hosts:
+            - host: app.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - isKind:
+          of: Deployment
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-oauth2-corp
+        documentIndex: 0
+
+  - it: should not render oauth2-proxy Deployment when not referenced by any ingress
+    template: templates/networking/oauth2Proxy/deployment.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      oauth2Proxies:
+        corp:
+          mode: deployment
+          image:
+            repository: quay.io/oauth2-proxy/oauth2-proxy
+            tag: v7.7.0
+          upstream: "http://RELEASE-NAME-chartpack-http:80"
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # ---------------------------------------------------------------------------
+  # Sidecar mode
+  # ---------------------------------------------------------------------------
+  - it: should inject sidecar as initContainer in pod template when mode is sidecar
+    template: templates/workloads/deployment.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      oauth2Proxies:
+        corp:
+          mode: sidecar
+          image:
+            repository: quay.io/oauth2-proxy/oauth2-proxy
+            tag: v7.7.0
+      ingresses:
+        public:
+          oauth2Proxy: corp
+          hosts:
+            - host: app.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: oauth2-corp
+      - equal:
+          path: spec.template.spec.initContainers[0].restartPolicy
+          value: Always

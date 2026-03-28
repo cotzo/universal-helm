@@ -21,13 +21,36 @@ Validate HPA is only enabled for compatible workload types.
 */}}
 {{- define "chartpack.validation.autoscaling.hpa" -}}
 {{- if .Values.autoscaling.enabled }}
-{{- $compatible := list "Deployment" "StatefulSet" }}
+{{- $compatible := list "Deployment" "StatefulSet" "Rollout" }}
 {{- if not (has .Values.workloadType $compatible) }}
-{{- fail (printf "autoscaling: not applicable to workloadType %s (only Deployment, StatefulSet)" .Values.workloadType) }}
+{{- fail (printf "autoscaling: not applicable to workloadType %s (only Deployment, StatefulSet, Rollout)" .Values.workloadType) }}
 {{- end }}
 {{- if and .Values.autoscaling.minReplicas .Values.autoscaling.maxReplicas }}
 {{- if gt (int .Values.autoscaling.minReplicas) (int .Values.autoscaling.maxReplicas) }}
 {{- fail (printf "autoscaling: minReplicas (%d) must be <= maxReplicas (%d)" (int .Values.autoscaling.minReplicas) (int .Values.autoscaling.maxReplicas)) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate KEDA is only enabled for compatible workload types and not with HPA.
+*/}}
+{{- define "chartpack.validation.autoscaling.keda" -}}
+{{- if .Values.keda.enabled }}
+{{- if .Values.autoscaling.enabled }}
+{{- fail "keda: cannot enable both keda and autoscaling (HPA) — they would conflict" }}
+{{- end }}
+{{- $compatible := list "Deployment" "StatefulSet" "Rollout" "Job" }}
+{{- if not (has .Values.workloadType $compatible) }}
+{{- fail (printf "keda: not applicable to workloadType %s (only Deployment, StatefulSet, Rollout, Job)" .Values.workloadType) }}
+{{- end }}
+{{- if not .Values.keda.triggers }}
+{{- fail "keda: triggers are required when keda is enabled" }}
+{{- end }}
+{{- if and .Values.keda.minReplicaCount .Values.keda.maxReplicaCount }}
+{{- if gt (int .Values.keda.minReplicaCount) (int .Values.keda.maxReplicaCount) }}
+{{- fail (printf "keda: minReplicaCount (%d) must be <= maxReplicaCount (%d)" (int .Values.keda.minReplicaCount) (int .Values.keda.maxReplicaCount)) }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -39,4 +62,5 @@ Run all autoscaling validations.
 {{- define "chartpack.validation.autoscaling" -}}
 {{- include "chartpack.validation.autoscaling.pdb" . }}
 {{- include "chartpack.validation.autoscaling.hpa" . }}
+{{- include "chartpack.validation.autoscaling.keda" . }}
 {{- end }}

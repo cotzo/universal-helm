@@ -1,0 +1,19 @@
+workloadType: CronJob
+containers:
+  job:
+    image:
+      repository: busybox
+      tag: "1.36"
+    command: ["sh", "-c", "echo hello && date"]
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+cronJob:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+job:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 60

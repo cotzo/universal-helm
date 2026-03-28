@@ -1,0 +1,418 @@
+suite: Container rendering
+templates:
+  - templates/workloads/deployment.yaml
+tests:
+  - it: should render image with tag
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+            tag: "1.27"
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "nginx:1.27"
+
+  - it: should default tag to appVersion
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "nginx:1.0.0"
+
+  - it: should set imagePullPolicy
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+            pullPolicy: Always
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+
+  - it: should render command and args
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - echo hello
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].command
+          value:
+            - /bin/sh
+            - -c
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value:
+            - echo hello
+
+  - it: should render ports with name and containerPort
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: http
+            containerPort: 80
+            protocol: TCP
+
+  - it: should render env literal value
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+          env:
+            APP_ENV:
+              value: "test"
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: APP_ENV
+            value: "test"
+
+  - it: should render env valueFrom fieldRef
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+          env:
+            POD_NAME:
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+
+  - it: should render env valueFrom configMapKeyRef with auto-prefix
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+          env:
+            LOG_LEVEL:
+              valueFrom:
+                configMapKeyRef:
+                  name: myconfig
+                  key: log-level
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      configMaps:
+        myconfig:
+          data:
+            log-level: info
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_LEVEL
+            valueFrom:
+              configMapKeyRef:
+                name: RELEASE-NAME-chartpack-myconfig
+                key: log-level
+
+  - it: should render env valueFrom secretKeyRef with external flag
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+          env:
+            API_KEY:
+              valueFrom:
+                secretKeyRef:
+                  name: external-secret
+                  key: api-key
+                  external: true
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: external-secret
+                key: api-key
+
+  - it: should render envFrom configMapRef with auto-prefix
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+          env:
+            bulk-app-config:
+              configMapRef:
+                name: myconfig
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      configMaps:
+        myconfig:
+          data:
+            key: val
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            configMapRef:
+              name: RELEASE-NAME-chartpack-myconfig
+
+  - it: should render resources
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 256Mi
+
+  - it: should render healthChecks as liveness and readiness probes
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+          healthChecks:
+            liveness:
+              httpGet:
+                path: /healthz
+                port: http
+              initialDelaySeconds: 10
+            readiness:
+              httpGet:
+                path: /ready
+                port: http
+              initialDelaySeconds: 5
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /ready
+
+  - it: should render volumeMounts from configMap mount
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+          mounts:
+            - path: /etc/config
+              configMap: myconfig
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      configMaps:
+        myconfig:
+          data:
+            config.yaml: |
+              key: value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            mountPath: /etc/config
+            name: configmap-myconfig
+
+  - it: should render initContainers
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      initContainers:
+        init:
+          image:
+            repository: busybox
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: init
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].image
+          pattern: "^busybox:"
+
+  - it: should render multiple containers
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+        sidecar:
+          image:
+            repository: envoyproxy/envoy
+          ports:
+            proxy:
+              port: 8080
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0]
+      - isNotNull:
+          path: spec.template.spec.containers[1]

@@ -595,6 +595,70 @@ autoscaling:
   labels: {}
 
 # =============================================================================
+# KEDA Autoscaling (ScaledObject)
+# =============================================================================
+
+keda:
+  # -- Enable KEDA ScaledObject/ScaledJob (not applicable to CronJob, DaemonSet)
+  # Creates a ScaledObject for Deployment/StatefulSet/Rollout, or a ScaledJob for Job.
+  # Cannot be used together with autoscaling.enabled (HPA)
+  enabled: false
+  # -- Minimum replicas
+  minReplicaCount: 1
+  # -- Maximum replicas
+  maxReplicaCount: 10
+  # -- Polling interval in seconds
+  pollingInterval: ""
+  # -- Cooldown period in seconds
+  cooldownPeriod: ""
+  # -- Number of replicas when idle (0 = scale to zero)
+  idleReplicaCount: ""
+  # -- Fallback configuration
+  fallback: {}
+  # failureThreshold: 3
+  # replicas: 5
+  # -- Advanced configuration (HPA settings, restore to original replica count, scaling modifiers)
+  advanced: {}
+  # horizontalPodAutoscalerConfig:
+  #   behavior:
+  #     scaleDown:
+  #       stabilizationWindowSeconds: 300
+  # restoreToOriginalReplicaCount: true
+  # scalingModifiers:
+  #   formula: ""
+  #   target: ""
+  #   activationTarget: ""
+  #   metricType: ""
+  # -- KEDA triggers (required when enabled)
+  triggers: []
+  # - type: prometheus
+  #   metadata:
+  #     serverAddress: http://prometheus:9090
+  #     query: sum(rate(http_requests_total{deployment="my-app"}[2m]))
+  #     threshold: "100"
+  # - type: cron
+  #   metadata:
+  #     timezone: Europe/Bucharest
+  #     start: "0 8 * * *"
+  #     end: "0 18 * * *"
+  #     desiredReplicas: "5"
+  # -- ScaledJob: successful jobs history limit
+  successfulJobsHistoryLimit: ""
+  # -- ScaledJob: failed jobs history limit
+  failedJobsHistoryLimit: ""
+  # -- ScaledJob: scaling strategy
+  scalingStrategy: {}
+  # strategy: default           # default, custom, accurate
+  # customScalingQueueLengthDeduction: 1
+  # customScalingRunningJobPercentage: "0.5"
+  # pendingPodConditions: []
+  # multipleScalersCalculation: ""
+  # -- ScaledObject/ScaledJob annotations
+  annotations: {}
+  # -- ScaledObject/ScaledJob labels
+  labels: {}
+
+# =============================================================================
 # Pod Disruption Budget
 # =============================================================================
 
@@ -736,6 +800,41 @@ monitors: {}
 # =============================================================================
 # Workload-Specific Settings
 # =============================================================================
+
+# -- Argo Rollout-specific settings (requires Argo Rollouts controller)
+rollout:
+  # -- Number of replicas
+  replicaCount: 1
+  # -- Rollout strategy (canary or blueGreen)
+  strategy: {}
+  # canary:
+  #   steps:
+  #     - setWeight: 20
+  #     - pause: { duration: 30s }
+  #     - setWeight: 50
+  #     - pause: { duration: 30s }
+  #   canaryService: my-app-canary
+  #   stableService: my-app-stable
+  #   trafficRouting:
+  #     nginx:
+  #       stableIngress: my-app
+  # blueGreen:
+  #   activeService: my-app-active
+  #   previewService: my-app-preview
+  #   autoPromotionEnabled: true
+  #   autoPromotionSeconds: 30
+  # -- Min ready seconds
+  minReadySeconds: ""
+  # -- Revision history limit
+  revisionHistoryLimit: ""
+  # -- Restart at time (RFC 3339 format)
+  restartAt: ""
+  # -- Background analysis to run during an update
+  analysis: {}
+  # successfulRunHistoryLimit: 1
+  # unsuccessfulRunHistoryLimit: 3
+  # templates:
+  #   - templateName: my-analysis
 
 # -- Deployment-specific settings
 deployment:

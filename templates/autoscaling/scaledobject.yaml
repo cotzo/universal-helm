@@ -1,0 +1,31 @@
+{{- if and .Values.keda.enabled (ne .Values.workloadType "Job") }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+{{ include "chartpack.metadata" (dict "context" $ "extraAnnotations" .Values.keda.annotations "extraLabels" .Values.keda.labels) }}
+spec:
+  scaleTargetRef:
+    apiVersion: {{ if eq .Values.workloadType "Rollout" }}argoproj.io/v1alpha1{{ else }}apps/v1{{ end }}
+    kind: {{ .Values.workloadType }}
+    name: {{ include "chartpack.fullname" . }}
+  {{- with .Values.keda.pollingInterval }}
+  pollingInterval: {{ . }}
+  {{- end }}
+  {{- with .Values.keda.cooldownPeriod }}
+  cooldownPeriod: {{ . }}
+  {{- end }}
+  {{- if or (kindIs "int64" .Values.keda.idleReplicaCount) (kindIs "float64" .Values.keda.idleReplicaCount) }}
+  idleReplicaCount: {{ .Values.keda.idleReplicaCount }}
+  {{- end }}
+  minReplicaCount: {{ .Values.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.keda.maxReplicaCount }}
+  {{- with .Values.keda.fallback }}
+  fallback:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.keda.advanced }}
+  advanced:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  triggers:
+    {{- toYaml .Values.keda.triggers | nindent 4 }}
+{{- end }}

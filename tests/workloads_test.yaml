@@ -1,0 +1,267 @@
+suite: Workload type rendering
+templates:
+  - templates/workloads/deployment.yaml
+  - templates/workloads/statefulset.yaml
+  - templates/workloads/daemonset.yaml
+  - templates/workloads/cronjob.yaml
+  - templates/workloads/job.yaml
+  - templates/workloads/rollout.yaml
+tests:
+  - it: should render only Deployment when workloadType is Deployment
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - isKind:
+          of: Deployment
+        template: templates/workloads/deployment.yaml
+      - isAPIVersion:
+          of: apps/v1
+        template: templates/workloads/deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/statefulset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/daemonset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/cronjob.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/job.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/rollout.yaml
+
+  - it: should render only StatefulSet when workloadType is StatefulSet
+    set:
+      workloadType: StatefulSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - isKind:
+          of: StatefulSet
+        template: templates/workloads/statefulset.yaml
+      - isAPIVersion:
+          of: apps/v1
+        template: templates/workloads/statefulset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/daemonset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/cronjob.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/job.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/rollout.yaml
+
+  - it: should render only DaemonSet when workloadType is DaemonSet
+    set:
+      workloadType: DaemonSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - isKind:
+          of: DaemonSet
+        template: templates/workloads/daemonset.yaml
+      - isAPIVersion:
+          of: apps/v1
+        template: templates/workloads/daemonset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/statefulset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/cronjob.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/job.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/rollout.yaml
+
+  - it: should render only CronJob when workloadType is CronJob
+    set:
+      workloadType: CronJob
+      cronJob:
+        schedule: "* * * * *"
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - isKind:
+          of: CronJob
+        template: templates/workloads/cronjob.yaml
+      - isAPIVersion:
+          of: batch/v1
+        template: templates/workloads/cronjob.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/statefulset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/daemonset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/job.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/rollout.yaml
+
+  - it: should render only Job when workloadType is Job
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - isKind:
+          of: Job
+        template: templates/workloads/job.yaml
+      - isAPIVersion:
+          of: batch/v1
+        template: templates/workloads/job.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/statefulset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/daemonset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/cronjob.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/rollout.yaml
+
+  - it: should render only Rollout when workloadType is Rollout
+    set:
+      workloadType: Rollout
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - isKind:
+          of: Rollout
+        template: templates/workloads/rollout.yaml
+      - isAPIVersion:
+          of: argoproj.io/v1alpha1
+        template: templates/workloads/rollout.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/statefulset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/daemonset.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/cronjob.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/job.yaml
+
+  - it: Job suppressed when KEDA enabled
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      keda:
+        enabled: true
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 8 * * *"
+              end: "0 18 * * *"
+              desiredReplicas: "1"
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/workloads/job.yaml

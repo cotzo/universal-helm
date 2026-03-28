@@ -1,0 +1,36 @@
+workloadType: Job
+
+containers:
+  worker:
+    image:
+      repository: my-worker
+      tag: "1.0.0"
+    env:
+      QUEUE_URL:
+        value: "https://sqs.us-east-1.amazonaws.com/123456789/my-queue"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+job:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 300
+
+keda:
+  enabled: true
+  pollingInterval: 15
+  maxReplicaCount: 10
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  scalingStrategy:
+    strategy: default
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        queueURL: https://sqs.us-east-1.amazonaws.com/123456789/my-queue
+        queueLength: "5"
+        awsRegion: us-east-1

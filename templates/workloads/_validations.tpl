@@ -2,7 +2,7 @@
 Validate workload type.
 */}}
 {{- define "chartpack.validation.workloads.type" -}}
-{{- $allowedTypes := list "Deployment" "StatefulSet" "CronJob" "Job" "DaemonSet" }}
+{{- $allowedTypes := list "Deployment" "StatefulSet" "CronJob" "Job" "DaemonSet" "Rollout" }}
 {{- if not (has .Values.workloadType $allowedTypes) }}
 {{- fail (printf "workloadType %q is invalid. Must be one of: %s" .Values.workloadType (join ", " $allowedTypes)) }}
 {{- end }}

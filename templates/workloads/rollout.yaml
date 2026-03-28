@@ -1,21 +1,28 @@
 {{- include "chartpack.validate" . -}}
-{{- if eq .Values.workloadType "Deployment" }}
-apiVersion: apps/v1
-kind: Deployment
+{{- if eq .Values.workloadType "Rollout" }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 {{ include "chartpack.metadata" (dict "context" $) }}
 spec:
   {{- if not (or .Values.autoscaling.enabled .Values.keda.enabled) }}
-  replicas: {{ .Values.deployment.replicaCount }}
+  replicas: {{ .Values.rollout.replicaCount }}
   {{- end }}
-  {{- with .Values.deployment.strategy }}
+  {{- with .Values.rollout.strategy }}
   strategy:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- with .Values.deployment.minReadySeconds }}
+  {{- with .Values.rollout.minReadySeconds }}
   minReadySeconds: {{ . }}
   {{- end }}
-  {{- with .Values.deployment.revisionHistoryLimit }}
+  {{- with .Values.rollout.revisionHistoryLimit }}
   revisionHistoryLimit: {{ . }}
+  {{- end }}
+  {{- with .Values.rollout.restartAt }}
+  restartAt: {{ . }}
+  {{- end }}
+  {{- with .Values.rollout.analysis }}
+  analysis:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   selector:
     matchLabels:

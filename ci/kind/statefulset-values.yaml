@@ -1,0 +1,34 @@
+workloadType: StatefulSet
+containers:
+  app:
+    image:
+      repository: nginx
+      tag: "1.27"
+    ports:
+      http:
+        port: 80
+    healthChecks:
+      readiness:
+        httpGet:
+          path: /
+          port: http
+    mounts:
+      - path: /data
+        persistence: data
+services:
+  http:
+    type: ClusterIP
+    ports:
+      http:
+        port: 80
+statefulSet:
+  replicaCount: 2
+  podManagementPolicy: Parallel
+persistence:
+  data:
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
+pdb:
+  enabled: true
+  maxUnavailable: 1

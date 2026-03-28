@@ -1,0 +1,14 @@
+workloadType: Job
+containers:
+  run:
+    image:
+      repository: busybox
+      tag: "1.36"
+    command: ["sh", "-c", "echo 'job complete' && sleep 2"]
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+job:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 120

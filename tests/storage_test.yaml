@@ -1,0 +1,139 @@
+suite: Storage rendering (PVC and StatefulSet volumeClaimTemplates)
+templates:
+  - templates/storage/pvc.yaml
+  - templates/workloads/statefulset.yaml
+tests:
+  # ---------------------------------------------------------------------------
+  # PVC for Deployment
+  # ---------------------------------------------------------------------------
+  - it: should render PVC for Deployment with persistence defined
+    template: templates/storage/pvc.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      persistence:
+        data:
+          size: 10Gi
+    asserts:
+      - isKind:
+          of: PersistentVolumeClaim
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-data
+
+  - it: should NOT render PVC for StatefulSet
+    template: templates/storage/pvc.yaml
+    set:
+      workloadType: StatefulSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      persistence:
+        data:
+          size: 10Gi
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should NOT render PVC when existingClaim is set
+    template: templates/storage/pvc.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      persistence:
+        data:
+          existingClaim: my-existing-pvc
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should set storageClass and accessModes on PVC
+    template: templates/storage/pvc.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      persistence:
+        data:
+          size: 5Gi
+          storageClass: fast-ssd
+          accessModes:
+            - ReadWriteMany
+    asserts:
+      - equal:
+          path: spec.storageClassName
+          value: fast-ssd
+      - contains:
+          path: spec.accessModes
+          content: "ReadWriteMany"
+
+  # ---------------------------------------------------------------------------
+  # StatefulSet volumeClaimTemplates
+  # ---------------------------------------------------------------------------
+  - it: should render volumeClaimTemplates for StatefulSet
+    template: templates/workloads/statefulset.yaml
+    set:
+      workloadType: StatefulSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      persistence:
+        data:
+          size: 20Gi
+          storageClass: standard
+    asserts:
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: spec.volumeClaimTemplates[0].metadata.name
+          value: persistence-data
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 20Gi

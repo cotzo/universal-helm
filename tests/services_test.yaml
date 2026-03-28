@@ -1,0 +1,235 @@
+suite: Service rendering
+templates:
+  - templates/networking/service.yaml
+tests:
+  - it: should render ClusterIP service
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - isKind:
+          of: Service
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-http
+      - equal:
+          path: spec.type
+          value: ClusterIP
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-http
+
+  - it: should not render services for CronJob
+    set:
+      workloadType: CronJob
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      cronJob:
+        schedule: "* * * * *"
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not render services for Job
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render NodePort service with nodePort
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          type: NodePort
+          ports:
+            http:
+              port: 80
+              nodePort: 30080
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-http
+      - contains:
+          path: spec.ports
+          content:
+            name: http
+            port: 80
+            targetPort: http
+            protocol: TCP
+            nodePort: 30080
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-http
+
+  - it: should render headless service
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          headless: true
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.clusterIP
+          value: None
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-http
+
+  - it: should render multiple services
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+            grpc:
+              port: 9090
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+        grpc:
+          ports:
+            grpc:
+              port: 9090
+    asserts:
+      - isKind:
+          of: Service
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-http
+      - isKind:
+          of: Service
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-grpc
+
+  - it: should auto-generate headless service for StatefulSet
+    set:
+      workloadType: StatefulSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - isKind:
+          of: Service
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-headless
+      - equal:
+          path: spec.clusterIP
+          value: None
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-headless
+
+  - it: should render service annotations
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+          annotations:
+            prometheus.io/scrape: "true"
+    asserts:
+      - isNotNull:
+          path: metadata.annotations
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-http
+
+  - it: should render service externalTrafficPolicy
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          type: LoadBalancer
+          externalTrafficPolicy: Local
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.externalTrafficPolicy
+          value: Local
+        documentSelector:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-http
