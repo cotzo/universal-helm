@@ -481,72 +481,65 @@ gatewayApi:
 #           port: 53
 
 # =============================================================================
-# ConfigMaps
+# Configuration (ConfigMaps, Secrets, External Secrets)
 # =============================================================================
 
-# -- ConfigMaps to create (map of name -> config).
-# Mounting and envFrom injection is configured per container via
-# configMapMounts and configMapEnvFrom in the container spec.
-configMaps: {}
-# app-config:
-#   data:
-#     config.yaml: |
-#       key: value
-#   annotations: {}
-#   labels: {}
+config:
+  # -- ConfigMaps to create (map of name -> config).
+  # Mounting and envFrom injection is configured per container via
+  # configMapMounts and configMapEnvFrom in the container spec.
+  configMaps: {}
+  # app-config:
+  #   data:
+  #     config.yaml: |
+  #       key: value
+  #   annotations: {}
+  #   labels: {}
 
-# =============================================================================
-# Secrets
-# =============================================================================
+  # -- Secrets to create (map of name -> config).
+  # Mounting and envFrom injection is configured per container via
+  # secretMounts and secretEnvFrom in the container spec.
+  secrets: {}
+  # app-secret:
+  #   type: Opaque
+  #   stringData:
+  #     password: "s3cret"
+  #   # data: {}  # base64-encoded
+  #   # -- Auto-generate random values via ESO Password generators (ArgoCD-safe).
+  #   # Each key creates a Password generator + ExternalSecret with creationPolicy: Merge.
+  #   # generate:
+  #   #   api-key:
+  #   #     length: 32           # default: 32
+  #   #     # digits: 6          # number of digits (default: 25% of length)
+  #   #     # symbols: 0         # number of symbols (default: 25% of length)
+  #   #     # symbolCharacters: "!@#$%"
+  #   #     # noUpper: false
+  #   #     # allowRepeat: false
+  #   #     # encoding: raw      # raw | base64 | base64url | base32 | hex
+  #   #   webhook-secret:
+  #   #     length: 64
+  #   #     symbols: 0
+  #   #     encoding: hex
+  #   # generateRefreshInterval: "0"  # "0" = generate once, never rotate
+  #   annotations: {}
+  #   labels: {}
 
-# -- Secrets to create (map of name -> config).
-# Mounting and envFrom injection is configured per container via
-# secretMounts and secretEnvFrom in the container spec.
-secrets: {}
-# app-secret:
-#   type: Opaque
-#   stringData:
-#     password: "s3cret"
-#   # data: {}  # base64-encoded
-#   # -- Auto-generate random values via ESO Password generators (ArgoCD-safe).
-#   # Each key creates a Password generator + ExternalSecret with creationPolicy: Merge.
-#   # generate:
-#   #   api-key:
-#   #     length: 32           # default: 32
-#   #     # digits: 6          # number of digits (default: 25% of length)
-#   #     # symbols: 0         # number of symbols (default: 25% of length)
-#   #     # symbolCharacters: "!@#$%"
-#   #     # noUpper: false
-#   #     # allowRepeat: false
-#   #     # encoding: raw      # raw | base64 | base64url | base32 | hex
-#   #   webhook-secret:
-#   #     length: 64
-#   #     symbols: 0
-#   #     encoding: hex
-#   # generateRefreshInterval: "0"  # "0" = generate once, never rotate
-#   annotations: {}
-#   labels: {}
-
-# =============================================================================
-# External Secrets
-# =============================================================================
-
-# -- External secrets (map of name -> config)
-externalSecrets: {}
-# cloud-credentials:
-#   refreshInterval: 1h
-#   secretStoreRef:
-#     name: aws-secrets-manager
-#     kind: SecretStore
-#   target:
-#     name: ""  # defaults to <fullname>-<key>
-#     creationPolicy: Owner
-#   data:
-#     - secretKey: password
-#       remoteRef:
-#         key: /prod/app/password
-#   annotations: {}
-#   labels: {}
+  # -- External secrets (map of name -> config)
+  externalSecrets: {}
+  # cloud-credentials:
+  #   refreshInterval: 1h
+  #   secretStoreRef:
+  #     name: aws-secrets-manager
+  #     kind: SecretStore
+  #   target:
+  #     name: ""  # defaults to <fullname>-<key>
+  #     creationPolicy: Owner
+  #   data:
+  #     - secretKey: password
+  #       remoteRef:
+  #         key: /prod/app/password
+  #   annotations: {}
+  #   labels: {}
 
 # =============================================================================
 # Persistence

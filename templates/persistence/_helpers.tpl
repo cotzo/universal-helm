@@ -125,12 +125,12 @@ Only includes persistence entries without existingClaim.
 Generate checksum annotations for configMaps and secrets to trigger pod rollouts on changes.
 */}}
 {{- define "chartpack.persistence.checksumAnnotations" -}}
-{{- range $name, $config := .Values.configMaps }}
+{{- range $name, $config := .Values.config.configMaps }}
 {{- if $config }}
 checksum/configmap-{{ $name }}: {{ toJson $config.data | sha256sum }}
 {{- end }}
 {{- end }}
-{{- range $name, $config := .Values.secrets }}
+{{- range $name, $config := .Values.config.secrets }}
 {{- if $config }}
 checksum/secret-{{ $name }}: {{ toJson (merge (dict) (default (dict) $config.data) (default (dict) $config.stringData)) | sha256sum }}
 {{- end }}

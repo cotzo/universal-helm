@@ -571,117 +571,118 @@ gatewayApi:
 # ConfigMaps — app config, env vars, sidecar config
 # =============================================================================
 
-configMaps:
-  app-config:
-    data:
-      config.yaml: |
-        server:
-          port: 8080
-          grpcPort: 9090
-          readTimeout: 30s
-          writeTimeout: 30s
-        logging:
-          level: info
-          format: json
-        cache:
-          enabled: true
-          ttl: 300s
-      log-level: info
-  env-config:
-    data:
-      FEATURE_FLAG_NEW_UI: "true"
-      CACHE_TTL: "300"
-      MAX_CONNECTIONS: "100"
-  fluent-bit-config:
-    data:
-      fluent-bit.conf: |
-        [SERVICE]
-            Flush 5
-            Log_Level info
-        [INPUT]
-            Name tail
-            Path /var/log/app/*.log
-            Tag app.*
-        [OUTPUT]
-            Name forward
-            Match *
-            Host fluentd.logging.svc
-            Port 24224
+config:
+  configMaps:
+    app-config:
+      data:
+        config.yaml: |
+          server:
+            port: 8080
+            grpcPort: 9090
+            readTimeout: 30s
+            writeTimeout: 30s
+          logging:
+            level: info
+            format: json
+          cache:
+            enabled: true
+            ttl: 300s
+        log-level: info
+    env-config:
+      data:
+        FEATURE_FLAG_NEW_UI: "true"
+        CACHE_TTL: "300"
+        MAX_CONNECTIONS: "100"
+    fluent-bit-config:
+      data:
+        fluent-bit.conf: |
+          [SERVICE]
+              Flush 5
+              Log_Level info
+          [INPUT]
+              Name tail
+              Path /var/log/app/*.log
+              Tag app.*
+          [OUTPUT]
+              Name forward
+              Match *
+              Host fluentd.logging.svc
+              Port 24224
 
-# =============================================================================
-# Secrets — app credentials, TLS certs, env vars, various types
-# =============================================================================
+  # =============================================================================
+  # Secrets — app credentials, TLS certs, env vars, various types
+  # =============================================================================
 
-secrets:
-  app-credentials:
-    stringData:
-      api-key: "my-api-key-value"
-      webhook-secret: "whsec_abc123"
-  tls-certs:
-    type: kubernetes.io/tls
-    data:
-      tls.crt: ZHVtbXktY2VydA==
-      tls.key: ZHVtbXkta2V5AA==
-      ca.crt: ZHVtbXktY2EBAA==
-  env-secrets:
-    stringData:
-      SMTP_PASSWORD: "smtp-pass"
-      REDIS_PASSWORD: "redis-pass"
-      JWT_SECRET: "jwt-signing-key"
-  docker-registry:
-    type: kubernetes.io/dockerconfigjson
-    data:
-      .dockerconfigjson: eyJhdXRocyI6e319
+  secrets:
+    app-credentials:
+      stringData:
+        api-key: "my-api-key-value"
+        webhook-secret: "whsec_abc123"
+    tls-certs:
+      type: kubernetes.io/tls
+      data:
+        tls.crt: ZHVtbXktY2VydA==
+        tls.key: ZHVtbXkta2V5AA==
+        ca.crt: ZHVtbXktY2EBAA==
+    env-secrets:
+      stringData:
+        SMTP_PASSWORD: "smtp-pass"
+        REDIS_PASSWORD: "redis-pass"
+        JWT_SECRET: "jwt-signing-key"
+    docker-registry:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: eyJhdXRocyI6e319
 
-  generated-creds:
-    generate:
-      api-key:
-        length: 32
-        symbols: 0
-      webhook-secret:
-        length: 64
-        encoding: hex
-      session-key:
-        length: 48
-        noUpper: true
-        allowRepeat: true
+    generated-creds:
+      generate:
+        api-key:
+          length: 32
+          symbols: 0
+        webhook-secret:
+          length: 64
+          encoding: hex
+        session-key:
+          length: 48
+          noUpper: true
+          allowRepeat: true
 
-# =============================================================================
-# External Secrets — AWS Secrets Manager + Vault
-# =============================================================================
+  # =============================================================================
+  # External Secrets — AWS Secrets Manager + Vault
+  # =============================================================================
 
-externalSecrets:
-  aws-credentials:
-    refreshInterval: 1h
-    secretStoreRef:
-      name: aws-secrets-manager
-      kind: ClusterSecretStore
-    target:
-      creationPolicy: Owner
-      deletionPolicy: Retain
-    data:
-      - secretKey: access-key-id
-        remoteRef:
-          key: /prod/app/aws-credentials
-          property: access_key_id
-      - secretKey: secret-access-key
-        remoteRef:
-          key: /prod/app/aws-credentials
-          property: secret_access_key
-  vault-db-creds:
-    refreshInterval: 30m
-    secretStoreRef:
-      name: vault-backend
-      kind: SecretStore
-    target:
-      creationPolicy: Owner
-      template:
-        type: Opaque
-        data:
-          connection-string: "postgresql://{{ .username }}:{{ .password }}@db:5432/mydb"
-    dataFrom:
-      - extract:
-          key: database/creds/my-role
+  externalSecrets:
+    aws-credentials:
+      refreshInterval: 1h
+      secretStoreRef:
+        name: aws-secrets-manager
+        kind: ClusterSecretStore
+      target:
+        creationPolicy: Owner
+        deletionPolicy: Retain
+      data:
+        - secretKey: access-key-id
+          remoteRef:
+            key: /prod/app/aws-credentials
+            property: access_key_id
+        - secretKey: secret-access-key
+          remoteRef:
+            key: /prod/app/aws-credentials
+            property: secret_access_key
+    vault-db-creds:
+      refreshInterval: 30m
+      secretStoreRef:
+        name: vault-backend
+        kind: SecretStore
+      target:
+        creationPolicy: Owner
+        template:
+          type: Opaque
+          data:
+            connection-string: "postgresql://{{ .username }}:{{ .password }}@db:5432/mydb"
+      dataFrom:
+        - extract:
+            key: database/creds/my-role
 
 # =============================================================================
 # Persistence — cache SSD, shared data

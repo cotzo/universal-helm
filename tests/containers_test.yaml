@@ -193,10 +193,11 @@ tests:
           ports:
             http:
               port: 80
-      configMaps:
-        myconfig:
-          data:
-            log-level: info
+      config:
+        configMaps:
+          myconfig:
+            data:
+              log-level: info
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
@@ -258,10 +259,11 @@ tests:
           ports:
             http:
               port: 80
-      configMaps:
-        myconfig:
-          data:
-            key: val
+      config:
+        configMaps:
+          myconfig:
+            data:
+              key: val
     asserts:
       - contains:
           path: spec.template.spec.containers[0].envFrom
@@ -351,11 +353,12 @@ tests:
           ports:
             http:
               port: 80
-      configMaps:
-        myconfig:
-          data:
-            config.yaml: |
-              key: value
+      config:
+        configMaps:
+          myconfig:
+            data:
+              config.yaml: |
+                key: value
     asserts:
       - contains:
           path: spec.template.spec.containers[0].volumeMounts

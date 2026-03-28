@@ -23,10 +23,11 @@ tests:
           ports:
             http:
               port: 80
-      configMaps:
-        myconfig:
-          data:
-            key1: value1
+      config:
+        configMaps:
+          myconfig:
+            data:
+              key1: value1
     asserts:
       - isKind:
           of: ConfigMap
@@ -49,11 +50,12 @@ tests:
           ports:
             http:
               port: 80
-      configMaps:
-        myconfig:
-          data:
-            APP_ENV: production
-            LOG_LEVEL: debug
+      config:
+        configMaps:
+          myconfig:
+            data:
+              APP_ENV: production
+              LOG_LEVEL: debug
     asserts:
       - equal:
           path: data.APP_ENV
@@ -99,10 +101,11 @@ tests:
           ports:
             http:
               port: 80
-      secrets:
-        mysecret:
-          stringData:
-            password: s3cret
+      config:
+        secrets:
+          mysecret:
+            stringData:
+              password: s3cret
     asserts:
       - isKind:
           of: Secret
@@ -125,12 +128,13 @@ tests:
           ports:
             http:
               port: 80
-      secrets:
-        tls-cert:
-          type: kubernetes.io/tls
-          stringData:
-            tls.crt: cert-data
-            tls.key: key-data
+      config:
+        secrets:
+          tls-cert:
+            type: kubernetes.io/tls
+            stringData:
+              tls.crt: cert-data
+              tls.key: key-data
     asserts:
       - equal:
           path: type
@@ -151,10 +155,11 @@ tests:
           ports:
             http:
               port: 80
-      secrets:
-        mysecret:
-          stringData:
-            DB_PASSWORD: hunter2
+      config:
+        secrets:
+          mysecret:
+            stringData:
+              DB_PASSWORD: hunter2
     asserts:
       - equal:
           path: stringData.DB_PASSWORD
@@ -178,17 +183,18 @@ tests:
           ports:
             http:
               port: 80
-      externalSecrets:
-        myext:
-          secretStoreRef:
-            name: aws-store
-            kind: ClusterSecretStore
-          target:
-            name: my-target
-          data:
-            - secretKey: password
-              remoteRef:
-                key: /prod/db/password
+      config:
+        externalSecrets:
+          myext:
+            secretStoreRef:
+              name: aws-store
+              kind: ClusterSecretStore
+            target:
+              name: my-target
+            data:
+              - secretKey: password
+                remoteRef:
+                  key: /prod/db/password
     asserts:
       - isKind:
           of: ExternalSecret
@@ -236,11 +242,12 @@ tests:
           ports:
             http:
               port: 80
-      secrets:
-        dbcreds:
-          generate:
-            password:
-              length: 24
+      config:
+        secrets:
+          dbcreds:
+            generate:
+              password:
+                length: 24
     asserts:
       - hasDocuments:
           count: 2

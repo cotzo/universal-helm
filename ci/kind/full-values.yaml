@@ -112,18 +112,19 @@ gatewayApi:
           backendRefs:
             - name: http
               port: 80
-configMaps:
-  app-config:
-    data:
-      config.yaml: "key: value"
-      test-key: "test-value"
-  env-config:
-    data:
-      FEATURE_A: "true"
-secrets:
-  app-creds:
-    stringData:
-      api-key: "test-key-123"
+config:
+  configMaps:
+    app-config:
+      data:
+        config.yaml: "key: value"
+        test-key: "test-value"
+    env-config:
+      data:
+        FEATURE_A: "true"
+  secrets:
+    app-creds:
+      stringData:
+        api-key: "test-key-123"
 persistence:
   cache:
     size: 1Gi

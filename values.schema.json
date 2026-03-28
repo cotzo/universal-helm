@@ -343,67 +343,72 @@
       },
       "additionalProperties": false
     },
-    "configMaps": {
+    "config": {
       "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "properties": {
-          "data": { "type": "object", "additionalProperties": { "type": "string" } },
-          "binaryData": { "type": "object" },
-          "annotations": { "type": "object" },
-          "labels": { "type": "object" }
-        }
-      }
-    },
-    "secrets": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "properties": {
-          "type": { "type": "string" },
-          "data": { "type": "object" },
-          "stringData": { "type": "object", "additionalProperties": { "type": "string" } },
-          "generate": {
+      "properties": {
+        "configMaps": {
+          "type": "object",
+          "additionalProperties": {
             "type": "object",
-            "description": "Auto-generate random values via ESO Password generators",
-            "additionalProperties": {
-              "type": "object",
-              "properties": {
-                "length": { "type": "integer" },
-                "digits": { "type": "integer" },
-                "symbols": { "type": "integer" },
-                "symbolCharacters": { "type": "string" },
-                "noUpper": { "type": "boolean" },
-                "allowRepeat": { "type": "boolean" },
-                "encoding": { "type": "string", "enum": ["raw", "base64", "base64url", "base32", "hex"] }
-              }
-            }
-          },
-          "generateRefreshInterval": { "type": "string", "description": "Refresh interval for generated secrets. 0 = generate once." },
-          "annotations": { "type": "object" },
-          "labels": { "type": "object" }
-        }
-      }
-    },
-    "externalSecrets": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "properties": {
-          "refreshInterval": { "type": "string" },
-          "secretStoreRef": {
-            "type": "object",
-            "required": ["name"],
             "properties": {
-              "name": { "type": "string" },
-              "kind": { "type": "string", "enum": ["SecretStore", "ClusterSecretStore"] }
+              "data": { "type": "object", "additionalProperties": { "type": "string" } },
+              "binaryData": { "type": "object" },
+              "annotations": { "type": "object" },
+              "labels": { "type": "object" }
             }
-          },
-          "target": { "type": "object" },
-          "data": { "type": "array" },
-          "dataFrom": { "type": "array" },
-          "annotations": { "type": "object" },
-          "labels": { "type": "object" }
+          }
+        },
+        "secrets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "data": { "type": "object" },
+              "stringData": { "type": "object", "additionalProperties": { "type": "string" } },
+              "generate": {
+                "type": "object",
+                "description": "Auto-generate random values via ESO Password generators",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "length": { "type": "integer" },
+                    "digits": { "type": "integer" },
+                    "symbols": { "type": "integer" },
+                    "symbolCharacters": { "type": "string" },
+                    "noUpper": { "type": "boolean" },
+                    "allowRepeat": { "type": "boolean" },
+                    "encoding": { "type": "string", "enum": ["raw", "base64", "base64url", "base32", "hex"] }
+                  }
+                }
+              },
+              "generateRefreshInterval": { "type": "string", "description": "Refresh interval for generated secrets. 0 = generate once." },
+              "annotations": { "type": "object" },
+              "labels": { "type": "object" }
+            }
+          }
+        },
+        "externalSecrets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "refreshInterval": { "type": "string" },
+              "secretStoreRef": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "kind": { "type": "string", "enum": ["SecretStore", "ClusterSecretStore"] }
+                }
+              },
+              "target": { "type": "object" },
+              "data": { "type": "array" },
+              "dataFrom": { "type": "array" },
+              "annotations": { "type": "object" },
+              "labels": { "type": "object" }
+            }
+          }
         }
       }
     },

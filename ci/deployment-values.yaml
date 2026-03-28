@@ -61,14 +61,15 @@ ingresses:
         hosts:
           - app.example.com
 
-configMaps:
-  app-config:
-    data:
-      config.yaml: |
-        server:
-          port: 8080
-        logging:
-          level: info
+config:
+  configMaps:
+    app-config:
+      data:
+        config.yaml: |
+          server:
+            port: 8080
+          logging:
+            level: info
 
 deployment:
   replicaCount: 3

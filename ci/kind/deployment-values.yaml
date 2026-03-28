@@ -25,11 +25,12 @@ services:
       http:
         port: 80
         containerPort: http
-configMaps:
-  nginx-config:
-    data:
-      default.conf: |
-        server { listen 80; location / { return 200 'ok\n'; add_header Content-Type text/plain; } }
+config:
+  configMaps:
+    nginx-config:
+      data:
+        default.conf: |
+          server { listen 80; location / { return 200 'ok\n'; add_header Content-Type text/plain; } }
 deployment:
   replicaCount: 2
 autoscaling:

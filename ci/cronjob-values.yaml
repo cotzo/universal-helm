@@ -34,7 +34,8 @@ job:
   activeDeadlineSeconds: 3600
   ttlSecondsAfterFinished: 86400
 
-secrets:
-  db-credentials:
-    stringData:
-      DB_URL: "postgres://user:pass@db:5432/mydb"
+config:
+  secrets:
+    db-credentials:
+      stringData:
+        DB_URL: "postgres://user:pass@db:5432/mydb"
