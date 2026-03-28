@@ -1,0 +1,56 @@
+suite: Extra resources
+templates:
+  - templates/extra-resources.yaml
+set:
+  containers:
+    app:
+      image:
+        repository: nginx
+      ports:
+        http:
+          port: 80
+  services:
+    http:
+      ports:
+        http:
+          port: 80
+tests:
+  - it: should not render when extraResources is empty
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render extra resource
+    set:
+      extraResources:
+        - apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: my-extra-config
+          data:
+            key: value
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: my-extra-config
+      - equal:
+          path: data.key
+          value: value
+
+  - it: should support tpl templating
+    set:
+      extraResources:
+        - apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: '{{ include "chartpack.fullname" . }}-extra'
+          data:
+            app: myapp
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-extra

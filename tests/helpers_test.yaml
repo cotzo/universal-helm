@@ -1,0 +1,38 @@
+suite: Helper templates
+templates:
+  - templates/workloads/deployment.yaml
+set:
+  containers:
+    app:
+      image:
+        repository: nginx
+      ports:
+        http:
+          port: 80
+  services:
+    http:
+      ports:
+        http:
+          port: 80
+tests:
+  - it: should set default fullname to RELEASE-NAME-chartpack
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack
+
+  - it: should use nameOverride in the name
+    set:
+      nameOverride: myapp
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-myapp
+
+  - it: should use fullnameOverride as entire name
+    set:
+      fullnameOverride: custom-name
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-name

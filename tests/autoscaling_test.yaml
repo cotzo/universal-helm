@@ -1,0 +1,568 @@
+suite: Autoscaling (HPA, PDB, KEDA)
+templates:
+  - templates/autoscaling/hpa.yaml
+  - templates/autoscaling/pdb.yaml
+  - templates/autoscaling/scaledobject.yaml
+  - templates/autoscaling/scaledjob.yaml
+tests:
+  # ---------------------------------------------------------------------------
+  # HPA
+  # ---------------------------------------------------------------------------
+  - it: should render HPA when autoscaling is enabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 5
+    asserts:
+      - isKind:
+          of: HorizontalPodAutoscaler
+        template: templates/autoscaling/hpa.yaml
+      - isAPIVersion:
+          of: autoscaling/v2
+        template: templates/autoscaling/hpa.yaml
+
+  - it: should not render HPA when disabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      autoscaling:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/autoscaling/hpa.yaml
+
+  - it: should set scaleTargetRef apiVersion to argoproj.io/v1alpha1 for Rollout
+    set:
+      workloadType: Rollout
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 5
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.apiVersion
+          value: argoproj.io/v1alpha1
+        template: templates/autoscaling/hpa.yaml
+
+  - it: should set scaleTargetRef apiVersion to apps/v1 for Deployment
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 5
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.apiVersion
+          value: apps/v1
+        template: templates/autoscaling/hpa.yaml
+
+  - it: should set min and max replicas on HPA
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      autoscaling:
+        enabled: true
+        minReplicas: 3
+        maxReplicas: 15
+    asserts:
+      - equal:
+          path: spec.minReplicas
+          value: 3
+        template: templates/autoscaling/hpa.yaml
+      - equal:
+          path: spec.maxReplicas
+          value: 15
+        template: templates/autoscaling/hpa.yaml
+
+  - it: should include HPA metrics
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 10
+        metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 80
+    asserts:
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 80
+        template: templates/autoscaling/hpa.yaml
+
+  - it: should include HPA behavior
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 10
+        behavior:
+          scaleDown:
+            stabilizationWindowSeconds: 300
+    asserts:
+      - equal:
+          path: spec.behavior.scaleDown.stabilizationWindowSeconds
+          value: 300
+        template: templates/autoscaling/hpa.yaml
+
+  # ---------------------------------------------------------------------------
+  # PDB
+  # ---------------------------------------------------------------------------
+  - it: should render PDB with minAvailable
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      pdb:
+        enabled: true
+        minAvailable: 1
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+        template: templates/autoscaling/pdb.yaml
+      - equal:
+          path: spec.minAvailable
+          value: 1
+        template: templates/autoscaling/pdb.yaml
+
+  - it: should render PDB with maxUnavailable
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      pdb:
+        enabled: true
+        maxUnavailable: 2
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 2
+        template: templates/autoscaling/pdb.yaml
+
+  - it: should not render PDB when disabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      pdb:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/autoscaling/pdb.yaml
+
+  - it: should not render PDB for CronJob
+    set:
+      workloadType: CronJob
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      cronJob:
+        schedule: "* * * * *"
+      pdb:
+        enabled: true
+        minAvailable: 1
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/autoscaling/pdb.yaml
+
+  - it: should not render PDB for Job
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      pdb:
+        enabled: true
+        minAvailable: 1
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/autoscaling/pdb.yaml
+
+  # ---------------------------------------------------------------------------
+  # KEDA ScaledObject
+  # ---------------------------------------------------------------------------
+  - it: should render ScaledObject for Deployment with KEDA
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      keda:
+        enabled: true
+        minReplicaCount: 1
+        maxReplicaCount: 10
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 0 * * *"
+              end: "0 23 * * *"
+              desiredReplicas: "2"
+    asserts:
+      - isKind:
+          of: ScaledObject
+        template: templates/autoscaling/scaledobject.yaml
+      - isAPIVersion:
+          of: keda.sh/v1alpha1
+        template: templates/autoscaling/scaledobject.yaml
+
+  - it: should not render ScaledObject for Job with KEDA
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      keda:
+        enabled: true
+        minReplicaCount: 1
+        maxReplicaCount: 10
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 0 * * *"
+              end: "0 23 * * *"
+              desiredReplicas: "2"
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/autoscaling/scaledobject.yaml
+
+  - it: should set pollingInterval and cooldownPeriod on ScaledObject
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      keda:
+        enabled: true
+        minReplicaCount: 1
+        maxReplicaCount: 10
+        pollingInterval: 30
+        cooldownPeriod: 60
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 0 * * *"
+              end: "0 23 * * *"
+              desiredReplicas: "2"
+    asserts:
+      - equal:
+          path: spec.pollingInterval
+          value: 30
+        template: templates/autoscaling/scaledobject.yaml
+      - equal:
+          path: spec.cooldownPeriod
+          value: 60
+        template: templates/autoscaling/scaledobject.yaml
+
+  - it: should render triggers on ScaledObject
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      keda:
+        enabled: true
+        minReplicaCount: 1
+        maxReplicaCount: 10
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 0 * * *"
+              end: "0 23 * * *"
+              desiredReplicas: "2"
+    asserts:
+      - contains:
+          path: spec.triggers
+          content:
+            type: cron
+            metadata:
+              timezone: UTC
+              start: "0 0 * * *"
+              end: "0 23 * * *"
+              desiredReplicas: "2"
+        template: templates/autoscaling/scaledobject.yaml
+
+  # ---------------------------------------------------------------------------
+  # KEDA ScaledJob
+  # ---------------------------------------------------------------------------
+  - it: should render ScaledJob for Job with KEDA
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      keda:
+        enabled: true
+        minReplicaCount: 1
+        maxReplicaCount: 10
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 0 * * *"
+              end: "0 23 * * *"
+              desiredReplicas: "2"
+    asserts:
+      - isKind:
+          of: ScaledJob
+        template: templates/autoscaling/scaledjob.yaml
+      - isAPIVersion:
+          of: keda.sh/v1alpha1
+        template: templates/autoscaling/scaledjob.yaml
+
+  - it: should include jobTargetRef with backoffLimit on ScaledJob
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      job:
+        backoffLimit: 3
+      keda:
+        enabled: true
+        minReplicaCount: 1
+        maxReplicaCount: 10
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 0 * * *"
+              end: "0 23 * * *"
+              desiredReplicas: "2"
+    asserts:
+      - equal:
+          path: spec.jobTargetRef.backoffLimit
+          value: 3
+        template: templates/autoscaling/scaledjob.yaml
+
+  - it: should include scalingStrategy on ScaledJob
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      keda:
+        enabled: true
+        minReplicaCount: 1
+        maxReplicaCount: 10
+        scalingStrategy:
+          strategy: default
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 0 * * *"
+              end: "0 23 * * *"
+              desiredReplicas: "2"
+    asserts:
+      - equal:
+          path: spec.scalingStrategy.strategy
+          value: default
+        template: templates/autoscaling/scaledjob.yaml

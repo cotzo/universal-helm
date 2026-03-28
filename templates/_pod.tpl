@@ -9,11 +9,14 @@ metadata:
     {{- with .Values.podSettings.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
+  {{- $checksumAnnotations := include "chartpack.storage.checksumAnnotations" . }}
+  {{- if or $checksumAnnotations .Values.podSettings.annotations }}
   annotations:
-    {{- include "chartpack.storage.checksumAnnotations" . | nindent 4 }}
+    {{- $checksumAnnotations | nindent 4 }}
     {{- with .Values.podSettings.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
+  {{- end }}
 spec:
   {{- with .Values.podSettings.imagePullSecrets }}
   imagePullSecrets:

@@ -1,0 +1,361 @@
+suite: Pod template spec
+templates:
+  - templates/workloads/deployment.yaml
+  - templates/workloads/job.yaml
+tests:
+  - it: should render imagePullSecrets
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      podSettings:
+        imagePullSecrets:
+          - name: my-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.imagePullSecrets
+          content:
+            name: my-secret
+        template: templates/workloads/deployment.yaml
+
+  - it: should render pod securityContext
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      podSettings:
+        securityContext:
+          runAsUser: 1000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 1000
+        template: templates/workloads/deployment.yaml
+
+  - it: should render pod annotations
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      podSettings:
+        annotations:
+          test: "true"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.test
+          value: "true"
+        template: templates/workloads/deployment.yaml
+
+  - it: should render pod labels including selectorLabels
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      podSettings:
+        labels:
+          custom: label
+    asserts:
+      - isNotNull:
+          path: spec.template.metadata.labels
+        template: templates/workloads/deployment.yaml
+      - equal:
+          path: spec.template.metadata.labels.custom
+          value: label
+        template: templates/workloads/deployment.yaml
+
+  - it: should render nodeSelector
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      podSettings:
+        nodeSelector:
+          node-type: worker
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-type
+          value: worker
+        template: templates/workloads/deployment.yaml
+
+  - it: should render tolerations
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      podSettings:
+        tolerations:
+          - key: dedicated
+            operator: Equal
+            value: gpu
+            effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: gpu
+            effect: NoSchedule
+        template: templates/workloads/deployment.yaml
+
+  - it: should render nodeAffinity from nodeSettings.os
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      nodeSettings:
+        os:
+          - linux
+    asserts:
+      - contains:
+          path: spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions
+          content:
+            key: kubernetes.io/os
+            operator: In
+            values:
+              - linux
+        template: templates/workloads/deployment.yaml
+
+  - it: should render nodeAffinity from nodeSettings.arch
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      nodeSettings:
+        arch:
+          - amd64
+          - arm64
+    asserts:
+      - contains:
+          path: spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions
+          content:
+            key: kubernetes.io/arch
+            operator: In
+            values:
+              - amd64
+              - arm64
+        template: templates/workloads/deployment.yaml
+
+  - it: should render priorityClassName
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      podSettings:
+        priorityClassName: high-priority
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: high-priority
+        template: templates/workloads/deployment.yaml
+
+  - it: should render terminationGracePeriodSeconds
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      podSettings:
+        terminationGracePeriodSeconds: 60
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 60
+        template: templates/workloads/deployment.yaml
+
+  - it: should render dnsPolicy and dnsConfig
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      podSettings:
+        dnsPolicy: None
+        dnsConfig:
+          nameservers:
+            - 8.8.8.8
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: None
+        template: templates/workloads/deployment.yaml
+      - contains:
+          path: spec.template.spec.dnsConfig.nameservers
+          content: 8.8.8.8
+        template: templates/workloads/deployment.yaml
+
+  - it: should render hostNetwork
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      podSettings:
+        hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+        template: templates/workloads/deployment.yaml
+
+  - it: should render restartPolicy OnFailure for Job
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.template.spec.restartPolicy
+          value: OnFailure
+        template: templates/workloads/job.yaml
+
+  - it: should render serviceAccountName
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      serviceAccount:
+        create: true
+        name: custom-sa
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: custom-sa
+        template: templates/workloads/deployment.yaml

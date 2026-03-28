@@ -1,0 +1,238 @@
+suite: Replica suppression
+tests:
+  # ===========================================================================
+  # Deployment
+  # ===========================================================================
+
+  - it: "Deployment: should include replicas when neither HPA nor KEDA enabled"
+    templates:
+      - templates/workloads/deployment.yaml
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: "Deployment: should suppress replicas when HPA enabled"
+    templates:
+      - templates/workloads/deployment.yaml
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      autoscaling:
+        enabled: true
+    asserts:
+      - isNull:
+          path: spec.replicas
+
+  - it: "Deployment: should suppress replicas when KEDA enabled"
+    templates:
+      - templates/workloads/deployment.yaml
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      keda:
+        enabled: true
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 8 * * *"
+              end: "0 18 * * *"
+              desiredReplicas: "1"
+    asserts:
+      - isNull:
+          path: spec.replicas
+
+  # ===========================================================================
+  # StatefulSet
+  # ===========================================================================
+
+  - it: "StatefulSet: should include replicas when neither HPA nor KEDA enabled"
+    templates:
+      - templates/workloads/statefulset.yaml
+    set:
+      workloadType: StatefulSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: "StatefulSet: should suppress replicas when HPA enabled"
+    templates:
+      - templates/workloads/statefulset.yaml
+    set:
+      workloadType: StatefulSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      autoscaling:
+        enabled: true
+    asserts:
+      - isNull:
+          path: spec.replicas
+
+  - it: "StatefulSet: should suppress replicas when KEDA enabled"
+    templates:
+      - templates/workloads/statefulset.yaml
+    set:
+      workloadType: StatefulSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      keda:
+        enabled: true
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 8 * * *"
+              end: "0 18 * * *"
+              desiredReplicas: "1"
+    asserts:
+      - isNull:
+          path: spec.replicas
+
+  # ===========================================================================
+  # Rollout
+  # ===========================================================================
+
+  - it: "Rollout: should include replicas when neither HPA nor KEDA enabled"
+    templates:
+      - templates/workloads/rollout.yaml
+    set:
+      workloadType: Rollout
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: "Rollout: should suppress replicas when HPA enabled"
+    templates:
+      - templates/workloads/rollout.yaml
+    set:
+      workloadType: Rollout
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      autoscaling:
+        enabled: true
+    asserts:
+      - isNull:
+          path: spec.replicas
+
+  - it: "Rollout: should suppress replicas when KEDA enabled"
+    templates:
+      - templates/workloads/rollout.yaml
+    set:
+      workloadType: Rollout
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      keda:
+        enabled: true
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 8 * * *"
+              end: "0 18 * * *"
+              desiredReplicas: "1"
+    asserts:
+      - isNull:
+          path: spec.replicas

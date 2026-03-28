@@ -507,11 +507,11 @@ gatewayApi:
             http:
               connectionIdleTimeout: 60s
           rateLimit:
-            type: Local
-            rules:
-              - limit:
-                  requests: 100
-                  unit: Second
+            global:
+              rules:
+                - limit:
+                    requests: 100
+                    unit: Second
           tcpKeepalive:
             probes: 3
             idleTime: 60s
@@ -598,9 +598,9 @@ secrets:
   tls-certs:
     type: kubernetes.io/tls
     data:
-      tls.crt: LS0tLS1CRUdJTi...
-      tls.key: LS0tLS1CRUdJTi...
-      ca.crt: LS0tLS1CRUdJTi...
+      tls.crt: ZHVtbXktY2VydA==
+      tls.key: ZHVtbXkta2V5AA==
+      ca.crt: ZHVtbXktY2EBAA==
   env-secrets:
     stringData:
       SMTP_PASSWORD: "smtp-pass"

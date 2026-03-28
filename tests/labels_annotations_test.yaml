@@ -1,0 +1,80 @@
+suite: Labels and annotations
+templates:
+  - templates/workloads/deployment.yaml
+set:
+  containers:
+    app:
+      image:
+        repository: nginx
+      ports:
+        http:
+          port: 80
+  services:
+    http:
+      ports:
+        http:
+          port: 80
+tests:
+  - it: should render standard labels
+    asserts:
+      - equal:
+          path: metadata.labels["helm.sh/chart"]
+          value: chartpack-1.0.3
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: chartpack
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: metadata.labels["app.kubernetes.io/managed-by"]
+          value: Helm
+      - equal:
+          path: metadata.labels["app.kubernetes.io/version"]
+          value: "1.0.0"
+
+  - it: should render global labels on resource metadata
+    set:
+      global:
+        labels:
+          team: platform
+          environment: staging
+    asserts:
+      - equal:
+          path: metadata.labels.team
+          value: platform
+      - equal:
+          path: metadata.labels.environment
+          value: staging
+
+  - it: should render global annotations on resource metadata
+    set:
+      global:
+        annotations:
+          example.com/owner: myteam
+          example.com/tier: backend
+    asserts:
+      - equal:
+          path: metadata.annotations["example.com/owner"]
+          value: myteam
+      - equal:
+          path: metadata.annotations["example.com/tier"]
+          value: backend
+
+  - it: should render selectorLabels on matchLabels
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: chartpack
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+
+  - it: should render pod template labels including selectorLabels
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
+          value: chartpack
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME

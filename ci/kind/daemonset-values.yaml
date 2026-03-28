@@ -1,0 +1,26 @@
+workloadType: DaemonSet
+containers:
+  app:
+    image:
+      repository: nginx
+      tag: "1.27"
+    ports:
+      http:
+        port: 80
+    healthChecks:
+      readiness:
+        httpGet:
+          path: /
+          port: http
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 50m
+        memory: 64Mi
+services:
+  http:
+    ports:
+      http:
+        port: 80

@@ -27,9 +27,6 @@ spec:
   {{- with .Values.keda.pollingInterval }}
   pollingInterval: {{ . }}
   {{- end }}
-  {{- with .Values.keda.cooldownPeriod }}
-  cooldownPeriod: {{ . }}
-  {{- end }}
   {{- with .Values.keda.minReplicaCount }}
   minReplicaCount: {{ . }}
   {{- end }}

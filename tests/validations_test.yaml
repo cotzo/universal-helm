@@ -1,0 +1,597 @@
+suite: Validation rules
+templates:
+  - templates/workloads/deployment.yaml
+tests:
+  # ===========================================================================
+  # Workload validations
+  # ===========================================================================
+
+  - it: should fail on invalid workloadType
+    set:
+      workloadType: Invalid
+      containers:
+        app:
+          image:
+            repository: nginx
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when CronJob has no schedule
+    set:
+      workloadType: CronJob
+      cronJob:
+        schedule: ""
+      containers:
+        app:
+          image:
+            repository: nginx
+    asserts:
+      - failedTemplate:
+          errorMessage: "cronJob.schedule: required when workloadType is CronJob"
+
+  # ===========================================================================
+  # Container validations
+  # ===========================================================================
+
+  - it: should fail when no containers defined
+    set:
+      containers: null
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when container has no image
+    set:
+      containers:
+        app: {}
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when container image.repository is empty
+    set:
+      containers:
+        app:
+          image:
+            repository: ""
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when initContainer has no image
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      initContainers:
+        init: {}
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when initContainer image.repository is empty
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      initContainers:
+        init:
+          image:
+            repository: ""
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when mount references missing configMap
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          mounts:
+            - path: /etc/config
+              configMap: missing
+    asserts:
+      - failedTemplate:
+          errorMessage: 'containers.app.mounts: configMap "missing" not found in configMaps map'
+
+  - it: should fail when mount references missing secret
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          mounts:
+            - path: /etc/secret
+              secret: missing
+    asserts:
+      - failedTemplate:
+          errorMessage: 'containers.app.mounts: secret "missing" not found in secrets map'
+
+  - it: should fail when mount references missing persistence
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          mounts:
+            - path: /data
+              persistence: missing
+    asserts:
+      - failedTemplate:
+          errorMessage: 'containers.app.mounts: persistence "missing" not found in persistence map'
+
+  - it: should fail when env configMapKeyRef references missing configMap
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          env:
+            MY_VAR:
+              valueFrom:
+                configMapKeyRef:
+                  name: missing
+                  key: some-key
+    asserts:
+      - failedTemplate:
+          errorMessage: 'containers.app.env.MY_VAR: configMapKeyRef name "missing" not found in configMaps map (add external: true for external resources)'
+
+  - it: should fail when env secretKeyRef references missing secret
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          env:
+            MY_VAR:
+              valueFrom:
+                secretKeyRef:
+                  name: missing
+                  key: some-key
+    asserts:
+      - failedTemplate:
+          errorMessage: 'containers.app.env.MY_VAR: secretKeyRef name "missing" not found in secrets map (add external: true for external resources)'
+
+  - it: should fail when env configMapRef references missing configMap
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          env:
+            MY_VAR:
+              configMapRef:
+                name: missing
+    asserts:
+      - failedTemplate:
+          errorMessage: 'containers.app.env.MY_VAR: configMapRef name "missing" not found in configMaps map (add external: true for external resources)'
+
+  - it: should fail when env secretRef references missing secret
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          env:
+            MY_VAR:
+              secretRef:
+                name: missing
+    asserts:
+      - failedTemplate:
+          errorMessage: 'containers.app.env.MY_VAR: secretRef name "missing" not found in secrets map (add external: true for external resources)'
+
+  - it: should fail when restartPolicy set on containers
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          restartPolicy: Always
+    asserts:
+      - failedTemplate:
+          errorMessage: "containers.app.restartPolicy: restartPolicy is only valid on initContainers (native sidecars), not containers"
+
+  # ===========================================================================
+  # Autoscaling validations
+  # ===========================================================================
+
+  - it: should fail when PDB has both minAvailable and maxUnavailable
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      pdb:
+        enabled: true
+        minAvailable: 1
+        maxUnavailable: 1
+    asserts:
+      - failedTemplate:
+          errorMessage: "pdb: cannot set both minAvailable and maxUnavailable"
+
+  - it: should fail when PDB has neither minAvailable nor maxUnavailable
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      pdb:
+        enabled: true
+        minAvailable: ""
+        maxUnavailable: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: "pdb: must set either minAvailable or maxUnavailable"
+
+  - it: should fail when PDB enabled for Job
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+      pdb:
+        enabled: true
+        minAvailable: 1
+    asserts:
+      - failedTemplate:
+          errorMessage: "pdb: not applicable to workloadType Job"
+
+  - it: should fail when HPA enabled for Job
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+      autoscaling:
+        enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "autoscaling: not applicable to workloadType Job (only Deployment, StatefulSet, Rollout)"
+
+  - it: should fail when HPA minReplicas exceeds maxReplicas
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      autoscaling:
+        enabled: true
+        minReplicas: 10
+        maxReplicas: 5
+    asserts:
+      - failedTemplate:
+          errorMessage: "autoscaling: minReplicas (10) must be <= maxReplicas (5)"
+
+  - it: should fail when both KEDA and HPA enabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      autoscaling:
+        enabled: true
+      keda:
+        enabled: true
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 8 * * *"
+              end: "0 18 * * *"
+              desiredReplicas: "1"
+    asserts:
+      - failedTemplate:
+          errorMessage: "keda: cannot enable both keda and autoscaling (HPA) — they would conflict"
+
+  - it: should fail when KEDA enabled for DaemonSet
+    set:
+      workloadType: DaemonSet
+      containers:
+        app:
+          image:
+            repository: nginx
+      keda:
+        enabled: true
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 8 * * *"
+              end: "0 18 * * *"
+              desiredReplicas: "1"
+    asserts:
+      - failedTemplate:
+          errorMessage: "keda: not applicable to workloadType DaemonSet (only Deployment, StatefulSet, Rollout, Job)"
+
+  - it: should fail when KEDA enabled without triggers
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      keda:
+        enabled: true
+        triggers: []
+    asserts:
+      - failedTemplate:
+          errorMessage: "keda: triggers are required when keda is enabled"
+
+  - it: should fail when KEDA minReplicaCount exceeds maxReplicaCount
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      keda:
+        enabled: true
+        minReplicaCount: 10
+        maxReplicaCount: 5
+        triggers:
+          - type: cron
+            metadata:
+              timezone: UTC
+              start: "0 8 * * *"
+              end: "0 18 * * *"
+              desiredReplicas: "1"
+    asserts:
+      - failedTemplate:
+          errorMessage: "keda: minReplicaCount (10) must be <= maxReplicaCount (5)"
+
+  # ===========================================================================
+  # Networking validations
+  # ===========================================================================
+
+  - it: should fail when service port references missing containerPort
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            web:
+              port: 80
+              containerPort: missing
+    asserts:
+      - failedTemplate:
+          errorMessage: "services.main.ports.web: containerPort \"missing\" not found in any container's ports map"
+
+  - it: should fail when route missing parentRefs
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      gatewayApi:
+        routes:
+          web:
+            rules:
+              - backendRefs:
+                  - name: main
+                    port: 80
+    asserts:
+      - failedTemplate:
+          errorMessage: "gatewayApi.routes.web: parentRefs is required"
+
+  - it: should fail when route missing rules
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      gatewayApi:
+        routes:
+          web:
+            parentRefs:
+              - name: my-gateway
+    asserts:
+      - failedTemplate:
+          errorMessage: "gatewayApi.routes.web: rules is required"
+
+  - it: should fail when route backendRef references missing service
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      gatewayApi:
+        routes:
+          web:
+            parentRefs:
+              - name: my-gateway
+            rules:
+              - backendRefs:
+                  - name: missing
+                    port: 80
+    asserts:
+      - failedTemplate:
+          errorMessage: 'gatewayApi.routes.web.rules[0].backendRefs: service "missing" not found in services map'
+
+  - it: should fail when ingress oauth2Proxy references missing proxy
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      ingresses:
+        web:
+          oauth2Proxy: missing
+          hosts:
+            - host: app.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - failedTemplate:
+          errorMessage: 'ingresses.web.oauth2Proxy: "missing" not found in oauth2Proxies map'
+
+  - it: should fail when route oauth2Proxy references missing proxy
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      gatewayApi:
+        routes:
+          web:
+            oauth2Proxy: missing
+            parentRefs:
+              - name: my-gateway
+            rules:
+              - backendRefs:
+                  - name: main
+                    port: 80
+    asserts:
+      - failedTemplate:
+          errorMessage: 'gatewayApi.routes.web.oauth2Proxy: "missing" not found in oauth2Proxies map'
+
+  - it: should fail when deployment-mode oauth2Proxy missing upstream
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      oauth2Proxies:
+        corp:
+          mode: deployment
+          image:
+            repository: quay.io/oauth2-proxy/oauth2-proxy
+            tag: v7.7.0
+          port: 4180
+    asserts:
+      - failedTemplate:
+          errorMessage: "oauth2Proxies.corp: upstream is required when mode is deployment (e.g., upstream: http://<fullname>-<service>:<port>)"
+
+  # ===========================================================================
+  # RBAC validations
+  # ===========================================================================
+
+  - it: should fail when roleBinding references missing role
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      rbac:
+        roleBindings:
+          test:
+            roleRef:
+              name: missing
+    asserts:
+      - failedTemplate:
+          errorMessage: 'rbac.roleBindings.test: roleRef.name "missing" not found in rbac.roles map'
+
+  - it: should fail when clusterRoleBinding references missing clusterRole
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      rbac:
+        clusterRoleBindings:
+          test:
+            roleRef:
+              name: missing
+    asserts:
+      - failedTemplate:
+          errorMessage: 'rbac.clusterRoleBindings.test: roleRef.name "missing" not found in rbac.clusterRoles map'
+
+  # ===========================================================================
+  # Monitoring validations
+  # ===========================================================================
+
+  - it: should fail when service monitor port not found in services
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      monitors:
+        metrics:
+          kind: service
+          port: missing
+    asserts:
+      - failedTemplate:
+          errorMessage: "monitors.metrics: port \"missing\" not found in any service's ports map"
+
+  - it: should fail when pod monitor port not found in containers
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        main:
+          ports:
+            http:
+              port: 80
+      monitors:
+        metrics:
+          kind: pod
+          port: missing
+    asserts:
+      - failedTemplate:
+          errorMessage: "monitors.metrics: port \"missing\" not found in any container's ports map"

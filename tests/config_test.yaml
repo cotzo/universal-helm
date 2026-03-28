@@ -1,0 +1,264 @@
+suite: Config rendering (ConfigMap, Secret, ExternalSecret, generated-secret)
+templates:
+  - templates/config/configmap.yaml
+  - templates/config/secret.yaml
+  - templates/config/external-secret.yaml
+  - templates/config/generated-secret.yaml
+tests:
+  # ---------------------------------------------------------------------------
+  # ConfigMap
+  # ---------------------------------------------------------------------------
+  - it: should render ConfigMap with prefixed name
+    template: templates/config/configmap.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      configMaps:
+        myconfig:
+          data:
+            key1: value1
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-myconfig
+
+  - it: should render ConfigMap data
+    template: templates/config/configmap.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      configMaps:
+        myconfig:
+          data:
+            APP_ENV: production
+            LOG_LEVEL: debug
+    asserts:
+      - equal:
+          path: data.APP_ENV
+          value: production
+      - equal:
+          path: data.LOG_LEVEL
+          value: debug
+
+  - it: should not render ConfigMap when no configMaps defined
+    template: templates/config/configmap.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # ---------------------------------------------------------------------------
+  # Secret
+  # ---------------------------------------------------------------------------
+  - it: should render Secret with Opaque type by default
+    template: templates/config/secret.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      secrets:
+        mysecret:
+          stringData:
+            password: s3cret
+    asserts:
+      - isKind:
+          of: Secret
+      - equal:
+          path: type
+          value: Opaque
+
+  - it: should render Secret with custom type
+    template: templates/config/secret.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      secrets:
+        tls-cert:
+          type: kubernetes.io/tls
+          stringData:
+            tls.crt: cert-data
+            tls.key: key-data
+    asserts:
+      - equal:
+          path: type
+          value: kubernetes.io/tls
+
+  - it: should render Secret stringData
+    template: templates/config/secret.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      secrets:
+        mysecret:
+          stringData:
+            DB_PASSWORD: hunter2
+    asserts:
+      - equal:
+          path: stringData.DB_PASSWORD
+          value: hunter2
+
+  # ---------------------------------------------------------------------------
+  # ExternalSecret
+  # ---------------------------------------------------------------------------
+  - it: should render ExternalSecret with secretStoreRef
+    template: templates/config/external-secret.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      externalSecrets:
+        myext:
+          secretStoreRef:
+            name: aws-store
+            kind: ClusterSecretStore
+          target:
+            name: my-target
+          data:
+            - secretKey: password
+              remoteRef:
+                key: /prod/db/password
+    asserts:
+      - isKind:
+          of: ExternalSecret
+      - equal:
+          path: spec.secretStoreRef.name
+          value: aws-store
+      - equal:
+          path: spec.secretStoreRef.kind
+          value: ClusterSecretStore
+
+  - it: should not render ExternalSecret when no externalSecrets defined
+    template: templates/config/external-secret.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # ---------------------------------------------------------------------------
+  # Generated Secret
+  # ---------------------------------------------------------------------------
+  - it: should render Password generator and ExternalSecret when secrets have generate config
+    template: templates/config/generated-secret.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      secrets:
+        dbcreds:
+          generate:
+            password:
+              length: 24
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: Password
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-dbcreds-password
+        documentIndex: 0
+      - equal:
+          path: spec.length
+          value: 24
+        documentIndex: 0
+      - isKind:
+          of: ExternalSecret
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-dbcreds-gen
+        documentIndex: 1

@@ -1,0 +1,168 @@
+suite: Ingress rendering
+templates:
+  - templates/networking/ingress.yaml
+tests:
+  - it: should render Ingress with correct apiVersion
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      ingresses:
+        main:
+          hosts:
+            - host: app.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - isAPIVersion:
+          of: networking.k8s.io/v1
+
+  - it: should set ingressClassName
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      ingresses:
+        main:
+          className: nginx
+          hosts:
+            - host: app.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: should render hosts and paths
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      ingresses:
+        main:
+          hosts:
+            - host: app.example.com
+              paths:
+                - path: /api
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: app.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /api
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+
+  - it: should render TLS configuration
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      ingresses:
+        main:
+          tls:
+            - secretName: app-tls
+              hosts:
+                - app.example.com
+          hosts:
+            - host: app.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.tls[0].secretName
+          value: app-tls
+      - contains:
+          path: spec.tls[0].hosts
+          content: app.example.com
+
+  - it: should not render Ingress when no ingresses defined
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render ingress annotations
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      ingresses:
+        main:
+          annotations:
+            nginx.ingress.kubernetes.io/rewrite-target: /
+          hosts:
+            - host: app.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/rewrite-target"]
+          value: /

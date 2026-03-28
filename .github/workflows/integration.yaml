@@ -1,0 +1,73 @@
+name: Integration Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: chartpack-test
+          wait: 300s
+
+      - name: Install CRDs
+        run: |
+          # Gateway API
+          kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
+          kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/experimental-install.yaml
+
+          # Argo Rollouts
+          kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/crds/rollout-crd.yaml
+          kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/crds/experiment-crd.yaml
+          kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/crds/analysis-run-crd.yaml
+          kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/crds/analysis-template-crd.yaml
+          kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/crds/cluster-analysis-template-crd.yaml
+
+          # KEDA
+          kubectl apply --server-side -f https://github.com/kedacore/keda/releases/download/v2.19.0/keda-2.19.0-crds.yaml
+
+          # Prometheus Operator
+          kubectl apply --server-side -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.90.1/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+          kubectl apply --server-side -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.90.1/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
+
+          # VictoriaMetrics
+          kubectl apply --server-side -f https://raw.githubusercontent.com/VictoriaMetrics/operator/v0.68.3/config/crd/overlay/crd.yaml
+
+          # External Secrets
+          kubectl apply --server-side -f https://raw.githubusercontent.com/external-secrets/external-secrets/v2.2.0/deploy/crds/bundle.yaml
+
+          # Envoy Gateway
+          kubectl apply --server-side -f https://github.com/envoyproxy/gateway/releases/download/v1.37.1/envoy-gateway-crds.yaml
+      - name: Run integration tests
+        run: |
+          chmod +x ci/kind/test.sh
+          ./ci/kind/test.sh
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "=== Events ==="
+          kubectl get events -n chartpack-test --sort-by='.lastTimestamp' 2>/dev/null || true
+          echo ""
+          echo "=== All resources ==="
+          kubectl get all -A 2>/dev/null || true
+          echo ""
+          echo "=== Failed pods ==="
+          kubectl get pods -A --field-selector=status.phase!=Running,status.phase!=Succeeded 2>/dev/null | while read -r ns name rest; do
+            [ "$ns" = "NAMESPACE" ] && continue
+            echo "--- Describing $ns/$name ---"
+            kubectl describe pod "$name" -n "$ns" 2>/dev/null || true
+          done

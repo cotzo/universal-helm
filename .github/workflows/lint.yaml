@@ -32,6 +32,20 @@ jobs:
             helm template test . --values "$f" > /dev/null
           done
 
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install helm-unittest
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git --verify=false
+
+      - name: Run unit tests
+        run: helm unittest .
+
   kubeconform:
     runs-on: ubuntu-latest
     steps:

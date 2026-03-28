@@ -1,0 +1,378 @@
+suite: Workload-specific options
+tests:
+  # ── Deployment ──────────────────────────────────────────────────────
+  - it: should render Deployment strategy
+    templates:
+      - templates/workloads/deployment.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      deployment:
+        strategy:
+          type: RollingUpdate
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: RollingUpdate
+
+  - it: should render Deployment revisionHistoryLimit
+    templates:
+      - templates/workloads/deployment.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      deployment:
+        revisionHistoryLimit: 5
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 5
+
+  - it: should render Deployment minReadySeconds
+    templates:
+      - templates/workloads/deployment.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      deployment:
+        minReadySeconds: 30
+    asserts:
+      - equal:
+          path: spec.minReadySeconds
+          value: 30
+
+  # ── StatefulSet ─────────────────────────────────────────────────────
+  - it: should render StatefulSet podManagementPolicy
+    templates:
+      - templates/workloads/statefulset.yaml
+    set:
+      workloadType: StatefulSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      statefulSet:
+        podManagementPolicy: Parallel
+    asserts:
+      - equal:
+          path: spec.podManagementPolicy
+          value: Parallel
+
+  - it: should render StatefulSet updateStrategy
+    templates:
+      - templates/workloads/statefulset.yaml
+    set:
+      workloadType: StatefulSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      statefulSet:
+        updateStrategy:
+          type: RollingUpdate
+    asserts:
+      - equal:
+          path: spec.updateStrategy.type
+          value: RollingUpdate
+
+  # ── DaemonSet ───────────────────────────────────────────────────────
+  - it: should render DaemonSet updateStrategy
+    templates:
+      - templates/workloads/daemonset.yaml
+    set:
+      workloadType: DaemonSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      daemonSet:
+        updateStrategy:
+          type: OnDelete
+    asserts:
+      - equal:
+          path: spec.updateStrategy.type
+          value: OnDelete
+
+  # ── CronJob ────────────────────────────────────────────────────────
+  - it: should render CronJob schedule
+    templates:
+      - templates/workloads/cronjob.yaml
+    set:
+      workloadType: CronJob
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      cronJob:
+        schedule: "*/5 * * * *"
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "*/5 * * * *"
+
+  - it: should render CronJob concurrencyPolicy
+    templates:
+      - templates/workloads/cronjob.yaml
+    set:
+      workloadType: CronJob
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      cronJob:
+        schedule: "*/5 * * * *"
+        concurrencyPolicy: Forbid
+    asserts:
+      - equal:
+          path: spec.concurrencyPolicy
+          value: Forbid
+
+  - it: should render CronJob timeZone
+    templates:
+      - templates/workloads/cronjob.yaml
+    set:
+      workloadType: CronJob
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      cronJob:
+        schedule: "0 0 * * *"
+        timeZone: "America/New_York"
+    asserts:
+      - equal:
+          path: spec.timeZone
+          value: "America/New_York"
+
+  # ── Job ─────────────────────────────────────────────────────────────
+  - it: should render Job backoffLimit
+    templates:
+      - templates/workloads/job.yaml
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      job:
+        backoffLimit: 3
+    asserts:
+      - equal:
+          path: spec.backoffLimit
+          value: 3
+
+  - it: should render Job ttlSecondsAfterFinished
+    templates:
+      - templates/workloads/job.yaml
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      job:
+        ttlSecondsAfterFinished: 600
+    asserts:
+      - equal:
+          path: spec.ttlSecondsAfterFinished
+          value: 600
+
+  - it: should render Job completionMode
+    templates:
+      - templates/workloads/job.yaml
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      job:
+        completionMode: Indexed
+    asserts:
+      - equal:
+          path: spec.completionMode
+          value: Indexed
+
+  # ── Rollout ─────────────────────────────────────────────────────────
+  - it: should render Rollout strategy canary
+    templates:
+      - templates/workloads/rollout.yaml
+    set:
+      workloadType: Rollout
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      rollout:
+        strategy:
+          canary:
+            steps:
+              - setWeight: 20
+              - pause:
+                  duration: 60s
+    asserts:
+      - equal:
+          path: spec.strategy.canary.steps[0].setWeight
+          value: 20
+
+  - it: should render Rollout restartAt
+    templates:
+      - templates/workloads/rollout.yaml
+    set:
+      workloadType: Rollout
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      rollout:
+        restartAt: "2024-06-01T00:00:00Z"
+    asserts:
+      - isNotNull:
+          path: spec.restartAt
+
+  - it: should render Rollout analysis
+    templates:
+      - templates/workloads/rollout.yaml
+    set:
+      workloadType: Rollout
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+      rollout:
+        analysis:
+          successfulRunHistoryLimit: 3
+          unsuccessfulRunHistoryLimit: 1
+    asserts:
+      - equal:
+          path: spec.analysis.successfulRunHistoryLimit
+          value: 3
+      - equal:
+          path: spec.analysis.unsuccessfulRunHistoryLimit
+          value: 1

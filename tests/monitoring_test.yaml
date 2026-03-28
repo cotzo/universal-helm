@@ -1,0 +1,189 @@
+suite: Monitoring rendering (ServiceMonitor, PodMonitor, VMServiceScrape, VMPodScrape)
+templates:
+  - templates/monitoring/monitor.yaml
+tests:
+  - it: should render ServiceMonitor for prometheus service monitor
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+            metrics:
+              port: 9090
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+        metrics:
+          ports:
+            metrics:
+              port: 9090
+      monitors:
+        app:
+          kind: service
+          operator: prometheus
+          port: metrics
+    asserts:
+      - isAPIVersion:
+          of: monitoring.coreos.com/v1
+      - isKind:
+          of: ServiceMonitor
+
+  - it: should render PodMonitor for prometheus pod monitor
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+            metrics:
+              port: 9090
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+        metrics:
+          ports:
+            metrics:
+              port: 9090
+      monitors:
+        app:
+          kind: pod
+          operator: prometheus
+          port: metrics
+    asserts:
+      - isAPIVersion:
+          of: monitoring.coreos.com/v1
+      - isKind:
+          of: PodMonitor
+
+  - it: should render VMServiceScrape for victoriametrics service monitor
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+            metrics:
+              port: 9090
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+        metrics:
+          ports:
+            metrics:
+              port: 9090
+      monitors:
+        app:
+          kind: service
+          operator: victoriametrics
+          port: metrics
+    asserts:
+      - isAPIVersion:
+          of: operator.victoriametrics.com/v1beta1
+      - isKind:
+          of: VMServiceScrape
+
+  - it: should render VMPodScrape for victoriametrics pod monitor
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+            metrics:
+              port: 9090
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+        metrics:
+          ports:
+            metrics:
+              port: 9090
+      monitors:
+        app:
+          kind: pod
+          operator: victoriametrics
+          port: metrics
+    asserts:
+      - isAPIVersion:
+          of: operator.victoriametrics.com/v1beta1
+      - isKind:
+          of: VMPodScrape
+
+  - it: should not render monitors when none defined
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+            metrics:
+              port: 9090
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+        metrics:
+          ports:
+            metrics:
+              port: 9090
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should set port, path, and interval on endpoints
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+            metrics:
+              port: 9090
+      services:
+        http:
+          ports:
+            http:
+              port: 80
+        metrics:
+          ports:
+            metrics:
+              port: 9090
+      monitors:
+        app:
+          kind: service
+          operator: prometheus
+          port: metrics
+          path: /metrics
+          interval: 30s
+    asserts:
+      - equal:
+          path: spec.endpoints[0].port
+          value: metrics
+      - equal:
+          path: spec.endpoints[0].path
+          value: /metrics
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 30s

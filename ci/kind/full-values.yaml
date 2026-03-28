@@ -1,0 +1,197 @@
+workloadType: Deployment
+nameOverride: "kind-full"
+global:
+  labels:
+    test: integration
+containers:
+  app:
+    image:
+      repository: nginx
+      tag: "1.27"
+    ports:
+      http:
+        port: 80
+      metrics:
+        port: 9090
+    env:
+      APP_ENV:
+        value: "test"
+      POD_NAME:
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      CONFIG_VAL:
+        valueFrom:
+          configMapKeyRef:
+            name: app-config
+            key: test-key
+      SECRET_VAL:
+        valueFrom:
+          secretKeyRef:
+            name: app-creds
+            key: api-key
+      bulk-env:
+        configMapRef:
+          name: env-config
+    healthChecks:
+      readiness:
+        httpGet:
+          path: /
+          port: http
+      liveness:
+        httpGet:
+          path: /
+          port: http
+    mounts:
+      - path: /tmp
+        volume: tmp
+      - path: /etc/config
+        configMap: app-config
+        readOnly: true
+      - path: /etc/secrets
+        secret: app-creds
+        readOnly: true
+      - path: /cache
+        persistence: cache
+initContainers:
+  01-init:
+    image:
+      repository: busybox
+      tag: "1.36"
+    command: ["sh", "-c", "echo init done"]
+podSettings:
+  volumes:
+    - name: tmp
+      emptyDir: {}
+services:
+  http:
+    type: ClusterIP
+    ports:
+      http:
+        port: 80
+        containerPort: http
+  metrics:
+    type: ClusterIP
+    ports:
+      metrics:
+        port: 9090
+  headless:
+    headless: true
+    publishNotReadyAddresses: true
+    ports:
+      http:
+        port: 80
+  external:
+    type: NodePort
+    ports:
+      http:
+        port: 80
+        containerPort: http
+ingresses:
+  default:
+    className: ""
+    hosts:
+      - host: ""
+        paths:
+          - path: /
+            pathType: Prefix
+gatewayApi:
+  routes:
+    http:
+      kind: HTTPRoute
+      parentRefs:
+        - name: dummy-gateway
+          namespace: default
+      hostnames:
+        - test.example.com
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - name: http
+              port: 80
+configMaps:
+  app-config:
+    data:
+      config.yaml: "key: value"
+      test-key: "test-value"
+  env-config:
+    data:
+      FEATURE_A: "true"
+secrets:
+  app-creds:
+    stringData:
+      api-key: "test-key-123"
+persistence:
+  cache:
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
+deployment:
+  replicaCount: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+pdb:
+  enabled: true
+  minAvailable: 1
+serviceAccount:
+  create: true
+rbac:
+  roles:
+    reader:
+      rules:
+        - apiGroups: [""]
+          resources: ["configmaps", "secrets"]
+          verbs: ["get", "list"]
+  clusterRoles:
+    node-reader:
+      rules:
+        - apiGroups: [""]
+          resources: ["nodes"]
+          verbs: ["get", "list"]
+  roleBindings:
+    reader:
+      roleRef:
+        name: reader
+  clusterRoleBindings:
+    node-reader:
+      roleRef:
+        name: node-reader
+monitors:
+  prom:
+    kind: service
+    operator: prometheus
+    port: metrics
+    path: /metrics
+    interval: 30s
+extraResources:
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: '{{ include "chartpack.fullname" . }}-netpol'
+    spec:
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: kind-full
+      policyTypes:
+        - Ingress
+      ingress:
+        - ports:
+            - protocol: TCP
+              port: 80
