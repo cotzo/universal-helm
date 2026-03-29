@@ -1053,29 +1053,10 @@ dashboards:
         revision: 37
 
 # =============================================================================
-# =============================================================================
-# Hooks — pre-install/pre-upgrade Jobs
-# =============================================================================
-
-hooks:
-  db-migrate:
-    events:
-      - pre-install
-      - pre-upgrade
-    weight: "-5"
-    deletePolicy: before-hook-creation
-    containers:
-      migrate:
-        image:
-          repository: nginx
-          tag: "1.27"
-        command: ["sh", "-c", "echo 'Running migration' && sleep 1"]
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-    backoffLimit: 3
-    activeDeadlineSeconds: 120
+# NOTE: Hooks are not included here because tier 1 tests use --wait=hookOnly
+# which requires hooks to actually complete, and full-values has scheduling
+# constraints (nodeSelector, affinity) incompatible with kind clusters.
+# Hook rendering is covered by unit tests (tests/hooks_test.yaml).
 
 # Extra Resources — escape hatch
 # =============================================================================
