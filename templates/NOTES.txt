@@ -1,40 +1,159 @@
 {{- $fullName := include "chartpack.fullname" . -}}
-Deployed {{ $fullName }} as {{ .Values.workloadType }}.
+{{- $ns := .Release.Namespace -}}
 
+=== {{ $fullName }} ===
+
+Workload: {{ .Values.workloadType }}
 {{- if eq .Values.workloadType "CronJob" }}
-
-CronJob schedule: {{ .Values.workloads.cronJob.schedule }}
-
-View upcoming jobs:
-  kubectl get cronjobs -n {{ .Release.Namespace }} {{ $fullName }}
-
-{{- else if eq .Values.workloadType "Job" }}
-
-View job status:
-  kubectl get jobs -n {{ .Release.Namespace }} {{ $fullName }}
-
+Schedule: {{ .Values.workloads.cronJob.schedule }}
+{{- end }}
+{{- if or .Values.autoscaling.hpa.enabled .Values.autoscaling.keda.enabled }}
+{{- if .Values.autoscaling.hpa.enabled }}
+Autoscaling: HPA ({{ .Values.autoscaling.hpa.minReplicas }}-{{ .Values.autoscaling.hpa.maxReplicas }} replicas)
 {{- else }}
+Autoscaling: KEDA ({{ .Values.autoscaling.keda.minReplicaCount }}-{{ .Values.autoscaling.keda.maxReplicaCount }} replicas)
+{{- end }}
+{{- end }}
+{{- if .Values.autoscaling.vpa.enabled }}
+VPA: enabled
+{{- end }}
 
+{{- $svcCount := 0 }}
+{{- range $name, $svc := .Values.networking.services }}{{ if $svc }}{{ $svcCount = add1 $svcCount }}{{ end }}{{ end }}
+{{- if gt $svcCount 0 }}
+
+Services:
 {{- range $name, $svc := .Values.networking.services }}
 {{- if $svc }}
-Service: {{ $fullName }}-{{ $name }} ({{ default "ClusterIP" $svc.type }})
-{{- range $svc.ports }}
-  - {{ default "unnamed" .name }}:{{ .port }}{{ if .targetPort }} -> {{ .targetPort }}{{ end }}
+  {{ $fullName }}-{{ $name }} ({{ default "ClusterIP" $svc.type }})
+  {{- range $portName, $portCfg := $svc.ports }}
+    - {{ $portName }}:{{ $portCfg.port }}
+  {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
 
+{{- $ingCount := 0 }}
+{{- range $name, $ing := .Values.networking.ingresses }}{{ if $ing }}{{ $ingCount = add1 $ingCount }}{{ end }}{{ end }}
+{{- if gt $ingCount 0 }}
+
+Ingresses:
 {{- range $name, $ing := .Values.networking.ingresses }}
 {{- if $ing }}
+  {{ $fullName }}-{{ $name }}:
+  {{- range $ing.hosts }}
+    - {{ .host }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
 
-Ingress {{ $fullName }}-{{ $name }}:
-{{- range $ing.hosts }}
-  - {{ .host }}
+{{- $routeCount := 0 }}
+{{- range $name, $route := .Values.networking.gatewayApi.routes }}{{ if $route }}{{ $routeCount = add1 $routeCount }}{{ end }}{{ end }}
+{{- if gt $routeCount 0 }}
+
+Gateway API Routes:
+{{- range $name, $route := .Values.networking.gatewayApi.routes }}
+{{- if $route }}
+  {{ $fullName }}-{{ $name }} ({{ default "HTTPRoute" $route.kind }})
+  {{- with $route.hostnames }}
+    {{- range . }}
+    - {{ . }}
+    {{- end }}
+  {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{- $vsCount := 0 }}
+{{- range $name, $vs := .Values.networking.istio.virtualServices }}{{ if $vs }}{{ $vsCount = add1 $vsCount }}{{ end }}{{ end }}
+{{- if gt $vsCount 0 }}
+
+Istio VirtualServices:
+{{- range $name, $vs := .Values.networking.istio.virtualServices }}
+{{- if $vs }}
+  {{ $fullName }}-{{ $name }}
+  {{- with $vs.hosts }}
+    {{- range . }}
+    - {{ . }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- $certCount := 0 }}
+{{- range $name, $cert := .Values.networking.certificates }}{{ if $cert }}{{ $certCount = add1 $certCount }}{{ end }}{{ end }}
+{{- if gt $certCount 0 }}
+
+Certificates:
+{{- range $name, $cert := .Values.networking.certificates }}
+{{- if $cert }}
+  {{ $fullName }}-{{ $name }} -> {{ default (printf "%s-%s-tls" $fullName $name) $cert.secretName }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- $monCount := 0 }}
+{{- range $name, $mon := .Values.monitors }}{{ if $mon }}{{ $monCount = add1 $monCount }}{{ end }}{{ end }}
+{{- if gt $monCount 0 }}
+
+Monitors:
+{{- range $name, $mon := .Values.monitors }}
+{{- if $mon }}
+  {{ $fullName }}-{{ $name }} ({{ default "service" $mon.kind }}/{{ default "prometheus" $mon.operator }})
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- $alertCount := 0 }}
+{{- range $name, $rule := .Values.alerting }}{{ if $rule }}{{ $alertCount = add1 $alertCount }}{{ end }}{{ end }}
+{{- if gt $alertCount 0 }}
+
+Alerting Rules:
+{{- range $name, $rule := .Values.alerting }}
+{{- if $rule }}
+  {{ $fullName }}-{{ $name }} ({{ default "prometheus" $rule.operator }})
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- $dashCount := 0 }}
+{{- range $name, $dash := .Values.dashboards.grafana }}{{ if $dash }}{{ $dashCount = add1 $dashCount }}{{ end }}{{ end }}
+{{- if gt $dashCount 0 }}
+
+Grafana Dashboards:
+{{- range $name, $dash := .Values.dashboards.grafana }}
+{{- if $dash }}
+  {{ $fullName }}-{{ $name }}
+  {{- with $dash.folder }} (folder: {{ . }}){{ end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- $hookCount := 0 }}
+{{- range $name, $hook := .Values.hooks }}{{ if $hook }}{{ $hookCount = add1 $hookCount }}{{ end }}{{ end }}
+{{- if gt $hookCount 0 }}
+
+Hooks:
+{{- range $name, $hook := .Values.hooks }}
+{{- if $hook }}
+  {{ $fullName }}-hook-{{ $name }} [{{ $hook.events | join ", " }}]
+  {{- with $hook.weight }} weight={{ . }}{{ end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- if and (ne .Values.workloadType "CronJob") (ne .Values.workloadType "Job") }}
 
 Get pods:
-  kubectl get pods -n {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "chartpack.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+  kubectl get pods -n {{ $ns }} -l "app.kubernetes.io/name={{ include "chartpack.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+{{- else if eq .Values.workloadType "CronJob" }}
 
+View upcoming jobs:
+  kubectl get cronjobs -n {{ $ns }} {{ $fullName }}
+{{- else }}
+
+View job status:
+  kubectl get jobs -n {{ $ns }} {{ $fullName }}
 {{- end }}
