@@ -79,3 +79,53 @@ tests:
       - equal:
           path: spec.template.metadata.labels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
+
+  - it: should add reloader configmap annotation when configMaps exist
+    set:
+      config:
+        configMaps:
+          app-config:
+            data:
+              key: value
+    asserts:
+      - matchRegex:
+          path: metadata.annotations["configmap.reloader.stakater.com/reload"]
+          pattern: ".*app-config.*"
+
+  - it: should add reloader secret annotation when secrets exist
+    set:
+      config:
+        secrets:
+          app-creds:
+            stringData:
+              key: value
+    asserts:
+      - matchRegex:
+          path: metadata.annotations["secret.reloader.stakater.com/reload"]
+          pattern: ".*app-creds.*"
+
+  - it: should exclude configMap from reloader when reloaderEnabled is false
+    set:
+      config:
+        configMaps:
+          watched:
+            data:
+              key: value
+          excluded:
+            reloaderEnabled: false
+            data:
+              key: value
+    asserts:
+      - matchRegex:
+          path: metadata.annotations["configmap.reloader.stakater.com/reload"]
+          pattern: ".*watched.*"
+      - notMatchRegex:
+          path: metadata.annotations["configmap.reloader.stakater.com/reload"]
+          pattern: ".*excluded.*"
+
+  - it: should not add reloader annotations when no configMaps or secrets
+    asserts:
+      - notExists:
+          path: metadata.annotations["configmap.reloader.stakater.com/reload"]
+      - notExists:
+          path: metadata.annotations["secret.reloader.stakater.com/reload"]

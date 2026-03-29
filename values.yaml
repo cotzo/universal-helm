@@ -645,17 +645,20 @@ config:
   # -- ConfigMaps to create (map of name -> config).
   # Mounting and envFrom injection is configured per container via
   # configMapMounts and configMapEnvFrom in the container spec.
+  # Stakater Reloader annotations are auto-generated (set reloaderEnabled: false to exclude).
   configMaps: {}
   # app-config:
   #   data:
   #     config.yaml: |
   #       key: value
+  #   # reloaderEnabled: true        # include in Stakater Reloader annotations (default: true)
   #   annotations: {}
   #   labels: {}
 
   # -- Secrets to create (map of name -> config).
   # Mounting and envFrom injection is configured per container via
   # secretMounts and secretEnvFrom in the container spec.
+  # Stakater Reloader annotations are auto-generated (set reloaderEnabled: false to exclude).
   secrets: {}
   # app-secret:
   #   type: Opaque

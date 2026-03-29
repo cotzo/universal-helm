@@ -53,7 +53,7 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 
 **Event-driven autoscaling** -- HPA v2, VPA, and KEDA (ScaledObject + ScaledJob) with any trigger.
 
-**Secrets management** -- ConfigMaps, Secrets, External Secrets, and auto-generated passwords via ESO (ArgoCD-safe).
+**Secrets management** -- ConfigMaps, Secrets, External Secrets, and auto-generated passwords via ESO (ArgoCD-safe). Stakater Reloader annotations auto-generated per resource.
 
 **Lifecycle hooks** -- Pre-install/pre-upgrade Jobs for DB migrations, schema setup, etc. Auto-generates both Helm and Argo CD hook annotations. Hooks share the main workload's pod settings (SA, volumes, secrets).
 

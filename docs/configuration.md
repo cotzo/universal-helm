@@ -127,6 +127,53 @@ The ExternalSecret uses `creationPolicy: Merge`, so generated keys are merged wi
 
 [Password generator docs](https://external-secrets.io/latest/api/generator/password/)
 
+## Stakater Reloader Integration
+
+The chart automatically adds [Stakater Reloader](https://github.com/stakater/Reloader) annotations to workloads, listing all chart-managed ConfigMaps and Secrets. When Reloader is installed in the cluster, it watches these resources and triggers a rolling restart when their contents change.
+
+This works alongside the built-in checksum annotations — checksums handle `helm upgrade` rollouts, while Reloader handles out-of-band changes (e.g., External Secrets rotation, manual edits).
+
+**All ConfigMaps and Secrets are included by default.** To exclude a specific resource, set `reloaderEnabled: false`:
+
+```yaml
+config:
+  configMaps:
+    app-config:
+      data:
+        key: value
+      # included in reloader annotations by default
+
+    static-config:
+      reloaderEnabled: false           # excluded — changes won't trigger restart
+      data:
+        key: value
+
+  secrets:
+    db-creds:
+      stringData:
+        password: s3cret
+      # included by default
+
+    static-certs:
+      reloaderEnabled: false           # excluded
+      type: kubernetes.io/tls
+      data:
+        tls.crt: LS0t...
+```
+
+This renders on the workload (Deployment, StatefulSet, etc.):
+
+```yaml
+metadata:
+  annotations:
+    configmap.reloader.stakater.com/reload: "my-app-app-config"
+    secret.reloader.stakater.com/reload: "my-app-db-creds"
+```
+
+If Reloader is not installed, these annotations are harmless and have no effect.
+
+[Stakater Reloader docs](https://github.com/stakater/Reloader)
+
 ## How Containers Reference Config
 
 Containers declare their own config dependencies -- see [Containers](containers.md) for the unified `env` and `mounts` syntax. The chart auto-prefixes resource names and auto-generates pod-level volumes.

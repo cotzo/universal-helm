@@ -2,7 +2,7 @@
 {{- if eq .Values.workloadType "Deployment" }}
 apiVersion: apps/v1
 kind: Deployment
-{{ include "chartpack.metadata" (dict "context" $) }}
+{{ include "chartpack.metadata" (dict "context" $ "workload" true) }}
 spec:
   {{- if not (or .Values.autoscaling.hpa.enabled .Values.autoscaling.keda.enabled) }}
   replicas: {{ .Values.workloads.deployment.replicaCount }}

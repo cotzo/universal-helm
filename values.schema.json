@@ -501,6 +501,7 @@
             "properties": {
               "data": { "type": "object", "additionalProperties": { "type": "string" } },
               "binaryData": { "type": "object" },
+              "reloaderEnabled": { "type": "boolean", "description": "Include in Stakater Reloader annotations (default: true)" },
               "annotations": { "type": "object" },
               "labels": { "type": "object" }
             }
@@ -531,6 +532,7 @@
                 }
               },
               "generateRefreshInterval": { "type": "string", "description": "Refresh interval for generated secrets. 0 = generate once." },
+              "reloaderEnabled": { "type": "boolean", "description": "Include in Stakater Reloader annotations (default: true)" },
               "annotations": { "type": "object" },
               "labels": { "type": "object" }
             }
