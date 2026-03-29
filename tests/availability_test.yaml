@@ -1,0 +1,121 @@
+suite: Availability (PDB)
+templates:
+  - templates/availability/pdb.yaml
+tests:
+  - it: should render PDB with minAvailable
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      pdb:
+        enabled: true
+        minAvailable: 1
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: 1
+
+  - it: should render PDB with maxUnavailable
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      pdb:
+        enabled: true
+        maxUnavailable: 2
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 2
+
+  - it: should not render PDB when disabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      pdb:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not render PDB for CronJob
+    set:
+      workloadType: CronJob
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      workloads:
+        cronJob:
+          schedule: "* * * * *"
+      pdb:
+        enabled: true
+        minAvailable: 1
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not render PDB for Job
+    set:
+      workloadType: Job
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      pdb:
+        enabled: true
+        minAvailable: 1
+    asserts:
+      - hasDocuments:
+          count: 0

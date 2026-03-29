@@ -1,22 +1,4 @@
 {{/*
-Validate PDB cannot have both minAvailable and maxUnavailable.
-*/}}
-{{- define "chartpack.validation.autoscaling.pdb" -}}
-{{- if .Values.pdb.enabled }}
-{{- if and .Values.pdb.minAvailable .Values.pdb.maxUnavailable }}
-{{- fail "pdb: cannot set both minAvailable and maxUnavailable" }}
-{{- end }}
-{{- if not (or .Values.pdb.minAvailable .Values.pdb.maxUnavailable) }}
-{{- fail "pdb: must set either minAvailable or maxUnavailable" }}
-{{- end }}
-{{- $incompatible := list "CronJob" "Job" }}
-{{- if has .Values.workloadType $incompatible }}
-{{- fail (printf "pdb: not applicable to workloadType %s" .Values.workloadType) }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{/*
 Validate HPA is only enabled for compatible workload types.
 */}}
 {{- define "chartpack.validation.autoscaling.hpa" -}}
@@ -60,7 +42,6 @@ Validate KEDA is only enabled for compatible workload types and not with HPA.
 Run all autoscaling validations.
 */}}
 {{- define "chartpack.validation.autoscaling" -}}
-{{- include "chartpack.validation.autoscaling.pdb" . }}
 {{- include "chartpack.validation.autoscaling.hpa" . }}
 {{- include "chartpack.validation.autoscaling.keda" . }}
 {{- end }}
