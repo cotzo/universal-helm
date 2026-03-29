@@ -374,3 +374,169 @@ tests:
           path: spec.template.spec.serviceAccountName
           value: custom-sa
         template: templates/workloads/deployment.yaml
+
+  - it: should render topologySpreadConstraints with auto labelSelector
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      podSettings:
+        topologySpreadConstraints:
+          zone-spread:
+            maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: DoNotSchedule
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].maxSkew
+          value: 1
+        template: templates/workloads/deployment.yaml
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: topology.kubernetes.io/zone
+        template: templates/workloads/deployment.yaml
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].whenUnsatisfiable
+          value: DoNotSchedule
+        template: templates/workloads/deployment.yaml
+      - exists:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+        template: templates/workloads/deployment.yaml
+
+  - it: should use custom labelSelector when provided
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      podSettings:
+        topologySpreadConstraints:
+          custom:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                custom: label
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels.custom
+          value: label
+        template: templates/workloads/deployment.yaml
+
+  - it: should render multiple topologySpreadConstraints
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      podSettings:
+        topologySpreadConstraints:
+          zone:
+            topologyKey: topology.kubernetes.io/zone
+          node:
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: ScheduleAnyway
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.topologySpreadConstraints
+        template: templates/workloads/deployment.yaml
+
+  - it: should auto-mount certificate when mount.path is set
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+        certificates:
+          app-tls:
+            issuerRef:
+              name: letsencrypt-prod
+            dnsNames:
+              - app.example.com
+            mount:
+              path: /etc/tls
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cert-app-tls
+            secret:
+              secretName: RELEASE-NAME-chartpack-app-tls-tls
+        template: templates/workloads/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: cert-app-tls
+            mountPath: /etc/tls
+            readOnly: true
+        template: templates/workloads/deployment.yaml
+
+  - it: should not auto-mount certificate when mount is not set
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+        certificates:
+          app-tls:
+            issuerRef:
+              name: letsencrypt-prod
+            dnsNames:
+              - app.example.com
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: cert-app-tls
+          any: true
+        template: templates/workloads/deployment.yaml

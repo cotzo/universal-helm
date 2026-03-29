@@ -161,7 +161,24 @@
         "nodeSelector": { "type": "object", "additionalProperties": { "type": "string" } },
         "tolerations": { "type": "array", "items": { "type": "object" } },
         "affinity": { "type": "object" },
-        "topologySpreadConstraints": { "type": "array", "items": { "type": "object" } },
+        "topologySpreadConstraints": {
+          "type": "object",
+          "description": "Map of topology spread constraint name to config. labelSelector defaults to chart's selectorLabels.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["topologyKey"],
+            "properties": {
+              "maxSkew": { "type": "integer", "minimum": 1 },
+              "topologyKey": { "type": "string" },
+              "whenUnsatisfiable": { "type": "string", "enum": ["DoNotSchedule", "ScheduleAnyway"] },
+              "labelSelector": { "type": "object" },
+              "matchLabelKeys": { "type": "array", "items": { "type": "string" } },
+              "minDomains": { "type": "integer" },
+              "nodeAffinityPolicy": { "type": "string", "enum": ["Honor", "Ignore"] },
+              "nodeTaintsPolicy": { "type": "string", "enum": ["Honor", "Ignore"] }
+            }
+          }
+        },
         "priorityClassName": { "type": "string" },
         "terminationGracePeriodSeconds": { "type": ["integer", "string"] },
         "dnsPolicy": { "type": "string" },
@@ -346,6 +363,65 @@
           },
           "additionalProperties": false
         },
+        "certificates": {
+          "type": "object",
+          "description": "Map of cert-manager Certificate name to config",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["issuerRef"],
+            "properties": {
+              "issuerRef": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "kind": { "type": "string", "enum": ["Issuer", "ClusterIssuer"] },
+                  "group": { "type": "string" }
+                }
+              },
+              "secretName": { "type": "string", "description": "Target secret name (defaults to <fullname>-<key>-tls)" },
+              "mount": {
+                "type": "object",
+                "description": "Auto-mount the certificate secret to all containers",
+                "required": ["path"],
+                "properties": {
+                  "path": { "type": "string", "description": "Mount path in containers" }
+                },
+                "additionalProperties": false
+              },
+              "commonName": { "type": "string" },
+              "dnsNames": { "type": "array", "items": { "type": "string" } },
+              "ipAddresses": { "type": "array", "items": { "type": "string" } },
+              "uris": { "type": "array", "items": { "type": "string" } },
+              "emailAddresses": { "type": "array", "items": { "type": "string" } },
+              "duration": { "type": "string" },
+              "renewBefore": { "type": "string" },
+              "privateKey": { "type": "object" },
+              "usages": { "type": "array", "items": { "type": "string" } },
+              "isCA": { "type": "boolean" },
+              "subject": { "type": "object" },
+              "keystores": { "type": "object" },
+              "secretTemplate": { "type": "object" },
+              "annotations": { "type": "object" },
+              "labels": { "type": "object" }
+            }
+          }
+        },
+        "networkPolicies": {
+          "type": "object",
+          "description": "Map of NetworkPolicy name to config",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "podSelector": { "type": "object", "description": "Pod selector (defaults to chart's selectorLabels)" },
+              "policyTypes": { "type": "array", "items": { "type": "string", "enum": ["Ingress", "Egress"] } },
+              "ingress": { "type": "array", "items": { "type": "object" } },
+              "egress": { "type": "array", "items": { "type": "object" } },
+              "annotations": { "type": "object" },
+              "labels": { "type": "object" }
+            }
+          }
+        },
         "istio": {
           "type": "object",
           "properties": {
@@ -425,6 +501,7 @@
             "properties": {
               "data": { "type": "object", "additionalProperties": { "type": "string" } },
               "binaryData": { "type": "object" },
+              "reloaderEnabled": { "type": "boolean", "description": "Include in Stakater Reloader annotations (default: true)" },
               "annotations": { "type": "object" },
               "labels": { "type": "object" }
             }
@@ -455,6 +532,7 @@
                 }
               },
               "generateRefreshInterval": { "type": "string", "description": "Refresh interval for generated secrets. 0 = generate once." },
+              "reloaderEnabled": { "type": "boolean", "description": "Include in Stakater Reloader annotations (default: true)" },
               "annotations": { "type": "object" },
               "labels": { "type": "object" }
             }
@@ -511,6 +589,18 @@
             "maxReplicas": { "type": "integer", "minimum": 1 },
             "metrics": { "type": "array", "items": { "type": "object" } },
             "behavior": { "type": "object" },
+            "annotations": { "type": "object" },
+            "labels": { "type": "object" }
+          },
+          "additionalProperties": false
+        },
+        "vpa": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "updatePolicy": { "type": "object" },
+            "resourcePolicy": { "type": "object" },
+            "recommenders": { "type": "array", "items": { "type": "object" } },
             "annotations": { "type": "object" },
             "labels": { "type": "object" }
           },
@@ -769,6 +859,28 @@
         }
       },
       "additionalProperties": false
+    },
+    "hooks": {
+      "type": "object",
+      "description": "Map of hook name to hook Job config. Runs at Helm lifecycle events.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["events", "containers"],
+        "properties": {
+          "events": { "type": "array", "items": { "type": "string", "enum": ["pre-install", "post-install", "pre-upgrade", "post-upgrade", "pre-delete", "post-delete", "pre-rollback", "post-rollback"] } },
+          "weight": { "type": "string", "description": "Hook execution order (lower = first)" },
+          "deletePolicy": { "type": "string", "enum": ["before-hook-creation", "hook-succeeded", "hook-failed"] },
+          "containers": { "type": "object", "description": "Hook containers (same format as main containers)" },
+          "initContainers": { "type": "object" },
+          "backoffLimit": { "type": ["integer", "string"] },
+          "activeDeadlineSeconds": { "type": ["integer", "string"] },
+          "ttlSecondsAfterFinished": { "type": ["integer", "string"] },
+          "completions": { "type": ["integer", "string"] },
+          "parallelism": { "type": ["integer", "string"] },
+          "annotations": { "type": "object" },
+          "labels": { "type": "object" }
+        }
+      }
     },
     "extraResources": {
       "type": "array",

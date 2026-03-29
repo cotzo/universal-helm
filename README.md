@@ -47,13 +47,15 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 
 **Any workload type** -- Deployment, StatefulSet, DaemonSet, CronJob, Job, or Argo Rollout -- all from a single chart with `workloadType`.
 
-**Full networking stack** -- Services, Ingresses, Gateway API routes, Istio VirtualServices, and Envoy Gateway policies. OAuth2 proxy autowiring for ingresses and routes.
+**Full networking stack** -- Services, Ingresses, Gateway API routes, Istio VirtualServices, Envoy Gateway policies, NetworkPolicies, and cert-manager Certificates. OAuth2 proxy autowiring for ingresses and routes.
 
 **Observability built in** -- Prometheus/VictoriaMetrics monitors, alerting rules (PrometheusRule/VMRule), and Grafana dashboards.
 
-**Event-driven autoscaling** -- HPA v2 and KEDA (ScaledObject + ScaledJob) with any trigger.
+**Event-driven autoscaling** -- HPA v2, VPA, and KEDA (ScaledObject + ScaledJob) with any trigger.
 
-**Secrets management** -- ConfigMaps, Secrets, External Secrets, and auto-generated passwords via ESO (ArgoCD-safe).
+**Secrets management** -- ConfigMaps, Secrets, External Secrets, and auto-generated passwords via ESO (ArgoCD-safe). Stakater Reloader annotations auto-generated per resource.
+
+**Lifecycle hooks** -- Pre-install/pre-upgrade Jobs for DB migrations, schema setup, etc. Auto-generates both Helm and Argo CD hook annotations. Hooks share the main workload's pod settings (SA, volumes, secrets).
 
 **Schema validation** -- Catches misconfigurations at install time: missing mounts, port mismatches, conflicting settings.
 
@@ -77,13 +79,15 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 | [Services & Ingresses](docs/networking.md) | ClusterIP, NodePort, LoadBalancer, headless services, Ingress |
 | [Gateway API](docs/routes.md) | HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute, Envoy policies |
 | [Istio](docs/istio.md) | VirtualService, DestinationRule, PeerAuthentication, AuthorizationPolicy |
+| [Certificates](docs/certificates.md) | cert-manager TLS certificates with auto-named secrets |
+| [Network Policies](docs/network-policies.md) | Ingress/egress rules, deny-all, namespace/pod/IP selectors |
 | [OAuth2 Proxy](docs/oauth2-proxy.md) | Sidecar and deployment mode, ingress/route autowiring |
 
 ### Autoscaling & Availability
 
 | Guide | Description |
 |-------|-------------|
-| [Autoscaling](docs/autoscaling.md) | HPA v2, KEDA (ScaledObject, ScaledJob), Pod Disruption Budgets |
+| [Autoscaling](docs/autoscaling.md) | HPA v2, VPA, KEDA (ScaledObject, ScaledJob), Pod Disruption Budgets |
 
 ### Observability
 
@@ -97,6 +101,7 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 
 | Guide | Description |
 |-------|-------------|
+| [Hooks](docs/hooks.md) | Pre-install/pre-upgrade Jobs, Argo CD + Flux compatible |
 | [Extra Resources](docs/advanced.md) | Escape hatch for arbitrary resources, global settings, pod settings |
 
 ## Requirements
@@ -109,10 +114,12 @@ The core chart (Deployment, Service, Ingress, ConfigMap, Secret, HPA, PDB, RBAC)
 | Feature | Operator | Values key | Version |
 |---------|----------|------------|---------|
 | Argo Rollouts | [Argo Rollouts](https://argoproj.github.io/rollouts/) | `workloadType: Rollout` | v1.6+ |
+| VPA | [Vertical Pod Autoscaler](https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler) | `autoscaling.vpa.enabled` | v1.0+ |
 | KEDA autoscaling | [KEDA](https://keda.sh/) | `autoscaling.keda.enabled` | v2.12+ |
 | Gateway API | [Gateway API CRDs](https://gateway-api.sigs.k8s.io/) | `networking.gatewayApi.routes` | v1.2+ |
 | Envoy policies | [Envoy Gateway](https://gateway.envoyproxy.io/) | `networking.gatewayApi.routes.*.policies.envoy` | v1.0+ |
 | Istio mesh | [Istio](https://istio.io/) | `networking.istio.*` | v1.20+ |
+| TLS certificates | [cert-manager](https://cert-manager.io/) | `networking.certificates` | v1.12+ |
 | External Secrets | [ESO](https://external-secrets.io/) | `config.externalSecrets` / `config.secrets.*.generate` | v0.9+ |
 | Prometheus | [Prometheus Operator](https://prometheus-operator.dev/) | `monitors` / `alerting` (operator: prometheus) | v0.70+ |
 | VictoriaMetrics | [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) | `monitors` / `alerting` (operator: victoriametrics) | v0.44+ |

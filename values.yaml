@@ -203,14 +203,17 @@ podSettings:
   #                 - my-app
   #         topologyKey: kubernetes.io/hostname
 
-  # -- Topology spread constraints
-  topologySpreadConstraints: []
-  # - maxSkew: 1
+  # -- Topology spread constraints (map of name -> config).
+  # labelSelector defaults to chart's selectorLabels if not specified.
+  topologySpreadConstraints: {}
+  # zone-spread:
+  #   maxSkew: 1
   #   topologyKey: topology.kubernetes.io/zone
   #   whenUnsatisfiable: DoNotSchedule
-  #   labelSelector:
-  #     matchLabels:
-  #       app.kubernetes.io/name: my-app
+  # node-spread:
+  #   maxSkew: 1
+  #   topologyKey: kubernetes.io/hostname
+  #   whenUnsatisfiable: ScheduleAnyway
 
   # -- Priority class name
   priorityClassName: ""
@@ -482,6 +485,69 @@ networking:
 #           port: 53
 
   # =============================================================================
+  # =============================================================================
+  # Certificates (cert-manager)
+  # =============================================================================
+
+  # -- TLS Certificates (map of name -> config).
+  # Creates cert-manager Certificate resources. Requires cert-manager installed.
+  # secretName defaults to <fullname>-<key>-tls if not specified.
+  certificates: {}
+  # app-tls:
+  #   issuerRef:
+  #     name: letsencrypt-prod
+  #     kind: ClusterIssuer          # ClusterIssuer | Issuer
+  #   dnsNames:
+  #     - app.example.com
+  #     - www.example.com
+  #   # secretName: ""               # defaults to <fullname>-<key>-tls
+  #   # mount:
+  #   #   path: /etc/tls             # auto-mount cert to all containers at this path
+  #   # duration: 2160h              # 90 days
+  #   # renewBefore: 360h            # 15 days
+  #   # privateKey:
+  #   #   algorithm: RSA
+  #   #   size: 2048
+  #   #   rotationPolicy: Always
+  #   annotations: {}
+  #   labels: {}
+
+  # =============================================================================
+  # Network Policies
+  # =============================================================================
+
+  # -- NetworkPolicies (map of name -> config).
+  # podSelector defaults to chart's selectorLabels if not specified.
+  # No external dependencies — uses built-in networking.k8s.io/v1.
+  networkPolicies: {}
+  # deny-all:
+  #   policyTypes:
+  #     - Ingress
+  #     - Egress
+  # allow-ingress:
+  #   policyTypes:
+  #     - Ingress
+  #   ingress:
+  #     - from:
+  #         - namespaceSelector:
+  #             matchLabels:
+  #               name: ingress-nginx
+  #       ports:
+  #         - protocol: TCP
+  #           port: 80
+  # allow-dns:
+  #   policyTypes:
+  #     - Egress
+  #   egress:
+  #     - to:
+  #         - namespaceSelector: {}
+  #       ports:
+  #         - protocol: UDP
+  #           port: 53
+  #   annotations: {}
+  #   labels: {}
+
+  # =============================================================================
   # Istio
   # =============================================================================
 
@@ -579,17 +645,20 @@ config:
   # -- ConfigMaps to create (map of name -> config).
   # Mounting and envFrom injection is configured per container via
   # configMapMounts and configMapEnvFrom in the container spec.
+  # Stakater Reloader annotations are auto-generated (set reloaderEnabled: false to exclude).
   configMaps: {}
   # app-config:
   #   data:
   #     config.yaml: |
   #       key: value
+  #   # reloaderEnabled: true        # include in Stakater Reloader annotations (default: true)
   #   annotations: {}
   #   labels: {}
 
   # -- Secrets to create (map of name -> config).
   # Mounting and envFrom injection is configured per container via
   # secretMounts and secretEnvFrom in the container spec.
+  # Stakater Reloader annotations are auto-generated (set reloaderEnabled: false to exclude).
   secrets: {}
   # app-secret:
   #   type: Opaque
@@ -677,6 +746,35 @@ autoscaling:
     # -- HPA annotations
     annotations: {}
     # -- HPA labels
+    labels: {}
+
+  # -- VPA configuration (not applicable to CronJob, Job)
+  # Can be used alongside HPA — VPA manages requests, HPA manages replicas.
+  # Set controlledValues: RequestsOnly when combining with HPA.
+  vpa:
+    enabled: false
+    # -- Update policy: Off (dry-run), Initial (create only), Auto (recreate pods)
+    updatePolicy: {}
+    # updateMode: Auto
+    # minReplicas: 2
+    # -- Per-container resource constraints
+    resourcePolicy: {}
+    # containerPolicies:
+    #   - containerName: "*"
+    #     mode: Auto
+    #     minAllowed:
+    #       cpu: 100m
+    #       memory: 50Mi
+    #     maxAllowed:
+    #       cpu: 1000m
+    #       memory: 500Mi
+    #     controlledResources: ["cpu", "memory"]
+    #     controlledValues: RequestsOnly     # use RequestsOnly with HPA
+    # -- Custom recommender
+    recommenders: []
+    # -- VPA annotations
+    annotations: {}
+    # -- VPA labels
     labels: {}
 
   # -- KEDA configuration (not applicable to CronJob, DaemonSet)
@@ -1060,6 +1158,44 @@ workloads:
     podReplacementPolicy: ""
     # -- Suspend the job
     suspend: false
+
+# =============================================================================
+# Hooks (pre-install/pre-upgrade Jobs)
+# =============================================================================
+
+# -- Hook Jobs (map of name -> config).
+# Runs Jobs at Helm lifecycle events (pre-install, pre-upgrade, etc.).
+# Hooks share the main workload's pod settings (ServiceAccount, tolerations,
+# volumes, security context) but define their own containers.
+# Both Helm and Argo CD hook annotations are rendered automatically.
+hooks: {}
+# db-migrate:
+#   events:
+#     - pre-install
+#     - pre-upgrade
+#   weight: "-5"                        # execution order (lower = first)
+#   deletePolicy: before-hook-creation  # before-hook-creation | hook-succeeded | hook-failed
+#   containers:
+#     migrate:
+#       image:
+#         repository: my-app
+#         tag: "1.0.0"
+#       command: ["./migrate", "--up"]
+#       env:
+#         EXTRA_FLAG:
+#           value: "true"
+#       mounts:
+#         - path: /config
+#           configMap: app-config
+#       resources:
+#         requests:
+#           cpu: 100m
+#           memory: 128Mi
+#   backoffLimit: 3
+#   activeDeadlineSeconds: 300
+#   ttlSecondsAfterFinished: 600
+#   annotations: {}
+#   labels: {}
 
 # =============================================================================
 # Extra Resources (escape hatch)

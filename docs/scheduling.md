@@ -94,24 +94,44 @@ podSettings:
 
 ### Topology Spread Constraints
 
-Supports `minDomains` (GA in K8s 1.30) for cluster autoscaler integration.
+Defined as a map under `podSettings.topologySpreadConstraints`. The `labelSelector` **defaults to the chart's selectorLabels** if not specified — no need to repeat your app labels.
 
 ```yaml
 podSettings:
   topologySpreadConstraints:
-    - maxSkew: 1
+    zone-spread:
+      maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: DoNotSchedule
-      minDomains: 3              # K8s 1.30+ — minimum number of domains
-      labelSelector:
-        matchLabels:
-          app.kubernetes.io/name: my-app
-    - maxSkew: 1
+    node-spread:
+      maxSkew: 1
       topologyKey: kubernetes.io/hostname
       whenUnsatisfiable: ScheduleAnyway
+```
+
+#### Available Fields
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `maxSkew` | `1` | Max difference in pod count between topology domains |
+| `topologyKey` | **required** | Node label key for topology domains |
+| `whenUnsatisfiable` | `DoNotSchedule` | `DoNotSchedule` or `ScheduleAnyway` |
+| `labelSelector` | chart selectorLabels | Override to target different pods |
+| `matchLabelKeys` | | Pod label keys for per-revision spreading |
+| `minDomains` | | Minimum topology domains (K8s 1.30+) |
+| `nodeAffinityPolicy` | | `Honor` or `Ignore` node affinity |
+| `nodeTaintsPolicy` | | `Honor` or `Ignore` node taints |
+
+#### Custom Label Selector
+
+```yaml
+podSettings:
+  topologySpreadConstraints:
+    custom:
+      topologyKey: topology.kubernetes.io/zone
       labelSelector:
         matchLabels:
-          app.kubernetes.io/name: my-app
+          custom: label
 ```
 
 [Topology spread reference](https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/)

@@ -94,9 +94,36 @@ spec:
   tolerations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- with .Values.podSettings.topologySpreadConstraints }}
+  {{- if .Values.podSettings.topologySpreadConstraints }}
   topologySpreadConstraints:
-    {{- toYaml . | nindent 4 }}
+    {{- range $name, $tsc := .Values.podSettings.topologySpreadConstraints }}
+    {{- if $tsc }}
+    - maxSkew: {{ default 1 $tsc.maxSkew }}
+      topologyKey: {{ $tsc.topologyKey }}
+      whenUnsatisfiable: {{ default "DoNotSchedule" $tsc.whenUnsatisfiable }}
+      {{- if $tsc.labelSelector }}
+      labelSelector:
+        {{- toYaml $tsc.labelSelector | nindent 8 }}
+      {{- else }}
+      labelSelector:
+        matchLabels:
+          {{- include "chartpack.selectorLabels" $ | nindent 10 }}
+      {{- end }}
+      {{- with $tsc.matchLabelKeys }}
+      matchLabelKeys:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $tsc.minDomains }}
+      minDomains: {{ . }}
+      {{- end }}
+      {{- with $tsc.nodeAffinityPolicy }}
+      nodeAffinityPolicy: {{ . }}
+      {{- end }}
+      {{- with $tsc.nodeTaintsPolicy }}
+      nodeTaintsPolicy: {{ . }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
   {{- end }}
   {{- with .Values.podSettings.priorityClassName }}
   priorityClassName: {{ . }}

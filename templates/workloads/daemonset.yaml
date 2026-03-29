@@ -1,7 +1,7 @@
 {{- if eq .Values.workloadType "DaemonSet" }}
 apiVersion: apps/v1
 kind: DaemonSet
-{{ include "chartpack.metadata" (dict "context" $) }}
+{{ include "chartpack.metadata" (dict "context" $ "workload" true) }}
 spec:
   {{- with .Values.workloads.daemonSet.updateStrategy }}
   updateStrategy:

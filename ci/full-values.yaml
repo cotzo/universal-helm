@@ -292,18 +292,14 @@ podSettings:
                   - us-east-1b
                   - us-east-1c
   topologySpreadConstraints:
-    - maxSkew: 1
+    zone-spread:
+      maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: DoNotSchedule
-      labelSelector:
-        matchLabels:
-          app.kubernetes.io/name: full-test
-    - maxSkew: 1
+    node-spread:
+      maxSkew: 1
       topologyKey: kubernetes.io/hostname
       whenUnsatisfiable: ScheduleAnyway
-      labelSelector:
-        matchLabels:
-          app.kubernetes.io/name: full-test
   priorityClassName: high-priority
   terminationGracePeriodSeconds: 30
   dnsPolicy: ClusterFirst
@@ -569,6 +565,63 @@ networking:
                 port: 443
 
   # =============================================================================
+  # =============================================================================
+  # =============================================================================
+  # Certificates (cert-manager)
+  # =============================================================================
+
+  certificates:
+    app-tls:
+      issuerRef:
+        name: letsencrypt-prod
+        kind: ClusterIssuer
+      dnsNames:
+        - app.example.com
+        - www.example.com
+      duration: 2160h
+      renewBefore: 360h
+    internal-tls:
+      issuerRef:
+        name: internal-ca
+        kind: Issuer
+      dnsNames:
+        - app.internal.example.com
+      privateKey:
+        algorithm: ECDSA
+        size: 256
+      mount:
+        path: /etc/internal-tls
+
+  # =============================================================================
+  # Network Policies
+  # =============================================================================
+
+  networkPolicies:
+    deny-all:
+      policyTypes:
+        - Ingress
+        - Egress
+    allow-ingress:
+      policyTypes:
+        - Ingress
+      ingress:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  name: ingress-nginx
+          ports:
+            - protocol: TCP
+              port: 80
+    allow-dns-egress:
+      policyTypes:
+        - Egress
+      egress:
+        - to:
+            - namespaceSelector: {}
+          ports:
+            - protocol: UDP
+              port: 53
+
   # Istio — VirtualService, DestinationRule, PeerAuthentication, AuthorizationPolicy
   # =============================================================================
 
@@ -804,6 +857,21 @@ autoscaling:
             value: 4
             periodSeconds: 15
         selectPolicy: Max
+  vpa:
+    enabled: true
+    updatePolicy:
+      updateMode: Auto
+    resourcePolicy:
+      containerPolicies:
+        - containerName: "*"
+          minAllowed:
+            cpu: 100m
+            memory: 128Mi
+          maxAllowed:
+            cpu: "2"
+            memory: 2Gi
+          controlledResources: ["cpu", "memory"]
+          controlledValues: RequestsOnly
 
 # =============================================================================
 # PDB
@@ -985,6 +1053,11 @@ dashboards:
         revision: 37
 
 # =============================================================================
+# NOTE: Hooks are not included here because tier 1 tests use --wait=hookOnly
+# which requires hooks to actually complete, and full-values has scheduling
+# constraints (nodeSelector, affinity) incompatible with kind clusters.
+# Hook rendering is covered by unit tests (tests/hooks_test.yaml).
+
 # Extra Resources — escape hatch
 # =============================================================================
 
