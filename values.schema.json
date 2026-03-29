@@ -161,7 +161,24 @@
         "nodeSelector": { "type": "object", "additionalProperties": { "type": "string" } },
         "tolerations": { "type": "array", "items": { "type": "object" } },
         "affinity": { "type": "object" },
-        "topologySpreadConstraints": { "type": "array", "items": { "type": "object" } },
+        "topologySpreadConstraints": {
+          "type": "object",
+          "description": "Map of topology spread constraint name to config. labelSelector defaults to chart's selectorLabels.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["topologyKey"],
+            "properties": {
+              "maxSkew": { "type": "integer", "minimum": 1 },
+              "topologyKey": { "type": "string" },
+              "whenUnsatisfiable": { "type": "string", "enum": ["DoNotSchedule", "ScheduleAnyway"] },
+              "labelSelector": { "type": "object" },
+              "matchLabelKeys": { "type": "array", "items": { "type": "string" } },
+              "minDomains": { "type": "integer" },
+              "nodeAffinityPolicy": { "type": "string", "enum": ["Honor", "Ignore"] },
+              "nodeTaintsPolicy": { "type": "string", "enum": ["Honor", "Ignore"] }
+            }
+          }
+        },
         "priorityClassName": { "type": "string" },
         "terminationGracePeriodSeconds": { "type": ["integer", "string"] },
         "dnsPolicy": { "type": "string" },

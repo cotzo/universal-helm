@@ -292,18 +292,14 @@ podSettings:
                   - us-east-1b
                   - us-east-1c
   topologySpreadConstraints:
-    - maxSkew: 1
+    zone-spread:
+      maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: DoNotSchedule
-      labelSelector:
-        matchLabels:
-          app.kubernetes.io/name: full-test
-    - maxSkew: 1
+    node-spread:
+      maxSkew: 1
       topologyKey: kubernetes.io/hostname
       whenUnsatisfiable: ScheduleAnyway
-      labelSelector:
-        matchLabels:
-          app.kubernetes.io/name: full-test
   priorityClassName: high-priority
   terminationGracePeriodSeconds: 30
   dnsPolicy: ClusterFirst
