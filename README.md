@@ -23,7 +23,7 @@ Instead of maintaining separate charts per application, define your entire deplo
 Deploy any Kubernetes workload type from a single chart: [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/), [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/), [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/), [CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/), [Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/), and [Argo Rollout](https://argoproj.github.io/rollouts/) with canary/blue-green strategies. StatefulSets get automatic headless services and volume claim templates.
 
 ### Networking
-Multiple [Services](https://kubernetes.io/docs/concepts/services-networking/service/) per release (ClusterIP, NodePort, LoadBalancer, headless), multiple [Ingresses](https://kubernetes.io/docs/concepts/services-networking/ingress/) with different controllers and TLS configs, and [Gateway API](https://gateway-api.sigs.k8s.io/) routes (HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute) with traffic splitting, header matching, and timeouts. [Envoy Gateway](https://gateway.envoyproxy.io/) BackendTrafficPolicy support for rate limiting, circuit breaking, retries, and load balancing. Service ports reference container ports by name for type-safe wiring.
+Multiple [Services](https://kubernetes.io/docs/concepts/services-networking/service/) per release (ClusterIP, NodePort, LoadBalancer, headless), multiple [Ingresses](https://kubernetes.io/docs/concepts/services-networking/ingress/) with different controllers and TLS configs, and [Gateway API](https://gateway-api.sigs.k8s.io/) routes (HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute) with traffic splitting, header matching, and timeouts. [Envoy Gateway](https://gateway.envoyproxy.io/) BackendTrafficPolicy support for rate limiting, circuit breaking, retries, and load balancing. [Istio](https://istio.io/) VirtualService, DestinationRule, PeerAuthentication, and AuthorizationPolicy with service name autowiring. Service ports reference container ports by name for type-safe wiring.
 
 ### Configuration & Secrets
 Manage [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/), [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) (Opaque, TLS, Docker registry), and [External Secrets](https://external-secrets.io/) (AWS Secrets Manager, Vault, etc.). Auto-generate random secrets via [ESO Password generators](https://external-secrets.io/latest/api/generator/password/) — ArgoCD-safe, no `helm lookup` needed. Auto-rollout on config changes via checksum annotations.
@@ -77,6 +77,7 @@ These are only required if you enable the corresponding feature in your values. 
 | VictoriaMetrics monitoring | [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) | `monitors` (operator: victoriametrics) | v0.44+ |
 | VictoriaMetrics alerting | [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) | `alerting` (operator: victoriametrics) | v0.44+ |
 | Grafana dashboards | [Grafana Operator](https://grafana-operator.github.io/grafana-operator/) | `dashboards.grafana` | v5.22+ |
+| Istio service mesh | [Istio](https://istio.io/) | `networking.istio.*` | v1.20+ |
 
 ## Quick Start
 
@@ -114,6 +115,7 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 | [Containers](docs/containers.md) | Container spec, env, mounts, health checks, init containers |
 | [Networking](docs/networking.md) | Services, ingresses, headless services |
 | [Gateway API Routes](docs/routes.md) | HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute, Envoy policies |
+| [Istio](docs/istio.md) | VirtualService, DestinationRule, PeerAuthentication, AuthorizationPolicy |
 | [OAuth2 Proxy](docs/oauth2-proxy.md) | Automatic oauth2-proxy integration for ingresses and routes |
 | [Configuration](docs/configuration.md) | ConfigMaps, Secrets, External Secrets, generated secrets |
 | [Persistence](docs/persistence.md) | PVCs, StatefulSet volume claim templates |

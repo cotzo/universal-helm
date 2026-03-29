@@ -1,0 +1,25 @@
+{{- $fullName := include "chartpack.fullname" . -}}
+{{- range $name, $ap := .Values.networking.istio.authorizationPolicies }}
+{{- if $ap }}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $ap.annotations "extraLabels" $ap.labels) }}
+spec:
+  {{- if $ap.selector }}
+  selector:
+    {{- toYaml $ap.selector | nindent 4 }}
+  {{- else }}
+  selector:
+    matchLabels:
+      {{- include "chartpack.selectorLabels" $ | nindent 6 }}
+  {{- end }}
+  {{- with $ap.action }}
+  action: {{ . }}
+  {{- end }}
+  {{- with $ap.rules }}
+  rules:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

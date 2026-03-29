@@ -1,0 +1,26 @@
+{{- $fullName := include "chartpack.fullname" . -}}
+{{- range $name, $pa := .Values.networking.istio.peerAuthentication }}
+{{- if $pa }}
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $pa.annotations "extraLabels" $pa.labels) }}
+spec:
+  {{- if $pa.selector }}
+  selector:
+    {{- toYaml $pa.selector | nindent 4 }}
+  {{- else }}
+  selector:
+    matchLabels:
+      {{- include "chartpack.selectorLabels" $ | nindent 6 }}
+  {{- end }}
+  {{- with $pa.mtls }}
+  mtls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $pa.portLevelMtls }}
+  portLevelMtls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,34 @@
+{{- $fullName := include "chartpack.fullname" . -}}
+{{- range $name, $vs := .Values.networking.istio.virtualServices }}
+{{- if $vs }}
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $vs.annotations "extraLabels" $vs.labels) }}
+spec:
+  {{- with $vs.hosts }}
+  hosts:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $vs.gateways }}
+  gateways:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $vs.exportTo }}
+  exportTo:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $vs.http }}
+  http:
+    {{- include "chartpack.networking.istio.rewriteRoutes" (dict "routes" . "fullName" $fullName) | nindent 4 }}
+  {{- end }}
+  {{- with $vs.tcp }}
+  tcp:
+    {{- include "chartpack.networking.istio.rewriteRoutes" (dict "routes" . "fullName" $fullName) | nindent 4 }}
+  {{- end }}
+  {{- with $vs.tls }}
+  tls:
+    {{- include "chartpack.networking.istio.rewriteRoutes" (dict "routes" . "fullName" $fullName) | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,27 @@
+{{- $fullName := include "chartpack.fullname" . -}}
+{{- range $name, $dr := .Values.networking.istio.destinationRules }}
+{{- if $dr }}
+{{- $host := $dr.host -}}
+{{- if not $dr.externalHost }}
+  {{- $host = printf "%s-%s" $fullName $dr.host -}}
+{{- end }}
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $dr.annotations "extraLabels" $dr.labels) }}
+spec:
+  host: {{ $host }}
+  {{- with $dr.trafficPolicy }}
+  trafficPolicy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $dr.subsets }}
+  subsets:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $dr.exportTo }}
+  exportTo:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
