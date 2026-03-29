@@ -1,0 +1,79 @@
+{{- $fullName := include "chartpack.fullname" . -}}
+{{- range $name, $vs := .Values.networking.istio.virtualServices }}
+{{- if $vs }}
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $vs.annotations "extraLabels" $vs.labels) }}
+spec:
+  {{- with $vs.hosts }}
+  hosts:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $vs.gateways }}
+  gateways:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $vs.exportTo }}
+  exportTo:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $vs.http }}
+  http:
+    {{- range . }}
+    - {{- $route := deepCopy . }}
+      {{- if $route.route }}
+      {{- $newRoutes := list }}
+      {{- range $route.route }}
+        {{- $r := deepCopy . }}
+        {{- if and $r.destination (not $r.destination.external) }}
+          {{- $_ := set $r.destination "host" (printf "%s-%s" $fullName $r.destination.host) }}
+        {{- end }}
+        {{- if $r.destination }}{{ $_ := unset $r.destination "external" }}{{ end }}
+        {{- $newRoutes = append $newRoutes $r }}
+      {{- end }}
+      {{- $_ := set $route "route" $newRoutes }}
+      {{- end }}
+      {{- toYaml $route | nindent 6 }}
+    {{- end }}
+  {{- end }}
+  {{- with $vs.tcp }}
+  tcp:
+    {{- range . }}
+    - {{- $route := deepCopy . }}
+      {{- if $route.route }}
+      {{- $newRoutes := list }}
+      {{- range $route.route }}
+        {{- $r := deepCopy . }}
+        {{- if and $r.destination (not $r.destination.external) }}
+          {{- $_ := set $r.destination "host" (printf "%s-%s" $fullName $r.destination.host) }}
+        {{- end }}
+        {{- if $r.destination }}{{ $_ := unset $r.destination "external" }}{{ end }}
+        {{- $newRoutes = append $newRoutes $r }}
+      {{- end }}
+      {{- $_ := set $route "route" $newRoutes }}
+      {{- end }}
+      {{- toYaml $route | nindent 6 }}
+    {{- end }}
+  {{- end }}
+  {{- with $vs.tls }}
+  tls:
+    {{- range . }}
+    - {{- $route := deepCopy . }}
+      {{- if $route.route }}
+      {{- $newRoutes := list }}
+      {{- range $route.route }}
+        {{- $r := deepCopy . }}
+        {{- if and $r.destination (not $r.destination.external) }}
+          {{- $_ := set $r.destination "host" (printf "%s-%s" $fullName $r.destination.host) }}
+        {{- end }}
+        {{- if $r.destination }}{{ $_ := unset $r.destination "external" }}{{ end }}
+        {{- $newRoutes = append $newRoutes $r }}
+      {{- end }}
+      {{- $_ := set $route "route" $newRoutes }}
+      {{- end }}
+      {{- toYaml $route | nindent 6 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}

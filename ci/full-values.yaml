@@ -568,6 +568,59 @@ networking:
               - name: http
                 port: 443
 
+  # =============================================================================
+  # Istio — VirtualService, DestinationRule, PeerAuthentication, AuthorizationPolicy
+  # =============================================================================
+
+  istio:
+    virtualServices:
+      http:
+        hosts:
+          - full-test.example.com
+        gateways:
+          - istio-system/main-gateway
+        http:
+          - match:
+              - uri:
+                  prefix: /
+            route:
+              - destination:
+                  host: http
+                  port:
+                    number: 80
+                weight: 100
+            timeout: 10s
+            retries:
+              attempts: 3
+              perTryTimeout: 2s
+
+    destinationRules:
+      http:
+        host: http
+        trafficPolicy:
+          loadBalancer:
+            simple: LEAST_REQUEST
+          connectionPool:
+            tcp:
+              maxConnections: 100
+          outlierDetection:
+            consecutive5xxErrors: 5
+            interval: 30s
+            baseEjectionTime: 30s
+
+    peerAuthentication:
+      default:
+        mtls:
+          mode: STRICT
+
+    authorizationPolicies:
+      allow-internal:
+        action: ALLOW
+        rules:
+          - from:
+              - source:
+                  namespaces: ["default", "monitoring"]
+
 # =============================================================================
 # ConfigMaps — app config, env vars, sidecar config
 # =============================================================================

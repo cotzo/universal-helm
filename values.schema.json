@@ -345,6 +345,73 @@
             }
           },
           "additionalProperties": false
+        },
+        "istio": {
+          "type": "object",
+          "properties": {
+            "virtualServices": {
+              "type": "object",
+              "description": "Map of VirtualService name to config",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "hosts": { "type": "array", "items": { "type": "string" } },
+                  "gateways": { "type": "array", "items": { "type": "string" } },
+                  "exportTo": { "type": "array", "items": { "type": "string" } },
+                  "http": { "type": "array", "items": { "type": "object" } },
+                  "tcp": { "type": "array", "items": { "type": "object" } },
+                  "tls": { "type": "array", "items": { "type": "object" } },
+                  "annotations": { "type": "object" },
+                  "labels": { "type": "object" }
+                }
+              }
+            },
+            "destinationRules": {
+              "type": "object",
+              "description": "Map of DestinationRule name to config",
+              "additionalProperties": {
+                "type": "object",
+                "required": ["host"],
+                "properties": {
+                  "host": { "type": "string", "description": "Service key (auto-prefixed) or FQDN (with externalHost: true)" },
+                  "externalHost": { "type": "boolean", "description": "Skip auto-prefixing the host" },
+                  "trafficPolicy": { "type": "object" },
+                  "subsets": { "type": "array", "items": { "type": "object" } },
+                  "exportTo": { "type": "array", "items": { "type": "string" } },
+                  "annotations": { "type": "object" },
+                  "labels": { "type": "object" }
+                }
+              }
+            },
+            "peerAuthentication": {
+              "type": "object",
+              "description": "Map of PeerAuthentication name to config",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "selector": { "type": "object", "description": "Workload selector (defaults to chart's selectorLabels)" },
+                  "mtls": { "type": "object" },
+                  "portLevelMtls": { "type": "object" },
+                  "annotations": { "type": "object" },
+                  "labels": { "type": "object" }
+                }
+              }
+            },
+            "authorizationPolicies": {
+              "type": "object",
+              "description": "Map of AuthorizationPolicy name to config",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "selector": { "type": "object", "description": "Workload selector (defaults to chart's selectorLabels)" },
+                  "action": { "type": "string", "enum": ["ALLOW", "DENY", "CUSTOM", "AUDIT"] },
+                  "rules": { "type": "array", "items": { "type": "object" } },
+                  "annotations": { "type": "object" },
+                  "labels": { "type": "object" }
+                }
+              }
+            }
+          }
         }
       }
     },

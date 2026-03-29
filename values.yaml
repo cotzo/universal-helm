@@ -481,6 +481,96 @@ networking:
 #         - name: dns
 #           port: 53
 
+  # =============================================================================
+  # Istio
+  # =============================================================================
+
+  # -- Istio resources. Requires Istio CRDs installed in the cluster.
+  istio:
+    # -- VirtualServices (map of name -> config)
+    # destination.host references a key from networking.services (auto-prefixed).
+    # Set external: true on a destination to skip prefixing for cross-namespace FQDNs.
+    virtualServices: {}
+    # http:
+    #   hosts:
+    #     - app.example.com
+    #   gateways:
+    #     - istio-system/my-gateway
+    #   http:
+    #     - match:
+    #         - uri:
+    #             prefix: /
+    #       route:
+    #         - destination:
+    #             host: http              # auto-prefixed to <fullname>-http
+    #             port:
+    #               number: 80
+    #           weight: 90
+    #         - destination:
+    #             host: http-canary
+    #             port:
+    #               number: 80
+    #           weight: 10
+    #       timeout: 10s
+    #       retries:
+    #         attempts: 3
+    #         perTryTimeout: 2s
+    #   annotations: {}
+    #   labels: {}
+
+    # -- DestinationRules (map of name -> config)
+    # host references a key from networking.services (auto-prefixed).
+    # Set externalHost: true to skip prefixing for cross-namespace FQDNs.
+    destinationRules: {}
+    # http:
+    #   host: http                        # auto-prefixed to <fullname>-http
+    #   trafficPolicy:
+    #     loadBalancer:
+    #       simple: LEAST_REQUEST
+    #     connectionPool:
+    #       tcp:
+    #         maxConnections: 100
+    #     outlierDetection:
+    #       consecutive5xxErrors: 5
+    #       interval: 30s
+    #       baseEjectionTime: 30s
+    #   subsets:
+    #     - name: v1
+    #       labels:
+    #         version: v1
+    #   annotations: {}
+    #   labels: {}
+
+    # -- PeerAuthentication (map of name -> config)
+    # selector defaults to chart's selectorLabels if not specified.
+    peerAuthentication: {}
+    # default:
+    #   mtls:
+    #     mode: STRICT              # PERMISSIVE | STRICT | DISABLE | UNSET
+    #   # selector:                 # omit to use chart's selectorLabels
+    #   #   matchLabels: {}
+    #   # portLevelMtls:
+    #   #   8080:
+    #   #     mode: PERMISSIVE
+    #   annotations: {}
+    #   labels: {}
+
+    # -- AuthorizationPolicies (map of name -> config)
+    # selector defaults to chart's selectorLabels if not specified.
+    authorizationPolicies: {}
+    # allow-frontend:
+    #   action: ALLOW               # ALLOW | DENY | CUSTOM | AUDIT
+    #   rules:
+    #     - from:
+    #         - source:
+    #             principals: ["cluster.local/ns/default/sa/frontend"]
+    #       to:
+    #         - operation:
+    #             methods: ["GET", "POST"]
+    #             paths: ["/api/*"]
+    #   annotations: {}
+    #   labels: {}
+
 # =============================================================================
 # Configuration (ConfigMaps, Secrets, External Secrets)
 # =============================================================================

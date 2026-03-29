@@ -1,0 +1,340 @@
+suite: Istio resources (VirtualService, DestinationRule, PeerAuthentication, AuthorizationPolicy)
+templates:
+  - templates/networking/istio/virtual-service.yaml
+  - templates/networking/istio/destination-rule.yaml
+  - templates/networking/istio/peer-authentication.yaml
+  - templates/networking/istio/authorization-policy.yaml
+set:
+  containers:
+    app:
+      image:
+        repository: nginx
+      ports:
+        http:
+          port: 80
+  networking:
+    services:
+      http:
+        ports:
+          http:
+            port: 80
+tests:
+  # ---------------------------------------------------------------------------
+  # VirtualService
+  # ---------------------------------------------------------------------------
+  - it: should not render VirtualService when none defined
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/networking/istio/virtual-service.yaml
+
+  - it: should render VirtualService with auto-prefixed destination host
+    set:
+      networking:
+        istio:
+          virtualServices:
+            http:
+              hosts:
+                - app.example.com
+              gateways:
+                - istio-system/my-gateway
+              http:
+                - route:
+                    - destination:
+                        host: http
+                        port:
+                          number: 80
+    asserts:
+      - isKind:
+          of: VirtualService
+        template: templates/networking/istio/virtual-service.yaml
+      - isAPIVersion:
+          of: networking.istio.io/v1
+        template: templates/networking/istio/virtual-service.yaml
+      - equal:
+          path: spec.http[0].route[0].destination.host
+          value: RELEASE-NAME-chartpack-http
+        template: templates/networking/istio/virtual-service.yaml
+
+  - it: should skip prefixing when destination has external flag
+    set:
+      networking:
+        istio:
+          virtualServices:
+            external:
+              hosts:
+                - app.example.com
+              http:
+                - route:
+                    - destination:
+                        host: reviews.other-ns.svc.cluster.local
+                        external: true
+                        port:
+                          number: 80
+    asserts:
+      - equal:
+          path: spec.http[0].route[0].destination.host
+          value: reviews.other-ns.svc.cluster.local
+        template: templates/networking/istio/virtual-service.yaml
+      - notExists:
+          path: spec.http[0].route[0].destination.external
+        template: templates/networking/istio/virtual-service.yaml
+
+  - it: should render traffic splitting with weights
+    set:
+      networking:
+        istio:
+          virtualServices:
+            canary:
+              hosts:
+                - app.example.com
+              http:
+                - route:
+                    - destination:
+                        host: http
+                        port:
+                          number: 80
+                      weight: 90
+                    - destination:
+                        host: http
+                        port:
+                          number: 80
+                      weight: 10
+    asserts:
+      - equal:
+          path: spec.http[0].route[0].weight
+          value: 90
+        template: templates/networking/istio/virtual-service.yaml
+      - equal:
+          path: spec.http[0].route[1].weight
+          value: 10
+        template: templates/networking/istio/virtual-service.yaml
+
+  - it: should render retries and timeout
+    set:
+      networking:
+        istio:
+          virtualServices:
+            http:
+              hosts:
+                - app.example.com
+              http:
+                - route:
+                    - destination:
+                        host: http
+                        port:
+                          number: 80
+                  timeout: 10s
+                  retries:
+                    attempts: 3
+                    perTryTimeout: 2s
+    asserts:
+      - equal:
+          path: spec.http[0].timeout
+          value: 10s
+        template: templates/networking/istio/virtual-service.yaml
+      - equal:
+          path: spec.http[0].retries.attempts
+          value: 3
+        template: templates/networking/istio/virtual-service.yaml
+
+  # ---------------------------------------------------------------------------
+  # DestinationRule
+  # ---------------------------------------------------------------------------
+  - it: should not render DestinationRule when none defined
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/networking/istio/destination-rule.yaml
+
+  - it: should render DestinationRule with auto-prefixed host
+    set:
+      networking:
+        istio:
+          destinationRules:
+            http:
+              host: http
+              trafficPolicy:
+                loadBalancer:
+                  simple: LEAST_REQUEST
+    asserts:
+      - isKind:
+          of: DestinationRule
+        template: templates/networking/istio/destination-rule.yaml
+      - isAPIVersion:
+          of: networking.istio.io/v1
+        template: templates/networking/istio/destination-rule.yaml
+      - equal:
+          path: spec.host
+          value: RELEASE-NAME-chartpack-http
+        template: templates/networking/istio/destination-rule.yaml
+
+  - it: should skip prefixing when externalHost is true
+    set:
+      networking:
+        istio:
+          destinationRules:
+            external-db:
+              host: db.other-ns.svc.cluster.local
+              externalHost: true
+              trafficPolicy:
+                tls:
+                  mode: ISTIO_MUTUAL
+    asserts:
+      - equal:
+          path: spec.host
+          value: db.other-ns.svc.cluster.local
+        template: templates/networking/istio/destination-rule.yaml
+
+  - it: should render subsets and outlier detection
+    set:
+      networking:
+        istio:
+          destinationRules:
+            http:
+              host: http
+              trafficPolicy:
+                outlierDetection:
+                  consecutive5xxErrors: 5
+                  interval: 30s
+              subsets:
+                - name: v1
+                  labels:
+                    version: v1
+                - name: v2
+                  labels:
+                    version: v2
+    asserts:
+      - equal:
+          path: spec.trafficPolicy.outlierDetection.consecutive5xxErrors
+          value: 5
+        template: templates/networking/istio/destination-rule.yaml
+      - equal:
+          path: spec.subsets[0].name
+          value: v1
+        template: templates/networking/istio/destination-rule.yaml
+      - equal:
+          path: spec.subsets[1].name
+          value: v2
+        template: templates/networking/istio/destination-rule.yaml
+
+  # ---------------------------------------------------------------------------
+  # PeerAuthentication
+  # ---------------------------------------------------------------------------
+  - it: should not render PeerAuthentication when none defined
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/networking/istio/peer-authentication.yaml
+
+  - it: should render PeerAuthentication with default selector
+    set:
+      networking:
+        istio:
+          peerAuthentication:
+            default:
+              mtls:
+                mode: STRICT
+    asserts:
+      - isKind:
+          of: PeerAuthentication
+        template: templates/networking/istio/peer-authentication.yaml
+      - isAPIVersion:
+          of: security.istio.io/v1
+        template: templates/networking/istio/peer-authentication.yaml
+      - equal:
+          path: spec.mtls.mode
+          value: STRICT
+        template: templates/networking/istio/peer-authentication.yaml
+      - exists:
+          path: spec.selector.matchLabels
+        template: templates/networking/istio/peer-authentication.yaml
+
+  - it: should render PeerAuthentication with custom selector
+    set:
+      networking:
+        istio:
+          peerAuthentication:
+            custom:
+              selector:
+                matchLabels:
+                  custom: label
+              mtls:
+                mode: PERMISSIVE
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels.custom
+          value: label
+        template: templates/networking/istio/peer-authentication.yaml
+
+  - it: should render portLevelMtls
+    set:
+      networking:
+        istio:
+          peerAuthentication:
+            with-port:
+              mtls:
+                mode: STRICT
+              portLevelMtls:
+                "8080":
+                  mode: PERMISSIVE
+    asserts:
+      - exists:
+          path: spec.portLevelMtls
+        template: templates/networking/istio/peer-authentication.yaml
+
+  # ---------------------------------------------------------------------------
+  # AuthorizationPolicy
+  # ---------------------------------------------------------------------------
+  - it: should not render AuthorizationPolicy when none defined
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/networking/istio/authorization-policy.yaml
+
+  - it: should render AuthorizationPolicy with ALLOW action
+    set:
+      networking:
+        istio:
+          authorizationPolicies:
+            allow-internal:
+              action: ALLOW
+              rules:
+                - from:
+                    - source:
+                        namespaces: ["default"]
+    asserts:
+      - isKind:
+          of: AuthorizationPolicy
+        template: templates/networking/istio/authorization-policy.yaml
+      - isAPIVersion:
+          of: security.istio.io/v1
+        template: templates/networking/istio/authorization-policy.yaml
+      - equal:
+          path: spec.action
+          value: ALLOW
+        template: templates/networking/istio/authorization-policy.yaml
+      - exists:
+          path: spec.selector.matchLabels
+        template: templates/networking/istio/authorization-policy.yaml
+
+  - it: should render AuthorizationPolicy with DENY and path rules
+    set:
+      networking:
+        istio:
+          authorizationPolicies:
+            deny-admin:
+              action: DENY
+              rules:
+                - to:
+                    - operation:
+                        paths: ["/admin*"]
+    asserts:
+      - equal:
+          path: spec.action
+          value: DENY
+        template: templates/networking/istio/authorization-policy.yaml
+      - equal:
+          path: spec.rules[0].to[0].operation.paths[0]
+          value: "/admin*"
+        template: templates/networking/istio/authorization-policy.yaml
