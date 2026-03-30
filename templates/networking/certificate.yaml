@@ -4,7 +4,7 @@
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $cert.annotations "extraLabels" $cert.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $cert.annotations "extraLabels" $cert.labels "syncWaveDefault" "-1" "syncWave" $cert.syncWave) }}
 spec:
   secretName: {{ default (printf "%s-%s-tls" $fullName $name) $cert.secretName }}
   issuerRef:

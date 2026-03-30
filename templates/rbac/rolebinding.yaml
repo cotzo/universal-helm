@@ -2,7 +2,7 @@
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" (include "chartpack.fullname" $) $name) "context" $ "extraAnnotations" $binding.annotations "extraLabels" $binding.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" (include "chartpack.fullname" $) $name) "context" $ "extraAnnotations" $binding.annotations "extraLabels" $binding.labels "syncWaveDefault" "-3" "syncWave" $binding.syncWave) }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: {{ default "Role" $binding.roleRef.kind }}

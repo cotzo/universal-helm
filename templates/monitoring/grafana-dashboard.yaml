@@ -4,7 +4,7 @@
 ---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDashboard
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $dashboard.annotations "extraLabels" $dashboard.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $dashboard.annotations "extraLabels" $dashboard.labels "syncWaveDefault" "5" "syncWave" $dashboard.syncWave) }}
 spec:
   instanceSelector:
     {{- toYaml $dashboard.instanceSelector | nindent 4 }}

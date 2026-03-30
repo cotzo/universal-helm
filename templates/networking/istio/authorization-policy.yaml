@@ -4,7 +4,7 @@
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $ap.annotations "extraLabels" $ap.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $ap.annotations "extraLabels" $ap.labels "syncWaveDefault" "-1" "syncWave" $ap.syncWave) }}
 spec:
   {{- if $ap.selector }}
   selector:

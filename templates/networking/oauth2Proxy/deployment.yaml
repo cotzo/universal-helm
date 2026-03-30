@@ -13,7 +13,7 @@
 ---
 apiVersion: apps/v1
 kind: Deployment
-{{ include "chartpack.metadata" (dict "name" $proxyServiceName "context" $ "extraAnnotations" $proxy.annotations "extraLabels" $proxy.labels) }}
+{{ include "chartpack.metadata" (dict "name" $proxyServiceName "context" $ "extraAnnotations" $proxy.annotations "extraLabels" $proxy.labels "syncWaveDefault" "0") }}
 spec:
   replicas: {{ default 1 $proxy.replicas }}
   selector:
@@ -36,7 +36,7 @@ spec:
 ---
 apiVersion: v1
 kind: Service
-{{ include "chartpack.metadata" (dict "name" $proxyServiceName "context" $ "extraAnnotations" $proxy.annotations "extraLabels" $proxy.labels) }}
+{{ include "chartpack.metadata" (dict "name" $proxyServiceName "context" $ "extraAnnotations" $proxy.annotations "extraLabels" $proxy.labels "syncWaveDefault" "0") }}
 spec:
   type: ClusterIP
   ports:

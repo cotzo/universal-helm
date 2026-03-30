@@ -29,7 +29,7 @@
 ---
 apiVersion: {{ $apiVersion }}
 kind: {{ $kind }}
-{{ include "chartpack.metadata" (dict "name" $routeName "context" $ "extraAnnotations" $route.annotations "extraLabels" $route.labels) }}
+{{ include "chartpack.metadata" (dict "name" $routeName "context" $ "extraAnnotations" $route.annotations "extraLabels" $route.labels "syncWaveDefault" "2" "syncWave" $route.syncWave) }}
 spec:
   parentRefs:
     {{- range $route.parentRefs }}

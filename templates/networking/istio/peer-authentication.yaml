@@ -4,7 +4,7 @@
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $pa.annotations "extraLabels" $pa.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $pa.annotations "extraLabels" $pa.labels "syncWaveDefault" "-1" "syncWave" $pa.syncWave) }}
 spec:
   {{- if $pa.selector }}
   selector:

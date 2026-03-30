@@ -4,6 +4,8 @@ Usage: {{ include "chartpack.metadata" (dict "name" "myname" "context" $ "extraL
 All fields except "context" are optional.
 Set "clusterScoped" to true to omit namespace (for ClusterRole, ClusterRoleBinding, etc.).
 Set "workload" to true to include Stakater Reloader annotations.
+Set "syncWaveDefault" to assign a default Argo CD sync wave for this resource type.
+Pass "syncWave" in extraAnnotations context (per-resource override) to override the default.
 */}}
 {{- define "chartpack.metadata" -}}
 {{- $ctx := .context }}
@@ -22,6 +24,16 @@ metadata:
   {{- if .workload }}
   {{- $reloaderAnnotations := include "chartpack.reloaderAnnotations" $ctx | fromYaml }}
   {{- $annotations = merge $annotations $reloaderAnnotations }}
+  {{- end }}
+  {{- /* Argo CD sync wave: per-resource syncWave > auto wave (when enabled) */ -}}
+  {{- if not (kindIs "invalid" .syncWave) }}
+  {{- $_ := set $annotations "argocd.argoproj.io/sync-wave" (.syncWave | toString) }}
+  {{- else if and $ctx.Values.argocd.syncWaves.enabled .syncWaveDefault }}
+  {{- $_ := set $annotations "argocd.argoproj.io/sync-wave" (.syncWaveDefault | toString) }}
+  {{- end }}
+  {{- /* Argo CD sync options */ -}}
+  {{- with $ctx.Values.argocd.syncOptions }}
+  {{- $_ := set $annotations "argocd.argoproj.io/sync-options" (join "," .) }}
   {{- end }}
   {{- with $annotations }}
   annotations:

@@ -1,0 +1,145 @@
+suite: Argo CD sync waves and sync options
+templates:
+  - templates/workloads/deployment.yaml
+  - templates/config/configmap.yaml
+  - templates/networking/service.yaml
+  - templates/networking/ingress.yaml
+  - templates/rbac/serviceaccount.yaml
+  - templates/monitoring/monitor.yaml
+set:
+  containers:
+    app:
+      image:
+        repository: nginx
+      ports:
+        http:
+          port: 80
+  networking:
+    services:
+      http:
+        ports:
+          http:
+            port: 80
+tests:
+  - it: should not add sync wave annotations when disabled
+    asserts:
+      - notExists:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+        template: templates/workloads/deployment.yaml
+
+  - it: should add default sync waves when enabled
+    set:
+      argocd:
+        syncWaves:
+          enabled: true
+      config:
+        configMaps:
+          app-config:
+            data:
+              key: value
+      networking:
+        ingresses:
+          public:
+            hosts:
+              - host: app.example.com
+                paths:
+                  - path: /
+      monitors:
+        metrics:
+          port: http
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "0"
+        template: templates/workloads/deployment.yaml
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-5"
+        template: templates/config/configmap.yaml
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+        template: templates/networking/service.yaml
+        documentIndex: 0
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "2"
+        template: templates/networking/ingress.yaml
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-3"
+        template: templates/rbac/serviceaccount.yaml
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "3"
+        template: templates/monitoring/monitor.yaml
+
+  - it: should use per-resource syncWave override even when auto waves disabled
+    set:
+      config:
+        configMaps:
+          early-config:
+            syncWave: -10
+            data:
+              key: value
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-10"
+        template: templates/config/configmap.yaml
+
+  - it: should prefer per-resource syncWave over default wave
+    set:
+      argocd:
+        syncWaves:
+          enabled: true
+      config:
+        configMaps:
+          late-config:
+            syncWave: 10
+            data:
+              key: value
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "10"
+        template: templates/config/configmap.yaml
+
+  - it: should add sync options to all resources
+    set:
+      argocd:
+        syncOptions:
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: "ServerSideApply=true,SkipDryRunOnMissingResource=true"
+        template: templates/workloads/deployment.yaml
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: "ServerSideApply=true,SkipDryRunOnMissingResource=true"
+        template: templates/rbac/serviceaccount.yaml
+
+  - it: should not add sync options when empty
+    asserts:
+      - notExists:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+        template: templates/workloads/deployment.yaml
+
+  - it: should combine sync waves and sync options
+    set:
+      argocd:
+        syncWaves:
+          enabled: true
+        syncOptions:
+          - ServerSideApply=true
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "0"
+        template: templates/workloads/deployment.yaml
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: "ServerSideApply=true"
+        template: templates/workloads/deployment.yaml

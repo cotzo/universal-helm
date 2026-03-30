@@ -4,7 +4,7 @@
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $np.annotations "extraLabels" $np.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $np.annotations "extraLabels" $np.labels "syncWaveDefault" "-1" "syncWave" $np.syncWave) }}
 spec:
   {{- if $np.podSelector }}
   podSelector:

@@ -14,6 +14,23 @@ global:
   annotations: {}
 
 # =============================================================================
+# Argo CD
+# =============================================================================
+
+argocd:
+  # -- Auto-assign sync wave annotations to resources for ordered deployment.
+  # When enabled, each resource type gets a default wave (config:-5, rbac:-3,
+  # persistence:-2, security:-1, workloads:0, services:1, ingresses:2,
+  # monitoring:3, dashboards:5). Per-resource syncWave field always takes priority.
+  syncWaves:
+    enabled: false
+  # -- Sync options applied to all resources.
+  # Renders argocd.argoproj.io/sync-options annotation.
+  syncOptions: []
+  # - ServerSideApply=true
+  # - SkipDryRunOnMissingResource=true
+
+# =============================================================================
 # Node Settings
 # =============================================================================
 

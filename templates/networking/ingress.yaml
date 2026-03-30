@@ -31,7 +31,7 @@
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $ing.annotations "extraLabels" $ing.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $ing.annotations "extraLabels" $ing.labels "syncWaveDefault" "2" "syncWave" $ing.syncWave) }}
 spec:
   {{- with $ing.className }}
   ingressClassName: {{ . }}

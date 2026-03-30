@@ -1,7 +1,7 @@
 {{- if eq .Values.workloadType "CronJob" }}
 apiVersion: batch/v1
 kind: CronJob
-{{ include "chartpack.metadata" (dict "context" $ "workload" true) }}
+{{ include "chartpack.metadata" (dict "context" $ "workload" true "syncWaveDefault" "0") }}
 spec:
   schedule: {{ .Values.workloads.cronJob.schedule | quote }}
   {{- with .Values.workloads.cronJob.timeZone }}

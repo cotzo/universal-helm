@@ -1,7 +1,7 @@
 {{- if and .Values.autoscaling.keda.enabled (ne .Values.workloadType "Job") }}
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
-{{ include "chartpack.metadata" (dict "context" $ "extraAnnotations" .Values.autoscaling.keda.annotations "extraLabels" .Values.autoscaling.keda.labels) }}
+{{ include "chartpack.metadata" (dict "context" $ "extraAnnotations" .Values.autoscaling.keda.annotations "extraLabels" .Values.autoscaling.keda.labels "syncWaveDefault" "0") }}
 spec:
   scaleTargetRef:
     apiVersion: {{ if eq .Values.workloadType "Rollout" }}argoproj.io/v1alpha1{{ else }}apps/v1{{ end }}

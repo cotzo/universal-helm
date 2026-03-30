@@ -1,7 +1,7 @@
 {{- if and .Values.autoscaling.keda.enabled (eq .Values.workloadType "Job") }}
 apiVersion: keda.sh/v1alpha1
 kind: ScaledJob
-{{ include "chartpack.metadata" (dict "context" $ "extraAnnotations" .Values.autoscaling.keda.annotations "extraLabels" .Values.autoscaling.keda.labels) }}
+{{ include "chartpack.metadata" (dict "context" $ "extraAnnotations" .Values.autoscaling.keda.annotations "extraLabels" .Values.autoscaling.keda.labels "syncWaveDefault" "0") }}
 spec:
   jobTargetRef:
     {{- include "chartpack.workloads.jobSpec" . | nindent 4 }}

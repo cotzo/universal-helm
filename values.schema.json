@@ -125,6 +125,22 @@
       },
       "additionalProperties": false
     },
+    "argocd": {
+      "type": "object",
+      "properties": {
+        "syncWaves": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "description": "Auto-assign sync wave annotations to all resources" }
+          }
+        },
+        "syncOptions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Sync options applied to all resources (e.g. ServerSideApply=true)"
+        }
+      }
+    },
     "containers": {
       "type": "object",
       "additionalProperties": { "$ref": "#/definitions/containerSpec" },

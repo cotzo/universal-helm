@@ -4,7 +4,7 @@
 ---
 apiVersion: networking.istio.io/v1
 kind: VirtualService
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $vs.annotations "extraLabels" $vs.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $vs.annotations "extraLabels" $vs.labels "syncWaveDefault" "2" "syncWave" $vs.syncWave) }}
 spec:
   {{- with $vs.hosts }}
   hosts:

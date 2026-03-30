@@ -2,7 +2,7 @@
 {{- if not (or (eq .Values.workloadType "CronJob") (eq .Values.workloadType "Job") (eq .Values.workloadType "DaemonSet")) }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
-{{ include "chartpack.metadata" (dict "context" $ "extraAnnotations" .Values.autoscaling.hpa.annotations "extraLabels" .Values.autoscaling.hpa.labels) }}
+{{ include "chartpack.metadata" (dict "context" $ "extraAnnotations" .Values.autoscaling.hpa.annotations "extraLabels" .Values.autoscaling.hpa.labels "syncWaveDefault" "0") }}
 spec:
   scaleTargetRef:
     apiVersion: {{ if eq .Values.workloadType "Rollout" }}argoproj.io/v1alpha1{{ else }}apps/v1{{ end }}

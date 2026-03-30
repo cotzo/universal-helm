@@ -8,7 +8,7 @@
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: BackendTrafficPolicy
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s-btp" $fullName $name) "context" $ "extraAnnotations" .annotations "extraLabels" .labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s-btp" $fullName $name) "context" $ "extraAnnotations" .annotations "extraLabels" .labels "syncWaveDefault" "5" "syncWave" (index $route.policies.envoy "syncWave")) }}
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io

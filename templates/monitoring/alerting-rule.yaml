@@ -18,7 +18,7 @@
 ---
 apiVersion: {{ $apiVersion }}
 kind: {{ $kind }}
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $rule.annotations "extraLabels" $rule.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $rule.annotations "extraLabels" $rule.labels "syncWaveDefault" "3" "syncWave" $rule.syncWave) }}
 spec:
   groups:
     {{- toYaml $rule.groups | nindent 4 }}

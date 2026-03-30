@@ -36,7 +36,7 @@
 ---
 apiVersion: {{ $apiVersion }}
 kind: {{ $k8sKind }}
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $mon.annotations "extraLabels" $mon.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $mon.annotations "extraLabels" $mon.labels "syncWaveDefault" "3" "syncWave" $mon.syncWave) }}
 spec:
   {{- with $mon.jobLabel }}
   jobLabel: {{ . }}

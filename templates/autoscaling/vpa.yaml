@@ -2,7 +2,7 @@
 {{- if not (or (eq .Values.workloadType "CronJob") (eq .Values.workloadType "Job")) }}
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
-{{ include "chartpack.metadata" (dict "context" $ "extraAnnotations" .Values.autoscaling.vpa.annotations "extraLabels" .Values.autoscaling.vpa.labels) }}
+{{ include "chartpack.metadata" (dict "context" $ "extraAnnotations" .Values.autoscaling.vpa.annotations "extraLabels" .Values.autoscaling.vpa.labels "syncWaveDefault" "0") }}
 spec:
   targetRef:
     apiVersion: {{ if eq .Values.workloadType "Rollout" }}argoproj.io/v1alpha1{{ else }}apps/v1{{ end }}

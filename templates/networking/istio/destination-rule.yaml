@@ -8,7 +8,7 @@
 ---
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $dr.annotations "extraLabels" $dr.labels) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $dr.annotations "extraLabels" $dr.labels "syncWaveDefault" "1" "syncWave" $dr.syncWave) }}
 spec:
   host: {{ $host }}
   {{- with $dr.trafficPolicy }}
