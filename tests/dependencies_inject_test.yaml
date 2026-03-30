@@ -1,0 +1,182 @@
+suite: Dependencies - PostgreSQL injection and reloader
+templates:
+  - templates/workloads/deployment.yaml
+tests:
+  # ---------------------------------------------------------------------------
+  # envFrom injection
+  # ---------------------------------------------------------------------------
+  - it: should inject postgres secret via envFrom into specified containers
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+        worker:
+          image:
+            repository: nginx
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            containers: [app]
+            method: envFrom
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            secretRef:
+              name: RELEASE-NAME-chartpack-pg-app
+
+  - it: should NOT inject into containers not in the list
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+        worker:
+          image:
+            repository: nginx
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            containers: [app]
+            method: envFrom
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[1].envFrom
+
+  # ---------------------------------------------------------------------------
+  # env method injection
+  # ---------------------------------------------------------------------------
+  - it: should inject individual env vars when method is env
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            containers: [app]
+            method: env
+            envMapping:
+              DATABASE_URL: uri
+              PGHOST: host
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                key: uri
+                name: RELEASE-NAME-chartpack-pg-app
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PGHOST
+            valueFrom:
+              secretKeyRef:
+                key: host
+                name: RELEASE-NAME-chartpack-pg-app
+
+  # ---------------------------------------------------------------------------
+  # Reloader annotation
+  # ---------------------------------------------------------------------------
+  - it: should add postgres secret to reloader annotations
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: metadata.annotations["secret.reloader.stakater.com/reload"]
+          value: RELEASE-NAME-chartpack-pg-app
+
+  - it: should not add reloader annotation when inject disabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            enabled: false
+            containers: []
+    asserts:
+      - isNull:
+          path: metadata.annotations["secret.reloader.stakater.com/reload"]
+
+  - it: should not inject when postgres is disabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].envFrom

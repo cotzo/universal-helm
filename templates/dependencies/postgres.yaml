@@ -1,0 +1,171 @@
+{{- $pg := default (dict) .Values.dependencies.postgres -}}
+{{- if $pg.enabled }}
+{{- $fullName := include "chartpack.fullname" . -}}
+{{- $clusterName := include "chartpack.dependencies.postgres.clusterName" . -}}
+
+{{- /* ------------------------------------------------------------------- */}}
+{{- /* CNPG Cluster                                                        */}}
+{{- /* ------------------------------------------------------------------- */}}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+{{ include "chartpack.metadata" (dict "name" $clusterName "context" $ "extraAnnotations" $pg.annotations "extraLabels" $pg.labels "syncWaveDefault" "-2" "syncWave" $pg.syncWave) }}
+spec:
+  instances: {{ default 3 $pg.instances }}
+  imageName: {{ include "chartpack.dependencies.postgres.imageName" . }}
+
+  bootstrap:
+    initdb:
+      database: {{ default "app" $pg.database }}
+      owner: {{ default "app" $pg.owner }}
+      {{- $password := default (dict) $pg.password -}}
+      {{- if eq (default "cnpg" $password.mode) "eso" }}
+      secret:
+        name: {{ include "chartpack.dependencies.postgres.credentialSecretName" . }}
+      {{- end }}
+
+  storage:
+    {{- $storage := default (dict) $pg.storage }}
+    size: {{ default "10Gi" $storage.size }}
+    {{- with $storage.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
+
+  {{- $backup := default (dict) $pg.backup }}
+  {{- if $backup.enabled }}
+  backup:
+    barmanObjectStore:
+      destinationPath: {{ include "chartpack.dependencies.postgres.destinationPath" . }}
+      {{- $infra := default (dict) (default (dict) .Values.infraSettings).backups }}
+
+      {{- if eq (default "s3" $backup.type) "s3" }}
+      {{- $s3 := default (dict) $infra.s3 }}
+      {{- $s3creds := default (dict) $s3.credentials }}
+      {{- with $s3.endpoint }}
+      endpointURL: {{ . }}
+      {{- end }}
+      s3Credentials:
+        accessKeyId:
+          name: {{ $s3creds.secretName }}
+          key: {{ default "ACCESS_KEY_ID" $s3creds.accessKeyId }}
+        secretAccessKey:
+          name: {{ $s3creds.secretName }}
+          key: {{ default "ACCESS_SECRET_KEY" $s3creds.secretAccessKey }}
+      {{- end }}
+
+      {{- if eq (default "s3" $backup.type) "azure" }}
+      {{- $az := default (dict) $infra.azure }}
+      {{- $azcreds := default (dict) $az.credentials }}
+      azureCredentials:
+        {{- with $azcreds.connectionString }}
+        connectionString:
+          name: {{ $azcreds.secretName }}
+          key: {{ . }}
+        {{- end }}
+        {{- with $azcreds.storageAccount }}
+        storageAccount:
+          name: {{ $azcreds.secretName }}
+          key: {{ . }}
+        {{- end }}
+        {{- with $azcreds.storageKey }}
+        storageKey:
+          name: {{ $azcreds.secretName }}
+          key: {{ . }}
+        {{- end }}
+      {{- end }}
+
+      {{- if eq (default "s3" $backup.type) "gcs" }}
+      {{- $gcs := default (dict) $infra.gcs }}
+      {{- $gcscreds := default (dict) $gcs.credentials }}
+      googleCredentials:
+        applicationCredentials:
+          name: {{ $gcscreds.secretName }}
+          key: {{ default "gcsCredentials" $gcscreds.applicationCredentials }}
+      {{- end }}
+
+      wal:
+        compression: {{ default "gzip" $backup.walCompression }}
+    {{- with $backup.retentionPolicy }}
+    retentionPolicy: {{ . | quote }}
+    {{- end }}
+  {{- end }}
+
+  {{- with $pg.extraSpec }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+
+{{- /* ------------------------------------------------------------------- */}}
+{{- /* ScheduledBackup                                                     */}}
+{{- /* ------------------------------------------------------------------- */}}
+{{- if and $backup.enabled $backup.schedule }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+{{ include "chartpack.metadata" (dict "name" (printf "%s-backup" $clusterName) "context" $ "extraAnnotations" $pg.annotations "extraLabels" $pg.labels "syncWaveDefault" "-2" "syncWave" $pg.syncWave) }}
+spec:
+  schedule: {{ $backup.schedule | quote }}
+  backupOwnerReference: self
+  cluster:
+    name: {{ $clusterName }}
+{{ end }}
+
+{{- /* ------------------------------------------------------------------- */}}
+{{- /* ESO Password Generation (when password.mode == eso)                 */}}
+{{- /* ------------------------------------------------------------------- */}}
+{{- $password := default (dict) $pg.password -}}
+{{- if eq (default "cnpg" $password.mode) "eso" -}}
+{{- $credSecretName := include "chartpack.dependencies.postgres.credentialSecretName" . -}}
+{{- $genCfg := default (dict) $password.generate }}
+---
+apiVersion: v1
+kind: Secret
+{{ include "chartpack.metadata" (dict "name" $credSecretName "context" $ "syncWaveDefault" "-5" "syncWave" $pg.syncWave) }}
+type: Opaque
+stringData:
+  username: {{ default "app" $pg.owner }}
+---
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+{{ include "chartpack.metadata" (dict "name" (printf "%s-password" $credSecretName) "context" $ "syncWaveDefault" "-5" "syncWave" $pg.syncWave) }}
+spec:
+  length: {{ default 32 $genCfg.length }}
+  {{- with $genCfg.digits }}
+  digits: {{ . }}
+  {{- end }}
+  {{- with $genCfg.symbols }}
+  symbols: {{ . }}
+  {{- end }}
+  {{- with $genCfg.symbolCharacters }}
+  symbolCharacters: {{ . | quote }}
+  {{- end }}
+  {{- if not (kindIs "invalid" $genCfg.noUpper) }}
+  noUpper: {{ $genCfg.noUpper }}
+  {{- end }}
+  {{- if not (kindIs "invalid" $genCfg.allowRepeat) }}
+  allowRepeat: {{ $genCfg.allowRepeat }}
+  {{- end }}
+  {{- with $genCfg.encoding }}
+  encoding: {{ . }}
+  {{- end }}
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+{{ include "chartpack.metadata" (dict "name" (printf "%s-gen" $credSecretName) "context" $ "syncWaveDefault" "-5" "syncWave" $pg.syncWave) }}
+spec:
+  refreshInterval: "0"
+  target:
+    name: {{ $credSecretName }}
+    creationPolicy: Merge
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: {{ printf "%s-password" $credSecretName }}
+      rewrite:
+        - regexp:
+            source: "password"
+            target: password
+{{- end }}
+
+{{- end }}

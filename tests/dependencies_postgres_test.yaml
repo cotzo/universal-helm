@@ -1,0 +1,596 @@
+suite: Dependencies - PostgreSQL (CloudNativePG)
+templates:
+  - templates/dependencies/postgres.yaml
+tests:
+  # ---------------------------------------------------------------------------
+  # Disabled by default
+  # ---------------------------------------------------------------------------
+  - it: should not render when disabled (default)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # ---------------------------------------------------------------------------
+  # CNPG Cluster basics
+  # ---------------------------------------------------------------------------
+  - it: should render CNPG Cluster with correct name
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            containers: [app]
+    asserts:
+      - isKind:
+          of: Cluster
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-chartpack-pg
+        documentIndex: 0
+      - equal:
+          path: apiVersion
+          value: postgresql.cnpg.io/v1
+        documentIndex: 0
+
+  - it: should render correct instances and storage
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          instances: 5
+          storage:
+            size: 50Gi
+            storageClass: fast-ssd
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.instances
+          value: 5
+        documentIndex: 0
+      - equal:
+          path: spec.storage.size
+          value: 50Gi
+        documentIndex: 0
+      - equal:
+          path: spec.storage.storageClass
+          value: fast-ssd
+        documentIndex: 0
+
+  - it: should render default imageName from version
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          version: "15"
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.imageName
+          value: ghcr.io/cloudnative-pg/postgresql:15
+        documentIndex: 0
+
+  - it: should render custom imageName override
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          imageName: my-registry.io/pg:16.2-custom
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.imageName
+          value: my-registry.io/pg:16.2-custom
+        documentIndex: 0
+
+  - it: should render bootstrap with database and owner
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          database: mydb
+          owner: myuser
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.bootstrap.initdb.database
+          value: mydb
+        documentIndex: 0
+      - equal:
+          path: spec.bootstrap.initdb.owner
+          value: myuser
+        documentIndex: 0
+
+  # ---------------------------------------------------------------------------
+  # Backup - disabled
+  # ---------------------------------------------------------------------------
+  - it: should not render backup section when backup disabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            containers: [app]
+    asserts:
+      - isNull:
+          path: spec.backup
+        documentIndex: 0
+      - hasDocuments:
+          count: 1
+
+  # ---------------------------------------------------------------------------
+  # Backup - S3
+  # ---------------------------------------------------------------------------
+  - it: should render S3 backup with infraSettings credentials
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-backups
+            path: databases
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: s3
+            retentionPolicy: "7d"
+            schedule: "0 2 * * *"
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.backup.barmanObjectStore.destinationPath
+          value: s3://my-backups/databases/NAMESPACE/RELEASE-NAME-chartpack
+        documentIndex: 0
+      - equal:
+          path: spec.backup.barmanObjectStore.s3Credentials.accessKeyId.name
+          value: s3-creds
+        documentIndex: 0
+      - equal:
+          path: spec.backup.barmanObjectStore.s3Credentials.accessKeyId.key
+          value: ACCESS_KEY_ID
+        documentIndex: 0
+      - equal:
+          path: spec.backup.barmanObjectStore.s3Credentials.secretAccessKey.name
+          value: s3-creds
+        documentIndex: 0
+      - equal:
+          path: spec.backup.barmanObjectStore.wal.compression
+          value: gzip
+        documentIndex: 0
+      - equal:
+          path: spec.backup.retentionPolicy
+          value: "7d"
+        documentIndex: 0
+
+  - it: should render S3 backup with custom endpoint
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-backups
+            endpoint: https://minio.local:9000
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: s3
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.backup.barmanObjectStore.endpointURL
+          value: https://minio.local:9000
+        documentIndex: 0
+
+  - it: should render S3 backup with explicit destinationPath
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: ignored
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: s3
+            destinationPath: s3://custom-bucket/custom-path
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.backup.barmanObjectStore.destinationPath
+          value: s3://custom-bucket/custom-path
+        documentIndex: 0
+
+  # ---------------------------------------------------------------------------
+  # Backup - Azure
+  # ---------------------------------------------------------------------------
+  - it: should render Azure backup with infraSettings credentials
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          azure:
+            storageAccount: myaccount
+            path: backups
+            credentials:
+              secretName: azure-creds
+              connectionString: AZURE_CONNECTION_STRING
+              storageAccount: AZURE_STORAGE_ACCOUNT
+              storageKey: AZURE_STORAGE_KEY
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: azure
+          inject:
+            containers: [app]
+    asserts:
+      - matchRegex:
+          path: spec.backup.barmanObjectStore.destinationPath
+          pattern: "^https://myaccount.blob.core.windows.net/"
+        documentIndex: 0
+      - equal:
+          path: spec.backup.barmanObjectStore.azureCredentials.connectionString.name
+          value: azure-creds
+        documentIndex: 0
+      - equal:
+          path: spec.backup.barmanObjectStore.azureCredentials.connectionString.key
+          value: AZURE_CONNECTION_STRING
+        documentIndex: 0
+
+  # ---------------------------------------------------------------------------
+  # Backup - GCS
+  # ---------------------------------------------------------------------------
+  - it: should render GCS backup with infraSettings credentials
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          gcs:
+            bucket: my-gcs-bucket
+            path: pg-backups
+            credentials:
+              secretName: gcs-creds
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: gcs
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.backup.barmanObjectStore.destinationPath
+          value: gs://my-gcs-bucket/pg-backups/NAMESPACE/RELEASE-NAME-chartpack
+        documentIndex: 0
+      - equal:
+          path: spec.backup.barmanObjectStore.googleCredentials.applicationCredentials.name
+          value: gcs-creds
+        documentIndex: 0
+      - equal:
+          path: spec.backup.barmanObjectStore.googleCredentials.applicationCredentials.key
+          value: gcsCredentials
+        documentIndex: 0
+
+  # ---------------------------------------------------------------------------
+  # ScheduledBackup
+  # ---------------------------------------------------------------------------
+  - it: should render ScheduledBackup when backup enabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-backups
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: s3
+            schedule: "0 3 * * *"
+          inject:
+            containers: [app]
+    asserts:
+      - isKind:
+          of: ScheduledBackup
+        documentIndex: 1
+      - equal:
+          path: spec.schedule
+          value: "0 3 * * *"
+        documentIndex: 1
+      - equal:
+          path: spec.cluster.name
+          value: RELEASE-NAME-chartpack-pg
+        documentIndex: 1
+      - equal:
+          path: spec.backupOwnerReference
+          value: self
+        documentIndex: 1
+
+  # ---------------------------------------------------------------------------
+  # Password mode: cnpg (default)
+  # ---------------------------------------------------------------------------
+  - it: should NOT render ESO resources when password mode is cnpg
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            containers: [app]
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should NOT render bootstrap secret when password mode is cnpg
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            containers: [app]
+    asserts:
+      - isNull:
+          path: spec.bootstrap.initdb.secret
+        documentIndex: 0
+
+  # ---------------------------------------------------------------------------
+  # Password mode: eso
+  # ---------------------------------------------------------------------------
+  - it: should render ESO resources when password mode is eso
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          password:
+            mode: eso
+            generate:
+              length: 64
+          inject:
+            containers: [app]
+    asserts:
+      - hasDocuments:
+          count: 4
+      - equal:
+          path: spec.bootstrap.initdb.secret.name
+          value: RELEASE-NAME-chartpack-pg-credentials
+        documentIndex: 0
+
+  - it: should render Password generator with correct config
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          password:
+            mode: eso
+            generate:
+              length: 64
+              digits: 10
+              symbols: 5
+          inject:
+            containers: [app]
+    asserts:
+      - isKind:
+          of: Password
+        documentIndex: 2
+      - equal:
+          path: spec.length
+          value: 64
+        documentIndex: 2
+      - equal:
+          path: spec.digits
+          value: 10
+        documentIndex: 2
+      - equal:
+          path: spec.symbols
+          value: 5
+        documentIndex: 2
+
+  - it: should render ExternalSecret with Merge creationPolicy
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          password:
+            mode: eso
+          inject:
+            containers: [app]
+    asserts:
+      - isKind:
+          of: ExternalSecret
+        documentIndex: 3
+      - equal:
+          path: spec.target.creationPolicy
+          value: Merge
+        documentIndex: 3
+      - equal:
+          path: spec.target.name
+          value: RELEASE-NAME-chartpack-pg-credentials
+        documentIndex: 3
+
+  # ---------------------------------------------------------------------------
+  # extraSpec
+  # ---------------------------------------------------------------------------
+  - it: should merge extraSpec into Cluster spec
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          extraSpec:
+            enableSuperuserAccess: true
+            postgresql:
+              parameters:
+                max_connections: "200"
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.enableSuperuserAccess
+          value: true
+        documentIndex: 0
+      - equal:
+          path: spec.postgresql.parameters.max_connections
+          value: "200"
+        documentIndex: 0
+
+  # ---------------------------------------------------------------------------
+  # Sync waves
+  # ---------------------------------------------------------------------------
+  - it: should set sync wave -2 when argocd syncWaves enabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      argocd:
+        syncWaves:
+          enabled: true
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-2"
+        documentIndex: 0
+
+  - it: should allow sync wave override
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          syncWave: "-10"
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-10"
+        documentIndex: 0
+
+  # ---------------------------------------------------------------------------
+  # Annotations and labels
+  # ---------------------------------------------------------------------------
+  - it: should render extra annotations and labels
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          annotations:
+            custom/annotation: value
+          labels:
+            custom-label: value
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: metadata.annotations["custom/annotation"]
+          value: value
+        documentIndex: 0
+      - equal:
+          path: metadata.labels.custom-label
+          value: value
+        documentIndex: 0

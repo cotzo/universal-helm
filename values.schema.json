@@ -158,6 +158,66 @@
             "nodeType": { "type": "string", "minLength": 1, "description": "Node type/instance type label key" }
           },
           "additionalProperties": false
+        },
+        "backups": {
+          "type": "object",
+          "description": "Backup infrastructure settings provisioned by infra/devops team.",
+          "properties": {
+            "s3": {
+              "type": "object",
+              "properties": {
+                "bucket": { "type": "string" },
+                "path": { "type": "string" },
+                "region": { "type": "string" },
+                "endpoint": { "type": "string" },
+                "credentials": {
+                  "type": "object",
+                  "properties": {
+                    "secretName": { "type": "string" },
+                    "accessKeyId": { "type": "string" },
+                    "secretAccessKey": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "azure": {
+              "type": "object",
+              "properties": {
+                "storageAccount": { "type": "string" },
+                "path": { "type": "string" },
+                "credentials": {
+                  "type": "object",
+                  "properties": {
+                    "secretName": { "type": "string" },
+                    "connectionString": { "type": "string" },
+                    "storageAccount": { "type": "string" },
+                    "storageKey": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "gcs": {
+              "type": "object",
+              "properties": {
+                "bucket": { "type": "string" },
+                "path": { "type": "string" },
+                "credentials": {
+                  "type": "object",
+                  "properties": {
+                    "secretName": { "type": "string" },
+                    "applicationCredentials": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -947,6 +1007,81 @@
           "labels": { "type": "object" }
         }
       }
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "Managed infrastructure dependencies.",
+      "properties": {
+        "postgres": {
+          "type": "object",
+          "description": "CloudNativePG PostgreSQL cluster dependency.",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "type": { "type": "string", "enum": ["cloudnativepg"], "default": "cloudnativepg" },
+            "version": { "type": "string" },
+            "imageName": { "type": "string" },
+            "instances": { "type": "integer", "minimum": 1 },
+            "database": { "type": "string", "minLength": 1 },
+            "owner": { "type": "string", "minLength": 1 },
+            "storage": {
+              "type": "object",
+              "properties": {
+                "size": { "type": "string", "minLength": 1 },
+                "storageClass": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            "password": {
+              "type": "object",
+              "properties": {
+                "mode": { "type": "string", "enum": ["cnpg", "eso"] },
+                "generate": {
+                  "type": "object",
+                  "properties": {
+                    "length": { "type": "integer", "minimum": 8 },
+                    "digits": { "type": "integer" },
+                    "symbols": { "type": "integer" },
+                    "symbolCharacters": { "type": "string" },
+                    "noUpper": { "type": "boolean" },
+                    "allowRepeat": { "type": "boolean" },
+                    "encoding": { "type": "string", "enum": ["raw", "base64", "base64url", "base32", "hex"] }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "backup": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "type": { "type": "string", "enum": ["s3", "azure", "gcs"] },
+                "destinationPath": { "type": "string" },
+                "walCompression": { "type": "string", "enum": ["gzip", "bzip2", "snappy", "lz4", "lzo", "zstd", ""] },
+                "retentionPolicy": { "type": "string" },
+                "schedule": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            "inject": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "containers": { "type": "array", "items": { "type": "string" } },
+                "method": { "type": "string", "enum": ["envFrom", "env"] },
+                "envMapping": { "type": "object", "additionalProperties": { "type": "string" } }
+              },
+              "additionalProperties": false
+            },
+            "extraSpec": { "type": "object" },
+            "syncWave": { "type": ["string", "integer"] },
+            "annotations": { "type": "object" },
+            "labels": { "type": "object" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     },
     "extraResources": {
       "type": "array",
