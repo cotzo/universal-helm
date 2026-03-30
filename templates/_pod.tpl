@@ -70,15 +70,38 @@ spec:
   {{- if .Values.nodeTargeting.nodePools }}
   {{- $nodeAffinityExpressions = append $nodeAffinityExpressions (dict "key" .Values.infraSettings.nodeLabels.nodePool "operator" "In" "values" .Values.nodeTargeting.nodePools) }}
   {{- end }}
-  {{- if or .Values.podSettings.affinity $nodeAffinityExpressions }}
+  {{- $restrictions := default "differentNodes" .Values.nodeTargeting.restrictions }}
+  {{- if or .Values.podSettings.affinity $nodeAffinityExpressions (ne $restrictions "none") }}
   affinity:
-    {{- with .Values.podSettings.affinity.podAffinity }}
+    {{- if or .Values.podSettings.affinity.podAffinity (eq $restrictions "sameNode") }}
     podAffinity:
+      {{- with .Values.podSettings.affinity.podAffinity }}
       {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- if eq $restrictions "sameNode" }}
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                {{- include "chartpack.selectorLabels" . | nindent 16 }}
+            topologyKey: kubernetes.io/hostname
+      {{- end }}
     {{- end }}
-    {{- with .Values.podSettings.affinity.podAntiAffinity }}
+    {{- if or .Values.podSettings.affinity.podAntiAffinity (eq $restrictions "differentNodes") }}
     podAntiAffinity:
+      {{- with .Values.podSettings.affinity.podAntiAffinity }}
       {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- if eq $restrictions "differentNodes" }}
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                {{- include "chartpack.selectorLabels" . | nindent 16 }}
+            topologyKey: kubernetes.io/hostname
+      {{- end }}
     {{- end }}
     {{- if or $nodeAffinityExpressions .Values.podSettings.affinity.nodeAffinity }}
     nodeAffinity:

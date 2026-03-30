@@ -61,6 +61,11 @@ argocd:
 
 # -- Node targeting settings. Always lists. Rendered as nodeAffinity matchExpressions.
 nodeTargeting:
+  # -- Pod placement restriction across nodes.
+  # differentNodes (default): replicas spread across different nodes (podAntiAffinity)
+  # sameNode: all replicas on the same node (podAffinity)
+  # none: no placement preference
+  restrictions: differentNodes
   # -- Target OS(es). Uses infraSettings.nodeLabels.os as the label key.
   os: []
   # - linux

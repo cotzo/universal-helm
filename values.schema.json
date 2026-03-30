@@ -173,6 +173,7 @@
     "nodeTargeting": {
       "type": "object",
       "properties": {
+        "restrictions": { "type": "string", "enum": ["differentNodes", "sameNode", "none"], "description": "Pod placement restriction: differentNodes (spread), sameNode (colocate), none" },
         "os": { "type": "array", "items": { "type": "string" }, "description": "Target OS(es)" },
         "arch": { "type": "array", "items": { "type": "string" }, "description": "Target architecture(s)" },
         "regions": { "type": "array", "items": { "type": "string" }, "description": "Target region(s)" },

@@ -164,6 +164,76 @@ tests:
             effect: NoSchedule
         template: templates/workloads/deployment.yaml
 
+  - it: should render podAntiAffinity by default (differentNodes)
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+    asserts:
+      - exists:
+          path: spec.template.spec.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution
+        template: templates/workloads/deployment.yaml
+
+  - it: should render podAffinity for sameNode restriction
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      nodeTargeting:
+        restrictions: sameNode
+    asserts:
+      - exists:
+          path: spec.template.spec.affinity.podAffinity.preferredDuringSchedulingIgnoredDuringExecution
+        template: templates/workloads/deployment.yaml
+      - notExists:
+          path: spec.template.spec.affinity.podAntiAffinity
+        template: templates/workloads/deployment.yaml
+
+  - it: should render no pod affinity for none restriction
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      nodeTargeting:
+        restrictions: none
+    asserts:
+      - notExists:
+          path: spec.template.spec.affinity
+        template: templates/workloads/deployment.yaml
+
   - it: should render nodeAffinity from nodeTargeting.os
     set:
       workloadType: Deployment
