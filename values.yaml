@@ -56,7 +56,7 @@ argocd:
   # - SkipDryRunOnMissingResource=true
 
 # =============================================================================
-# Node Settings
+# Node Targeting and Pod Placement
 # =============================================================================
 
 # -- Node targeting settings.

@@ -913,6 +913,106 @@ tests:
               topologyKey: topology.kubernetes.io/zone
         template: templates/workloads/deployment.yaml
 
+  - it: should merge differentNodes restriction into user podAntiAffinity preferred
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      nodeTargeting:
+        restrictions:
+          type: differentNodes
+          enforcement: soft
+      podSettings:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 50
+                podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      app: web
+                  topologyKey: topology.kubernetes.io/zone
+    asserts:
+      - contains:
+          path: spec.template.spec.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution
+          content:
+            weight: 50
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: web
+              topologyKey: topology.kubernetes.io/zone
+        template: templates/workloads/deployment.yaml
+      - contains:
+          path: spec.template.spec.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution
+          content:
+            weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: chartpack
+                  app.kubernetes.io/instance: RELEASE-NAME
+              topologyKey: kubernetes.io/hostname
+        template: templates/workloads/deployment.yaml
+
+  - it: should merge sameNode hard restriction into user podAffinity required
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      nodeTargeting:
+        restrictions:
+          type: sameNode
+          enforcement: hard
+      podSettings:
+        affinity:
+          podAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app: cache
+                topologyKey: topology.kubernetes.io/zone
+    asserts:
+      - contains:
+          path: spec.template.spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution
+          content:
+            labelSelector:
+              matchLabels:
+                app: cache
+            topologyKey: topology.kubernetes.io/zone
+        template: templates/workloads/deployment.yaml
+      - contains:
+          path: spec.template.spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution
+          content:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: chartpack
+                app.kubernetes.io/instance: RELEASE-NAME
+            topologyKey: kubernetes.io/hostname
+        template: templates/workloads/deployment.yaml
+
   - it: should render priorityClassName
     set:
       workloadType: Deployment

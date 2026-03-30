@@ -82,54 +82,69 @@ spec:
   {{- $r := default (dict) (default (dict) .Values.nodeTargeting).restrictions }}
   {{- $rType := default "differentNodes" $r.type }}
   {{- $rEnforcement := default "soft" $r.enforcement }}
-  {{- $rSchedulingKey := "preferredDuringSchedulingIgnoredDuringExecution" }}
-  {{- if eq $rEnforcement "hard" }}{{ $rSchedulingKey = "requiredDuringSchedulingIgnoredDuringExecution" }}{{ end }}
+  {{- $rHard := eq $rEnforcement "hard" }}
   {{- if or .Values.podSettings.affinity $hardNodeAffinityExpressions $softNodeAffinityExpressions (ne $rType "none") }}
   affinity:
-    {{- if or .Values.podSettings.affinity.podAffinity (eq $rType "sameNode") }}
+    {{- $isSameNode := eq $rType "sameNode" }}
+    {{- $isDiffNodes := eq $rType "differentNodes" }}
+    {{- if or .Values.podSettings.affinity.podAffinity $isSameNode }}
+    {{- $userPA := default (dict) .Values.podSettings.affinity.podAffinity }}
     podAffinity:
-      {{- with .Values.podSettings.affinity.podAffinity }}
-      {{- toYaml . | nindent 6 }}
-      {{- end }}
-      {{- if eq $rType "sameNode" }}
-      {{- if eq $rEnforcement "hard" }}
+      {{- if or (and $isSameNode $rHard) $userPA.requiredDuringSchedulingIgnoredDuringExecution }}
       requiredDuringSchedulingIgnoredDuringExecution:
+        {{- with $userPA.requiredDuringSchedulingIgnoredDuringExecution }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if and $isSameNode $rHard }}
         - labelSelector:
             matchLabels:
               {{- include "chartpack.selectorLabels" . | nindent 14 }}
           topologyKey: kubernetes.io/hostname
-      {{- else }}
+        {{- end }}
+      {{- end }}
+      {{- if or (and $isSameNode (not $rHard)) $userPA.preferredDuringSchedulingIgnoredDuringExecution }}
       preferredDuringSchedulingIgnoredDuringExecution:
+        {{- with $userPA.preferredDuringSchedulingIgnoredDuringExecution }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if and $isSameNode (not $rHard) }}
         - weight: 100
           podAffinityTerm:
             labelSelector:
               matchLabels:
                 {{- include "chartpack.selectorLabels" . | nindent 16 }}
             topologyKey: kubernetes.io/hostname
-      {{- end }}
+        {{- end }}
       {{- end }}
     {{- end }}
-    {{- if or .Values.podSettings.affinity.podAntiAffinity (eq $rType "differentNodes") }}
+    {{- if or .Values.podSettings.affinity.podAntiAffinity $isDiffNodes }}
+    {{- $userPAA := default (dict) .Values.podSettings.affinity.podAntiAffinity }}
     podAntiAffinity:
-      {{- with .Values.podSettings.affinity.podAntiAffinity }}
-      {{- toYaml . | nindent 6 }}
-      {{- end }}
-      {{- if eq $rType "differentNodes" }}
-      {{- if eq $rEnforcement "hard" }}
+      {{- if or (and $isDiffNodes $rHard) $userPAA.requiredDuringSchedulingIgnoredDuringExecution }}
       requiredDuringSchedulingIgnoredDuringExecution:
+        {{- with $userPAA.requiredDuringSchedulingIgnoredDuringExecution }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if and $isDiffNodes $rHard }}
         - labelSelector:
             matchLabels:
               {{- include "chartpack.selectorLabels" . | nindent 14 }}
           topologyKey: kubernetes.io/hostname
-      {{- else }}
+        {{- end }}
+      {{- end }}
+      {{- if or (and $isDiffNodes (not $rHard)) $userPAA.preferredDuringSchedulingIgnoredDuringExecution }}
       preferredDuringSchedulingIgnoredDuringExecution:
+        {{- with $userPAA.preferredDuringSchedulingIgnoredDuringExecution }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if and $isDiffNodes (not $rHard) }}
         - weight: 100
           podAffinityTerm:
             labelSelector:
               matchLabels:
                 {{- include "chartpack.selectorLabels" . | nindent 16 }}
             topologyKey: kubernetes.io/hostname
-      {{- end }}
+        {{- end }}
       {{- end }}
     {{- end }}
     {{- if or $hardNodeAffinityExpressions $softNodeAffinityExpressions .Values.podSettings.affinity.nodeAffinity }}
