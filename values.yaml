@@ -14,6 +14,31 @@ global:
   annotations: {}
 
 # =============================================================================
+# Infrastructure Settings
+# =============================================================================
+
+# -- Node label key mapping for your cluster.
+# Maps friendly names to actual Kubernetes node label keys. Use these names in
+# topologySpreadConstraints.topologyKey and other scheduling references.
+# Override defaults to match your cluster's labeling conventions.
+infraSettings:
+  nodeLabels:
+    # -- Region topology label key
+    topologyRegion: topology.kubernetes.io/region
+    # -- Zone topology label key
+    topologyZone: topology.kubernetes.io/zone
+    # -- Rack topology label key (if applicable)
+    topologyRack: topology.kubernetes.io/rack
+    # -- Node pool label key
+    nodePool: node.cluster.x-k8s.io/node-pool
+    # -- OS label key
+    os: kubernetes.io/os
+    # -- Architecture label key
+    arch: kubernetes.io/arch
+    # -- Node type label key (e.g. node.kubernetes.io/instance-type)
+    nodeType: node.kubernetes.io/instance-type
+
+# =============================================================================
 # Argo CD
 # =============================================================================
 
@@ -31,19 +56,36 @@ argocd:
   # - SkipDryRunOnMissingResource=true
 
 # =============================================================================
-# Node Settings
+# Node Targeting and Pod Placement
 # =============================================================================
 
-# -- Node targeting settings. Always lists. Rendered as nodeAffinity matchExpressions.
-nodeSettings:
-  # -- Target OS(es) (kubernetes.io/os)
+# -- Node targeting settings.
+# Each targeting property supports two forms:
+#   Short:    os: [linux]                                  → soft enforcement
+#   Explicit: os: { values: [linux], enforcement: hard }   → hard enforcement
+# soft = preferredDuringScheduling (best-effort), hard = requiredDuringScheduling (strict).
+nodeTargeting:
+  # -- Pod placement restrictions.
+  restrictions:
+    # -- Placement type: differentNodes (spread), sameNode (colocate), none
+    type: differentNodes
+    # -- Enforcement: soft (preferred, best-effort) or hard (required, may leave pods unschedulable)
+    enforcement: soft
+  # -- Target OS(es). Label key: infraSettings.nodeLabels.os
   os: []
-  # - linux
-  # - windows
-  # -- Target architecture(s) (kubernetes.io/arch)
+  # -- Target architecture(s). Label key: infraSettings.nodeLabels.arch
   arch: []
-  # - amd64
-  # - arm64
+  # -- Target region(s). Label key: infraSettings.nodeLabels.topologyRegion
+  regions: []
+  # -- Target zone(s). Label key: infraSettings.nodeLabels.topologyZone
+  zones: []
+  # -- Target rack(s). Label key: infraSettings.nodeLabels.topologyRack
+  racks: []
+  # -- Target node/instance type(s). Label key: infraSettings.nodeLabels.nodeType
+  nodeTypes: []
+  # -- Target node pool(s). Label key: infraSettings.nodeLabels.nodePool
+  # Common cloud labels: GKE=cloud.google.com/gke-nodepool, EKS=eks.amazonaws.com/nodegroup, AKS=kubernetes.azure.com/agentpool
+  nodePools: []
 
 # =============================================================================
 # Containers
