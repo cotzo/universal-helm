@@ -594,3 +594,227 @@ tests:
           path: metadata.labels.custom-label
           value: value
         documentIndex: 0
+
+  # ---------------------------------------------------------------------------
+  # Recovery
+  # ---------------------------------------------------------------------------
+  - it: should render recovery bootstrap when recovery enabled
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-backups
+            path: databases
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: s3
+          recovery:
+            enabled: true
+            target:
+              targetTime: "2026-03-30T10:00:00Z"
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.bootstrap.recovery.source
+          value: RELEASE-NAME-chartpack-pg-recovery
+        documentIndex: 0
+      - equal:
+          path: spec.bootstrap.recovery.recoveryTarget.targetTime
+          value: "2026-03-30T10:00:00Z"
+        documentIndex: 0
+      - isNull:
+          path: spec.bootstrap.initdb
+        documentIndex: 0
+
+  - it: should render externalClusters with auto-wired S3 credentials
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-backups
+            path: databases
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: s3
+          recovery:
+            enabled: true
+            target:
+              targetTime: "2026-03-30T10:00:00Z"
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.externalClusters[0].name
+          value: RELEASE-NAME-chartpack-pg-recovery
+        documentIndex: 0
+      - equal:
+          path: spec.externalClusters[0].barmanObjectStore.destinationPath
+          value: s3://my-backups/databases/NAMESPACE/RELEASE-NAME-chartpack
+        documentIndex: 0
+      - equal:
+          path: spec.externalClusters[0].barmanObjectStore.s3Credentials.accessKeyId.name
+          value: s3-creds
+        documentIndex: 0
+
+  - it: should use explicit recovery destinationPath
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-backups
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          recovery:
+            enabled: true
+            type: s3
+            destinationPath: s3://other-bucket/old-backups/my-app
+            target:
+              targetTime: "2026-03-30T10:00:00Z"
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.externalClusters[0].barmanObjectStore.destinationPath
+          value: s3://other-bucket/old-backups/my-app
+        documentIndex: 0
+
+  - it: should default recovery type to backup type
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          gcs:
+            bucket: my-gcs-bucket
+            credentials:
+              secretName: gcs-creds
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            type: gcs
+          recovery:
+            enabled: true
+            target:
+              targetTime: "2026-03-30T10:00:00Z"
+          inject:
+            containers: [app]
+    asserts:
+      - isNotNull:
+          path: spec.externalClusters[0].barmanObjectStore.googleCredentials
+        documentIndex: 0
+
+  - it: should support targetLSN recovery target
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-backups
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          recovery:
+            enabled: true
+            type: s3
+            target:
+              targetLSN: "0/1234568"
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.bootstrap.recovery.recoveryTarget.targetLSN
+          value: "0/1234568"
+        documentIndex: 0
+
+  - it: should support targetImmediate recovery target
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-backups
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          recovery:
+            enabled: true
+            type: s3
+            target:
+              targetImmediate: true
+          inject:
+            containers: [app]
+    asserts:
+      - equal:
+          path: spec.bootstrap.recovery.recoveryTarget.targetImmediate
+          value: true
+        documentIndex: 0
+
+  - it: should NOT render ESO resources during recovery
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-backups
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          password:
+            mode: eso
+          backup:
+            enabled: true
+            type: s3
+            schedule: "0 0 * * *"
+          recovery:
+            enabled: true
+            target:
+              targetTime: "2026-03-30T10:00:00Z"
+          inject:
+            containers: [app]
+    asserts:
+      - hasDocuments:
+          count: 2

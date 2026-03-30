@@ -2,6 +2,7 @@
 {{- if $pg.enabled }}
 {{- $fullName := include "chartpack.fullname" . -}}
 {{- $clusterName := include "chartpack.dependencies.postgres.clusterName" . -}}
+{{- $recovery := default (dict) $pg.recovery -}}
 
 {{- /* ------------------------------------------------------------------- */}}
 {{- /* CNPG Cluster                                                        */}}
@@ -14,6 +15,40 @@ spec:
   instances: {{ default 3 $pg.instances }}
   imageName: {{ include "chartpack.dependencies.postgres.imageName" . }}
 
+  {{- if $recovery.enabled }}
+  bootstrap:
+    recovery:
+      source: {{ $clusterName }}-recovery
+      {{- $target := default (dict) $recovery.target }}
+      {{- if or $target.targetTime $target.targetLSN $target.targetXID $target.targetName $target.targetImmediate }}
+      recoveryTarget:
+        {{- with $target.targetTime }}
+        targetTime: {{ . | quote }}
+        {{- end }}
+        {{- with $target.targetLSN }}
+        targetLSN: {{ . | quote }}
+        {{- end }}
+        {{- with $target.targetXID }}
+        targetXID: {{ . | quote }}
+        {{- end }}
+        {{- with $target.targetName }}
+        targetName: {{ . | quote }}
+        {{- end }}
+        {{- if not (kindIs "invalid" $target.targetImmediate) }}
+        targetImmediate: {{ $target.targetImmediate }}
+        {{- end }}
+        {{- if not (kindIs "invalid" $target.exclusive) }}
+        exclusive: {{ $target.exclusive }}
+        {{- end }}
+      {{- end }}
+
+  {{- $recoveryType := default (default "s3" (default (dict) $pg.backup).type) $recovery.type }}
+  externalClusters:
+    - name: {{ $clusterName }}-recovery
+      barmanObjectStore:
+        destinationPath: {{ include "chartpack.dependencies.postgres.recoveryDestinationPath" . }}
+        {{- include "chartpack.dependencies.postgres.barmanCredentials" (dict "type" $recoveryType "context" $) | nindent 8 }}
+  {{- else }}
   bootstrap:
     initdb:
       database: {{ default "app" $pg.database }}
@@ -23,6 +58,7 @@ spec:
       secret:
         name: {{ include "chartpack.dependencies.postgres.credentialSecretName" . }}
       {{- end }}
+  {{- end }}
 
   storage:
     {{- $storage := default (dict) $pg.storage }}
@@ -36,53 +72,7 @@ spec:
   backup:
     barmanObjectStore:
       destinationPath: {{ include "chartpack.dependencies.postgres.destinationPath" . }}
-      {{- $infra := default (dict) (default (dict) .Values.infraSettings).backups }}
-
-      {{- if eq (default "s3" $backup.type) "s3" }}
-      {{- $s3 := default (dict) $infra.s3 }}
-      {{- $s3creds := default (dict) $s3.credentials }}
-      {{- with $s3.endpoint }}
-      endpointURL: {{ . }}
-      {{- end }}
-      s3Credentials:
-        accessKeyId:
-          name: {{ $s3creds.secretName }}
-          key: {{ default "ACCESS_KEY_ID" $s3creds.accessKeyId }}
-        secretAccessKey:
-          name: {{ $s3creds.secretName }}
-          key: {{ default "ACCESS_SECRET_KEY" $s3creds.secretAccessKey }}
-      {{- end }}
-
-      {{- if eq (default "s3" $backup.type) "azure" }}
-      {{- $az := default (dict) $infra.azure }}
-      {{- $azcreds := default (dict) $az.credentials }}
-      azureCredentials:
-        {{- with $azcreds.connectionString }}
-        connectionString:
-          name: {{ $azcreds.secretName }}
-          key: {{ . }}
-        {{- end }}
-        {{- with $azcreds.storageAccount }}
-        storageAccount:
-          name: {{ $azcreds.secretName }}
-          key: {{ . }}
-        {{- end }}
-        {{- with $azcreds.storageKey }}
-        storageKey:
-          name: {{ $azcreds.secretName }}
-          key: {{ . }}
-        {{- end }}
-      {{- end }}
-
-      {{- if eq (default "s3" $backup.type) "gcs" }}
-      {{- $gcs := default (dict) $infra.gcs }}
-      {{- $gcscreds := default (dict) $gcs.credentials }}
-      googleCredentials:
-        applicationCredentials:
-          name: {{ $gcscreds.secretName }}
-          key: {{ default "gcsCredentials" $gcscreds.applicationCredentials }}
-      {{- end }}
-
+      {{- include "chartpack.dependencies.postgres.barmanCredentials" (dict "type" (default "s3" $backup.type) "context" $) | nindent 6 }}
       wal:
         compression: {{ default "gzip" $backup.walCompression }}
     {{- with $backup.retentionPolicy }}
@@ -113,7 +103,7 @@ spec:
 {{- /* ESO Password Generation (when password.mode == eso)                 */}}
 {{- /* ------------------------------------------------------------------- */}}
 {{- $password := default (dict) $pg.password -}}
-{{- if eq (default "cnpg" $password.mode) "eso" -}}
+{{- if and (eq (default "cnpg" $password.mode) "eso") (not $recovery.enabled) -}}
 {{- $credSecretName := include "chartpack.dependencies.postgres.credentialSecretName" . -}}
 {{- $genCfg := default (dict) $password.generate }}
 ---

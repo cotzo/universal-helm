@@ -866,6 +866,30 @@ dependencies:
       # -- Scheduled backup cron expression
       schedule: "0 0 * * *"
 
+    # -- Point-in-time recovery. When enabled, bootstrap switches from initdb to recovery.
+    # Uses infraSettings.backups credentials (same as backup section).
+    recovery:
+      # -- Enable recovery mode (one-time operation — disable after successful recovery)
+      enabled: false
+      # -- Backup source type: s3 | azure | gcs (defaults to backup.type if not set)
+      type: ""
+      # -- Explicit source path override (default: auto-built from infraSettings, same as backup)
+      destinationPath: ""
+      # -- Recovery target (at least one field required)
+      target:
+        # -- Restore to a specific timestamp (e.g. "2026-03-30T10:00:00Z")
+        targetTime: ""
+        # -- Restore to a specific Log Sequence Number
+        # targetLSN: ""
+        # -- Restore to a specific transaction ID
+        # targetXID: ""
+        # -- Restore to a named restore point
+        # targetName: ""
+        # -- Restore to end of base backup
+        # targetImmediate: false
+        # -- Stop just before the target instead of including it
+        # exclusive: false
+
     # -- Auto-wiring: inject CNPG app secret into containers
     inject:
       # -- Enable env injection

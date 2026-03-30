@@ -1063,6 +1063,28 @@
               },
               "additionalProperties": false
             },
+            "recovery": {
+              "type": "object",
+              "description": "Point-in-time recovery. Switches bootstrap from initdb to recovery.",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "type": { "type": "string", "enum": ["s3", "azure", "gcs", ""] },
+                "destinationPath": { "type": "string" },
+                "target": {
+                  "type": "object",
+                  "properties": {
+                    "targetTime": { "type": "string" },
+                    "targetLSN": { "type": "string" },
+                    "targetXID": { "type": "string" },
+                    "targetName": { "type": "string" },
+                    "targetImmediate": { "type": "boolean" },
+                    "exclusive": { "type": "boolean" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
             "inject": {
               "type": "object",
               "properties": {
