@@ -662,3 +662,452 @@ tests:
                 repository: busybox
     asserts:
       - failedTemplate: {}
+
+  # ===========================================================================
+  # Dependencies – postgres (schema)
+  # ===========================================================================
+
+  - it: should fail when postgres type is invalid (schema)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          type: zalando
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when password mode is invalid (schema)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          password:
+            mode: vault
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when backup type is invalid (schema)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: minio
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when inject method is invalid (schema)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            containers: [app]
+            method: configMap
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when walCompression is invalid (schema)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            walCompression: deflate
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when instances is less than minimum (schema)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          instances: 0
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when password generate length is too short (schema)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          password:
+            mode: eso
+            generate:
+              length: 4
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when unknown field in postgres (schema)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          replicas: 3
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate: {}
+
+  - it: should fail when unknown field in recovery target (schema)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          recovery:
+            enabled: true
+            target:
+              targetTimestamp: "2026-03-30T10:00:00Z"
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate: {}
+
+  # ===========================================================================
+  # Dependencies – postgres (template)
+  # ===========================================================================
+
+  - it: should fail when inject enabled without containers list
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          inject:
+            enabled: true
+            containers: []
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.inject.containers: must specify at least one container name when inject is enabled (e.g. [app])"
+
+  - it: should fail when inject containers omitted (defaults to enabled)
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.inject.containers: must specify at least one container name when inject is enabled (e.g. [app])"
+
+  # ---------------------------------------------------------------------------
+  # Backup – S3 credential validations
+  # ---------------------------------------------------------------------------
+
+  - it: should fail when S3 backup enabled without bucket
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: s3
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.backup: type 's3' requires infraSettings.backups.s3.bucket or an explicit destinationPath"
+
+  - it: should fail when S3 backup enabled without credentials secretName
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-bucket
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: s3
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.backup: type 's3' requires infraSettings.backups.s3.credentials.secretName"
+
+  - it: should not fail S3 bucket validation when destinationPath is set
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: s3
+            destinationPath: s3://explicit-bucket/path
+          inject:
+            containers: [app]
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # ---------------------------------------------------------------------------
+  # Backup – Azure credential validations
+  # ---------------------------------------------------------------------------
+
+  - it: should fail when Azure backup enabled without storageAccount
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: azure
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.backup: type 'azure' requires infraSettings.backups.azure.storageAccount or an explicit destinationPath"
+
+  - it: should fail when Azure backup enabled without credentials secretName
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          azure:
+            storageAccount: myaccount
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: azure
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.backup: type 'azure' requires infraSettings.backups.azure.credentials.secretName"
+
+  # ---------------------------------------------------------------------------
+  # Backup – GCS credential validations
+  # ---------------------------------------------------------------------------
+
+  - it: should fail when GCS backup enabled without bucket
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: gcs
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.backup: type 'gcs' requires infraSettings.backups.gcs.bucket or an explicit destinationPath"
+
+  - it: should fail when GCS backup enabled without credentials secretName
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          gcs:
+            bucket: my-bucket
+      dependencies:
+        postgres:
+          enabled: true
+          backup:
+            enabled: true
+            type: gcs
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.backup: type 'gcs' requires infraSettings.backups.gcs.credentials.secretName"
+
+  # ---------------------------------------------------------------------------
+  # Recovery validations
+  # ---------------------------------------------------------------------------
+
+  - it: should fail when recovery enabled without target
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            bucket: my-bucket
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          recovery:
+            enabled: true
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.recovery.target: at least one recovery target must be set (targetTime, targetLSN, targetXID, targetName, or targetImmediate)"
+
+  - it: should fail when recovery enabled without S3 credentials
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          recovery:
+            enabled: true
+            target:
+              targetTime: "2026-03-30T10:00:00Z"
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.recovery: type 's3' requires infraSettings.backups.s3.bucket or an explicit destinationPath"
+
+  - it: should not fail recovery bucket validation when destinationPath is set
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      infraSettings:
+        backups:
+          s3:
+            credentials:
+              secretName: s3-creds
+      dependencies:
+        postgres:
+          enabled: true
+          recovery:
+            enabled: true
+            destinationPath: s3://explicit-bucket/path
+            target:
+              targetTime: "2026-03-30T10:00:00Z"
+          inject:
+            containers: [app]
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should fail when recovery type azure without Azure credentials
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          recovery:
+            enabled: true
+            type: azure
+            target:
+              targetTime: "2026-03-30T10:00:00Z"
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.recovery: type 'azure' requires infraSettings.backups.azure.storageAccount or an explicit destinationPath"
+
+  - it: should fail when recovery type gcs without GCS credentials
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+      dependencies:
+        postgres:
+          enabled: true
+          recovery:
+            enabled: true
+            type: gcs
+            target:
+              targetTime: "2026-03-30T10:00:00Z"
+          inject:
+            containers: [app]
+    asserts:
+      - failedTemplate:
+          errorMessage: "dependencies.postgres.recovery: type 'gcs' requires infraSettings.backups.gcs.bucket or an explicit destinationPath"
