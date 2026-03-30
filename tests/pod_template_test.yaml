@@ -540,3 +540,58 @@ tests:
             name: cert-app-tls
           any: true
         template: templates/workloads/deployment.yaml
+
+  - it: should resolve infraSettings.nodeLabels in topologySpreadConstraints
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      infraSettings:
+        nodeLabels:
+          topologyZone: topology.kubernetes.io/zone
+      podSettings:
+        topologySpreadConstraints:
+          zone-spread:
+            topologyKey: topologyZone
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: topology.kubernetes.io/zone
+        template: templates/workloads/deployment.yaml
+
+  - it: should pass through raw topologyKey when not in infraSettings
+    set:
+      workloadType: Deployment
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      podSettings:
+        topologySpreadConstraints:
+          custom:
+            topologyKey: my.custom.label/zone
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: my.custom.label/zone
+        template: templates/workloads/deployment.yaml

@@ -125,6 +125,24 @@
       },
       "additionalProperties": false
     },
+    "infraSettings": {
+      "type": "object",
+      "properties": {
+        "nodeLabels": {
+          "type": "object",
+          "description": "Node label key mapping. Maps friendly names to actual Kubernetes node label keys.",
+          "properties": {
+            "topologyRegion": { "type": "string", "description": "Region topology label key" },
+            "topologyZone": { "type": "string", "description": "Zone topology label key" },
+            "topologyRack": { "type": "string", "description": "Rack topology label key" },
+            "nodePool": { "type": "string", "description": "Node pool label key" },
+            "os": { "type": "string", "description": "OS label key" },
+            "arch": { "type": "string", "description": "Architecture label key" }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
     "argocd": {
       "type": "object",
       "properties": {

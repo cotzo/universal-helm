@@ -53,10 +53,10 @@ spec:
   {{- /* Build nodeAffinity expressions from nodeSettings */ -}}
   {{- $nodeAffinityExpressions := list }}
   {{- if .Values.nodeSettings.os }}
-  {{- $nodeAffinityExpressions = append $nodeAffinityExpressions (dict "key" "kubernetes.io/os" "operator" "In" "values" .Values.nodeSettings.os) }}
+  {{- $nodeAffinityExpressions = append $nodeAffinityExpressions (dict "key" .Values.infraSettings.nodeLabels.os "operator" "In" "values" .Values.nodeSettings.os) }}
   {{- end }}
   {{- if .Values.nodeSettings.arch }}
-  {{- $nodeAffinityExpressions = append $nodeAffinityExpressions (dict "key" "kubernetes.io/arch" "operator" "In" "values" .Values.nodeSettings.arch) }}
+  {{- $nodeAffinityExpressions = append $nodeAffinityExpressions (dict "key" .Values.infraSettings.nodeLabels.arch "operator" "In" "values" .Values.nodeSettings.arch) }}
   {{- end }}
   {{- if or .Values.podSettings.affinity $nodeAffinityExpressions }}
   affinity:
@@ -98,8 +98,11 @@ spec:
   topologySpreadConstraints:
     {{- range $name, $tsc := .Values.podSettings.topologySpreadConstraints }}
     {{- if $tsc }}
+    {{- $topologyKey := $tsc.topologyKey -}}
+    {{- $infraLabel := index $.Values.infraSettings.nodeLabels $tsc.topologyKey -}}
+    {{- if $infraLabel }}{{ $topologyKey = $infraLabel }}{{ end }}
     - maxSkew: {{ default 1 $tsc.maxSkew }}
-      topologyKey: {{ $tsc.topologyKey }}
+      topologyKey: {{ $topologyKey }}
       whenUnsatisfiable: {{ default "DoNotSchedule" $tsc.whenUnsatisfiable }}
       {{- if $tsc.labelSelector }}
       labelSelector:

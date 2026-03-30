@@ -14,6 +14,29 @@ global:
   annotations: {}
 
 # =============================================================================
+# Infrastructure Settings
+# =============================================================================
+
+# -- Node label key mapping for your cluster.
+# Maps friendly names to actual Kubernetes node label keys. Use these names in
+# topologySpreadConstraints.topologyKey and other scheduling references.
+# Override defaults to match your cluster's labeling conventions.
+infraSettings:
+  nodeLabels:
+    # -- Region topology label key
+    topologyRegion: topology.kubernetes.io/region
+    # -- Zone topology label key
+    topologyZone: topology.kubernetes.io/zone
+    # -- Rack topology label key (if applicable)
+    topologyRack: topology.kubernetes.io/rack
+    # -- Node pool label key
+    nodePool: node.cluster.x-k8s.io/node-pool
+    # -- OS label key
+    os: kubernetes.io/os
+    # -- Architecture label key
+    arch: kubernetes.io/arch
+
+# =============================================================================
 # Argo CD
 # =============================================================================
 
