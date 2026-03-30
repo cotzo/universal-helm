@@ -35,6 +35,8 @@ infraSettings:
     os: kubernetes.io/os
     # -- Architecture label key
     arch: kubernetes.io/arch
+    # -- Node type label key (e.g. node.kubernetes.io/instance-type)
+    nodeType: node.kubernetes.io/instance-type
 
 # =============================================================================
 # Argo CD
@@ -74,6 +76,14 @@ nodeTargeting:
   zones: []
   # - us-east-1a
   # - us-east-1b
+  # -- Target node type(s). Uses infraSettings.nodeLabels.nodeType as the label key.
+  nodeTypes: []
+  # - m5.xlarge
+  # - c5.2xlarge
+  # -- Target node pool(s). Uses infraSettings.nodeLabels.nodePool as the label key.
+  nodePools: []
+  # - general-purpose
+  # - gpu
 
 # =============================================================================
 # Containers

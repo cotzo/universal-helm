@@ -137,7 +137,8 @@
             "topologyRack": { "type": "string", "description": "Rack topology label key" },
             "nodePool": { "type": "string", "description": "Node pool label key" },
             "os": { "type": "string", "description": "OS label key" },
-            "arch": { "type": "string", "description": "Architecture label key" }
+            "arch": { "type": "string", "description": "Architecture label key" },
+            "nodeType": { "type": "string", "description": "Node type/instance type label key" }
           },
           "additionalProperties": false
         }
@@ -175,7 +176,9 @@
         "os": { "type": "array", "items": { "type": "string" }, "description": "Target OS(es)" },
         "arch": { "type": "array", "items": { "type": "string" }, "description": "Target architecture(s)" },
         "regions": { "type": "array", "items": { "type": "string" }, "description": "Target region(s)" },
-        "zones": { "type": "array", "items": { "type": "string" }, "description": "Target zone(s)" }
+        "zones": { "type": "array", "items": { "type": "string" }, "description": "Target zone(s)" },
+        "nodeTypes": { "type": "array", "items": { "type": "string" }, "description": "Target node/instance type(s)" },
+        "nodePools": { "type": "array", "items": { "type": "string" }, "description": "Target node pool(s)" }
       },
       "additionalProperties": false
     },
