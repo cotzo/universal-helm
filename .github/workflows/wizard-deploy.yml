@@ -1,0 +1,39 @@
+name: Deploy Wizard to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wizard/**'
+      - 'values.schema.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: wizard/package-lock.json
+
+      - name: Build wizard
+        run: |
+          cd wizard
+          cp ../values.schema.json public/
+          npm ci
+          npm run build
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: wizard/dist
+          destination_dir: wizard
+          keep_files: true

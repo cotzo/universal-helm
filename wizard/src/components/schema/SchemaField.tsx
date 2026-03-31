@@ -1,0 +1,283 @@
+import { useCallback } from 'react'
+import {
+  type JsonSchema,
+  resolveSchema,
+  getEffectiveType,
+  isMapSchema,
+  isStructuredObject,
+  isBareObject,
+  keyToLabel,
+} from '../../lib/schema-utils'
+import { TextInput } from '../shared/TextInput'
+import { EnumSelect } from '../shared/EnumSelect'
+import { BooleanToggle } from '../shared/BooleanToggle'
+import { ArrayEditor } from '../shared/ArrayEditor'
+import { ObjectEditor } from '../shared/ObjectEditor'
+import { KeyValueEditor } from '../shared/KeyValueEditor'
+import { MapEditor } from '../shared/MapEditor'
+import { CollapsibleSection } from '../shared/CollapsibleSection'
+
+interface SchemaFieldProps {
+  schema: JsonSchema
+  rootSchema: JsonSchema
+  value: unknown
+  onChange: (value: unknown) => void
+  label?: string
+  required?: boolean
+  depth?: number
+}
+
+/**
+ * Recursively renders a form field based on JSON Schema.
+ * This is the core of the auto-generated wizard.
+ */
+export function SchemaField({ schema, rootSchema, value, onChange, label, required, depth = 0 }: SchemaFieldProps) {
+  const resolved = resolveSchema(schema, rootSchema)
+  const type = getEffectiveType(resolved)
+  const desc = resolved.description
+
+  // --- Enum (string with enum values) ---
+  if (type === 'enum' || resolved.enum) {
+    return (
+      <EnumSelect
+        label={label || ''}
+        value={(value as string) ?? ''}
+        onChange={onChange}
+        options={resolved.enum || []}
+        required={required}
+        helpText={desc}
+        placeholder={`Select...`}
+      />
+    )
+  }
+
+  // --- Boolean ---
+  if (type === 'boolean') {
+    return (
+      <BooleanToggle
+        label={label || ''}
+        value={(value as boolean) ?? false}
+        onChange={onChange}
+        helpText={desc}
+      />
+    )
+  }
+
+  // --- Integer ---
+  if (type === 'integer') {
+    return (
+      <TextInput
+        label={label || ''}
+        value={value != null ? String(value) : ''}
+        onChange={v => onChange(v ? parseInt(v) : undefined)}
+        type="number"
+        min={resolved.minimum}
+        max={resolved.maximum}
+        required={required}
+        helpText={desc}
+      />
+    )
+  }
+
+  // --- String ---
+  if (type === 'string') {
+    return (
+      <TextInput
+        label={label || ''}
+        value={(value as string) ?? ''}
+        onChange={v => onChange(v || undefined)}
+        required={required}
+        helpText={desc}
+      />
+    )
+  }
+
+  // --- Array of strings ---
+  if (type === 'array' && resolved.items?.type === 'string') {
+    return (
+      <ArrayEditor
+        label={label || ''}
+        value={(value as string[]) ?? []}
+        onChange={onChange}
+        helpText={desc}
+      />
+    )
+  }
+
+  // --- Array of objects (or complex items) ---
+  if (type === 'array') {
+    return (
+      <ObjectEditor
+        label={label || ''}
+        value={value != null ? ({ _arr: value } as Record<string, unknown>) : {}}
+        onChange={v => {
+          const arr = (v as Record<string, unknown>)._arr
+          onChange(arr !== undefined ? arr : Object.keys(v).length > 0 ? v : undefined)
+        }}
+        helpText={desc}
+      />
+    )
+  }
+
+  // --- Map: object with additionalProperties and no properties ---
+  if (isMapSchema(resolved)) {
+    const itemSchema = resolved.additionalProperties as JsonSchema
+    const resolvedItem = resolveSchema(itemSchema, rootSchema)
+    const mapValue = (value ?? {}) as Record<string, unknown>
+
+    // If the map values are simple strings, use KeyValueEditor style
+    if (getEffectiveType(resolvedItem) === 'string' && !resolvedItem.enum) {
+      return (
+        <KeyValueEditor
+          label={label || ''}
+          value={(mapValue as Record<string, string>) ?? {}}
+          onChange={v => onChange(Object.keys(v).length > 0 ? v : undefined)}
+          helpText={desc}
+        />
+      )
+    }
+
+    return (
+      <MapEditor
+        label={label || ''}
+        value={mapValue}
+        onChange={v => onChange(Object.keys(v).length > 0 ? v : undefined)}
+        keyPlaceholder="Name"
+        helpText={desc}
+        createDefault={() => createDefaultFromSchema(resolvedItem, rootSchema)}
+        renderItem={(_key, item, onItemChange) => (
+          <SchemaObjectFields
+            schema={resolvedItem}
+            rootSchema={rootSchema}
+            value={(item ?? {}) as Record<string, unknown>}
+            onChange={onItemChange}
+            depth={depth + 1}
+          />
+        )}
+      />
+    )
+  }
+
+  // --- Structured object with properties ---
+  if (isStructuredObject(resolved)) {
+    if (depth > 0) {
+      return (
+        <CollapsibleSection title={label || ''} badge={desc ? undefined : undefined}>
+          <SchemaObjectFields
+            schema={resolved}
+            rootSchema={rootSchema}
+            value={(value ?? {}) as Record<string, unknown>}
+            onChange={onChange}
+            depth={depth}
+          />
+        </CollapsibleSection>
+      )
+    }
+    return (
+      <SchemaObjectFields
+        schema={resolved}
+        rootSchema={rootSchema}
+        value={(value ?? {}) as Record<string, unknown>}
+        onChange={onChange}
+        depth={depth}
+      />
+    )
+  }
+
+  // --- Bare object (free-form YAML) ---
+  if (isBareObject(resolved)) {
+    return (
+      <ObjectEditor
+        label={label || ''}
+        value={(value ?? {}) as Record<string, unknown>}
+        onChange={v => onChange(Object.keys(v).length > 0 ? v : undefined)}
+        helpText={desc}
+      />
+    )
+  }
+
+  // Fallback: free-form
+  return (
+    <ObjectEditor
+      label={label || '(unknown)'}
+      value={(value ?? {}) as Record<string, unknown>}
+      onChange={onChange}
+      helpText={desc}
+    />
+  )
+}
+
+/**
+ * Renders all properties of a structured object schema as form fields.
+ */
+export function SchemaObjectFields({
+  schema,
+  rootSchema,
+  value,
+  onChange,
+  depth = 0,
+}: {
+  schema: JsonSchema
+  rootSchema: JsonSchema
+  value: Record<string, unknown>
+  onChange: (value: unknown) => void
+  depth?: number
+}) {
+  const resolved = resolveSchema(schema, rootSchema)
+  const properties = resolved.properties || {}
+  const requiredFields = new Set(resolved.required || [])
+
+  const handleFieldChange = useCallback(
+    (key: string, fieldValue: unknown) => {
+      const next = { ...value }
+      if (fieldValue === undefined || fieldValue === '' || fieldValue === null) {
+        delete next[key]
+      } else {
+        next[key] = fieldValue
+      }
+      onChange(Object.keys(next).length > 0 ? next : undefined)
+    },
+    [value, onChange]
+  )
+
+  return (
+    <div className="space-y-4">
+      {Object.entries(properties).map(([key, propSchema]) => (
+        <SchemaField
+          key={key}
+          schema={propSchema}
+          rootSchema={rootSchema}
+          value={value?.[key]}
+          onChange={v => handleFieldChange(key, v)}
+          label={keyToLabel(key)}
+          required={requiredFields.has(key)}
+          depth={depth + 1}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** Create a default value for a schema (used when adding new map entries) */
+function createDefaultFromSchema(schema: JsonSchema, root: JsonSchema): unknown {
+  const resolved = resolveSchema(schema, root)
+  const type = getEffectiveType(resolved)
+
+  if (type === 'object' && resolved.properties) {
+    const result: Record<string, unknown> = {}
+    const requiredFields = resolved.required || []
+    for (const field of requiredFields) {
+      const fieldSchema = resolved.properties[field]
+      if (fieldSchema) {
+        result[field] = createDefaultFromSchema(fieldSchema, root)
+      }
+    }
+    return result
+  }
+  if (type === 'string') return ''
+  if (type === 'integer') return undefined
+  if (type === 'boolean') return false
+  if (type === 'array') return []
+  if (type === 'object') return {}
+  return undefined
+}
