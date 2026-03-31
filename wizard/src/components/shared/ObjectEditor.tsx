@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import yaml from 'js-yaml'
+import { HelpText } from './HelpText'
 
 interface ObjectEditorProps {
   label: string
@@ -39,7 +40,7 @@ export function ObjectEditor({ label, value = {}, onChange, helpText, rows = 6 }
   return (
     <div className="space-y-1">
       <label className="block text-sm font-medium text-gray-700">{label}</label>
-      {helpText && <p className="text-xs text-gray-500">{helpText}</p>}
+      {helpText && <HelpText text={helpText} />}
       <textarea
         value={text}
         onChange={e => handleChange(e.target.value)}

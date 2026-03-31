@@ -38,15 +38,17 @@ export function SchemaField({ schema, rootSchema, value, onChange, label, requir
 
   // --- Enum (string with enum values) ---
   if (type === 'enum' || resolved.enum) {
+    const schemaDefault = resolved.default as string | undefined
+    const enumValue = (value as string) ?? schemaDefault ?? ''
     return (
       <EnumSelect
         label={label || ''}
-        value={(value as string) ?? ''}
-        onChange={onChange}
+        value={enumValue}
+        onChange={v => onChange(v === schemaDefault ? undefined : v)}
         options={resolved.enum || []}
         required={required}
         helpText={desc}
-        placeholder={`Select...`}
+        placeholder={enumValue ? undefined : 'Select...'}
       />
     )
   }

@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react'
+import { HelpText } from './HelpText'
 
 interface EnumSelectProps {
   label: string
@@ -30,7 +31,7 @@ export function EnumSelect({ label, value, onChange, options, required, helpText
         </select>
         <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
       </div>
-      {helpText && <p className="text-xs text-gray-500">{helpText}</p>}
+      {helpText && <HelpText text={helpText} />}
     </div>
   )
 }

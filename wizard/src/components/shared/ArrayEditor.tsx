@@ -1,4 +1,5 @@
 import { Plus, X } from 'lucide-react'
+import { HelpText } from './HelpText'
 
 interface ArrayEditorProps {
   label: string
@@ -31,7 +32,7 @@ export function ArrayEditor({ label, value = [], onChange, placeholder = 'Value'
           <Plus className="h-3 w-3" /> Add
         </button>
       </div>
-      {helpText && <p className="text-xs text-gray-500">{helpText}</p>}
+      {helpText && <HelpText text={helpText} />}
       {value.map((item, idx) => (
         <div key={idx} className="flex items-center gap-2">
           <input

@@ -1,4 +1,5 @@
 import { type JsonSchema, getSchemaAtPath, resolveSchema, isStructuredObject } from '../../lib/schema-utils'
+import { HelpText } from '../shared/HelpText'
 import { type StepConfig } from '../../lib/step-config'
 import { SchemaField, SchemaObjectFields } from './SchemaField'
 
@@ -72,7 +73,7 @@ export function GenericStep({ step, schema, values, onChange }: GenericStepProps
   if (isStructuredObject(resolved)) {
     return (
       <div className="space-y-6">
-        <p className="text-sm text-gray-600">{step.description}</p>
+        <HelpText text={step.description} className="text-sm text-gray-600" />
         <SchemaObjectFields
           schema={resolved}
           rootSchema={schema}
@@ -87,7 +88,7 @@ export function GenericStep({ step, schema, values, onChange }: GenericStepProps
   // For maps and other types, render with SchemaField
   return (
     <div className="space-y-6">
-      <p className="text-sm text-gray-600">{step.description}</p>
+      <HelpText text={step.description} className="text-sm text-gray-600" />
       <SchemaField
         schema={resolved}
         rootSchema={schema}

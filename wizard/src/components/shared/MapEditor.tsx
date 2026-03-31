@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { HelpText } from './HelpText'
 
 interface MapEditorProps<T> {
   label: string
@@ -66,7 +67,7 @@ export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange,
       <div className="flex items-center justify-between">
         <label className="block text-sm font-medium text-gray-700">{label}</label>
       </div>
-      {helpText && <p className="text-xs text-gray-500">{helpText}</p>}
+      {helpText && <HelpText text={helpText} />}
 
       {entries.map(([key, item]) => (
         <div key={key} className="border border-gray-200 rounded-lg overflow-hidden">

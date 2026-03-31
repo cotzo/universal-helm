@@ -1,3 +1,5 @@
+import { HelpText } from './HelpText'
+
 interface BooleanToggleProps {
   label: string
   value: boolean
@@ -10,7 +12,7 @@ export function BooleanToggle({ label, value, onChange, helpText }: BooleanToggl
     <div className="flex items-center justify-between">
       <div>
         <span className="text-sm font-medium text-gray-700">{label}</span>
-        {helpText && <p className="text-xs text-gray-500">{helpText}</p>}
+        {helpText && <HelpText text={helpText} />}
       </div>
       <button
         type="button"

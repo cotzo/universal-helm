@@ -1,3 +1,5 @@
+import { HelpText } from './HelpText'
+
 interface TextInputProps {
   label: string
   value: string
@@ -29,7 +31,7 @@ export function TextInput({ label, value, onChange, placeholder, required, helpT
           error ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'
         }`}
       />
-      {helpText && !error && <p className="text-xs text-gray-500">{helpText}</p>}
+      {helpText && !error && <HelpText text={helpText} />}
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   )
