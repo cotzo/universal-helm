@@ -705,7 +705,8 @@
             "icon": "Network",
             "description": "Configure Kubernetes Services to expose your application.",
             "hiddenFor": [
-              "Job"
+              "Job",
+              "CronJob"
             ]
           },
           "additionalProperties": {
@@ -1051,6 +1052,7 @@
           "type": "object",
           "x-wizard": {
             "order": 9,
+            "group": "Networking",
             "label": "Gateway API",
             "icon": "Network",
             "description": "Configure Gateway API routes (HTTPRoute, GRPCRoute, TLSRoute, etc.).",
