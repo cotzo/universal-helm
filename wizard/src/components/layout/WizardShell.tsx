@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react'
 import { StepNavigation } from './StepNavigation'
-import { getVisibleSteps } from '../../lib/step-config'
+import { type StepConfig, buildStepConfig, getVisibleSteps, groupSteps } from '../../lib/step-config'
 import { type JsonSchema, loadSchema } from '../../lib/schema-utils'
 import { GenericStep } from '../schema/GenericStep'
 import { StepWorkloadType } from '../wizard/StepWorkloadType'
-import { StepWorkloadSettings } from '../wizard/StepWorkloadSettings'
 import { StepReview } from '../wizard/StepReview'
 import { ImportModal } from '../shared/ImportModal'
 import { generateYaml, parseYaml } from '../../lib/yaml-generator'
@@ -22,8 +21,13 @@ export function WizardShell() {
     loadSchema().then(setSchema)
   }, [])
 
+  const allSteps: StepConfig[] = useMemo(
+    () => (schema ? buildStepConfig(schema) : []),
+    [schema],
+  )
+
   const workloadType = (values.workloadType as string) || 'Deployment'
-  const visibleSteps = getVisibleSteps(workloadType)
+  const visibleSteps = getVisibleSteps(allSteps, workloadType)
   const currentIndex = visibleSteps.findIndex(s => s.id === currentStep)
   const currentStepConfig = visibleSteps[currentIndex]
 
@@ -90,13 +94,10 @@ export function WizardShell() {
     if (!currentStepConfig) return null
 
     // Special renderers for steps that need custom UI
-    if (currentStepConfig.id === 'workloadType') {
+    if (currentStepConfig.renderer === 'workloadType') {
       return <StepWorkloadType values={values} getValue={getValue} setValue={setValue} />
     }
-    if (currentStepConfig.id === 'workloadSettings') {
-      return <StepWorkloadSettings values={values} getValue={getValue} setValue={setValue} />
-    }
-    if (currentStepConfig.id === 'review') {
+    if (currentStepConfig.renderer === 'review') {
       return <StepReview values={values} />
     }
 
@@ -113,18 +114,13 @@ export function WizardShell() {
     )
   }
 
-  // Convert step configs to the format StepNavigation expects
-  const navSteps = visibleSteps.map(s => ({
-    id: s.id,
-    label: s.label,
-    icon: s.icon,
-  }))
+  const navGroups = useMemo(() => groupSteps(visibleSteps), [visibleSteps])
 
   return (
     <div className="flex h-screen bg-gray-50">
       {sidebarOpen && (
         <StepNavigation
-          steps={navSteps}
+          groups={navGroups}
           currentStep={currentStep}
           onStepClick={setCurrentStep}
           completedSteps={completedSteps}

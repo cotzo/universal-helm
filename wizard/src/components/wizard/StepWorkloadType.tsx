@@ -1,5 +1,6 @@
 import { Rocket, Database, Layers, Clock, Zap, GitMerge } from 'lucide-react'
 import type { StepProps } from './StepProps'
+import { TextInput } from '../shared/TextInput'
 
 const WORKLOAD_TYPES = [
   { value: 'Deployment', label: 'Deployment', description: 'Stateless application with rolling updates', icon: 'Rocket' },
@@ -51,6 +52,23 @@ export function StepWorkloadType({ getValue, setValue }: StepProps) {
             </button>
           )
         })}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <TextInput
+          label="Name Override"
+          value={(getValue('nameOverride') as string) || ''}
+          onChange={v => setValue('nameOverride', v || undefined)}
+          placeholder="Optional"
+          helpText="Override the chart name"
+        />
+        <TextInput
+          label="Full Name Override"
+          value={(getValue('fullnameOverride') as string) || ''}
+          onChange={v => setValue('fullnameOverride', v || undefined)}
+          placeholder="Optional"
+          helpText="Override the full release name"
+        />
       </div>
     </div>
   )

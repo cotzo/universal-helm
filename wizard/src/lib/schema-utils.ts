@@ -1,3 +1,15 @@
+export interface WizardMeta {
+  order: number
+  group?: string
+  label: string
+  icon: string
+  description: string
+  hiddenFor?: string[]
+  renderer?: 'workloadType' | 'review'
+  /** Render only the child property whose key matches this value path (lcFirst) */
+  selectByValue?: string
+}
+
 export interface JsonSchema {
   $schema?: string
   $ref?: string
@@ -15,7 +27,9 @@ export interface JsonSchema {
   minProperties?: number
   oneOf?: JsonSchema[]
   allOf?: JsonSchema[]
+  default?: unknown
   definitions?: Record<string, JsonSchema>
+  'x-wizard'?: WizardMeta
 }
 
 let rootSchema: JsonSchema | null = null
@@ -133,4 +147,25 @@ export function getSchemaAtPath(path: string, root: JsonSchema): JsonSchema | nu
   }
 
   return resolveSchema(current, root)
+}
+
+/** Walk the schema and collect all properties that have a `default` value into a nested object */
+export function extractDefaults(schema: JsonSchema): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  if (!schema.properties) return result
+
+  for (const [key, prop] of Object.entries(schema.properties)) {
+    const resolved = resolveSchema(prop, schema)
+
+    if (resolved.default !== undefined) {
+      result[key] = resolved.default
+    } else if (resolved.type === 'object' && resolved.properties) {
+      const nested = extractDefaults({ ...resolved, definitions: schema.definitions })
+      if (Object.keys(nested).length > 0) {
+        result[key] = nested
+      }
+    }
+  }
+
+  return result
 }

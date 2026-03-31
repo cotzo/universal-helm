@@ -261,6 +261,9 @@ export function SchemaObjectFields({
 /** Create a default value for a schema (used when adding new map entries) */
 function createDefaultFromSchema(schema: JsonSchema, root: JsonSchema): unknown {
   const resolved = resolveSchema(schema, root)
+
+  if (resolved.default !== undefined) return structuredClone(resolved.default)
+
   const type = getEffectiveType(resolved)
 
   if (type === 'object' && resolved.properties) {

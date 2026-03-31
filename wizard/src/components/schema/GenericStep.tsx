@@ -36,17 +36,36 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
   return result
 }
 
+function lcFirst(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1)
+}
+
 export function GenericStep({ step, schema, values, onChange }: GenericStepProps) {
-  const fieldSchema = getSchemaAtPath(step.schemaPath, schema)
+  let fieldSchema = getSchemaAtPath(step.schemaPath, schema)
   if (!fieldSchema) {
     return <p className="text-sm text-red-500">Schema not found for path: {step.schemaPath}</p>
   }
 
-  const resolved = resolveSchema(fieldSchema, schema)
-  const currentValue = getNestedValue(values, step.schemaPath)
+  let resolved = resolveSchema(fieldSchema, schema)
+  let schemaPath = step.schemaPath
+
+  // selectByValue: render only the child property matching the value at the given path
+  if (step.selectByValue) {
+    const selectedValue = getNestedValue(values, step.selectByValue) as string
+    if (selectedValue && resolved.properties) {
+      const childKey = lcFirst(selectedValue)
+      const childSchema = resolved.properties[childKey]
+      if (childSchema) {
+        resolved = resolveSchema(childSchema, schema)
+        schemaPath = `${step.schemaPath}.${childKey}`
+      }
+    }
+  }
+
+  const currentValue = getNestedValue(values, schemaPath)
 
   const handleChange = (newValue: unknown) => {
-    onChange(setNestedValue(values, step.schemaPath, newValue))
+    onChange(setNestedValue(values, schemaPath, newValue))
   }
 
   // For top-level structured objects, render fields directly (no wrapping collapsible)

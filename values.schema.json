@@ -30,7 +30,7 @@
           "properties": {
             "repository": { "type": "string", "minLength": 1 },
             "tag": { "type": "string" },
-            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"], "default": "IfNotPresent" }
           },
           "additionalProperties": false
         },
@@ -44,7 +44,7 @@
             "required": ["port"],
             "properties": {
               "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-              "protocol": { "type": "string", "enum": ["TCP", "UDP", "SCTP"] }
+              "protocol": { "type": "string", "enum": ["TCP", "UDP", "SCTP"], "default": "TCP" }
             }
           }
         },
@@ -130,17 +130,33 @@
     "workloadType": {
       "type": "string",
       "enum": ["Deployment", "StatefulSet", "CronJob", "Job", "DaemonSet", "Rollout"],
-      "description": "Kubernetes workload type to deploy"
+      "default": "Deployment",
+      "description": "Kubernetes workload type to deploy",
+      "x-wizard": {
+        "order": 1,
+        "group": "Workload",
+        "label": "Workload Type",
+        "icon": "Box",
+        "description": "Choose the type of Kubernetes workload you want to deploy.",
+        "renderer": "workloadType"
+      }
     },
-    "nameOverride": { "type": "string" },
-    "fullnameOverride": { "type": "string" },
+    "nameOverride": { "type": "string", "description": "Override the chart name" },
+    "fullnameOverride": { "type": "string", "description": "Override the full release name" },
     "global": {
       "type": "object",
       "properties": {
         "labels": { "type": "object", "additionalProperties": { "type": "string" } },
         "annotations": { "type": "object", "additionalProperties": { "type": "string" } }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "x-wizard": {
+        "order": 26,
+        "group": "Operations",
+        "label": "Global Settings",
+        "icon": "Globe",
+        "description": "Global labels and annotations applied to ALL generated resources."
+      }
     },
     "infraSettings": {
       "type": "object",
@@ -160,10 +176,24 @@
           "additionalProperties": false
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "x-wizard": {
+        "order": 27,
+        "group": "Operations",
+        "label": "Infrastructure Settings",
+        "icon": "Settings",
+        "description": "Customize node label keys for your cluster (used by nodeTargeting)."
+      }
     },
     "argocd": {
       "type": "object",
+      "x-wizard": {
+        "order": 25,
+        "group": "Operations",
+        "label": "Argo CD",
+        "icon": "GitBranch",
+        "description": "Configure Argo CD integration: sync waves and sync options."
+      },
       "properties": {
         "syncWaves": {
           "type": "object",
@@ -181,21 +211,42 @@
     "containers": {
       "type": "object",
       "additionalProperties": { "$ref": "#/definitions/containerSpec" },
-      "description": "Map of container name to container spec"
+      "description": "Map of container name to container spec",
+      "x-wizard": {
+        "order": 3,
+        "group": "Workload",
+        "label": "Containers",
+        "icon": "Container",
+        "description": "Define the main application containers. At least one container with an image is required."
+      }
     },
     "initContainers": {
       "type": "object",
       "additionalProperties": { "$ref": "#/definitions/initContainerSpec" },
-      "description": "Map of init container name to container spec (processed in alphabetical key order)"
+      "description": "Map of init container name to container spec (processed in alphabetical key order)",
+      "x-wizard": {
+        "order": 4,
+        "group": "Workload",
+        "label": "Init Containers",
+        "icon": "PlayCircle",
+        "description": "Init containers run before the main containers start. Keys are sorted alphabetically - use numeric prefixes (01-, 02-) to control order."
+      }
     },
     "nodeTargeting": {
       "type": "object",
+      "x-wizard": {
+        "order": 6,
+        "group": "Pod",
+        "label": "Node Targeting",
+        "icon": "Target",
+        "description": "Control which nodes your pods can be scheduled on. Use \"soft\" for best-effort, \"hard\" for strict requirements."
+      },
       "properties": {
         "restrictions": {
           "type": "object",
           "properties": {
-            "type": { "type": "string", "enum": ["differentNodes", "sameNode", "none"], "description": "Placement type: differentNodes (spread), sameNode (colocate), none" },
-            "enforcement": { "type": "string", "enum": ["soft", "hard"], "description": "soft (preferred, best-effort) or hard (required, may leave pods unschedulable)" }
+            "type": { "type": "string", "enum": ["differentNodes", "sameNode", "none"], "default": "differentNodes", "description": "Placement type: differentNodes (spread), sameNode (colocate), none" },
+            "enforcement": { "type": "string", "enum": ["soft", "hard"], "default": "soft", "description": "soft (preferred, best-effort) or hard (required, may leave pods unschedulable)" }
           },
           "additionalProperties": false
         },
@@ -211,6 +262,13 @@
     },
     "podSettings": {
       "type": "object",
+      "x-wizard": {
+        "order": 5,
+        "group": "Pod",
+        "label": "Pod Settings",
+        "icon": "Cpu",
+        "description": "Pod-level settings that apply to all containers: security context, scheduling, tolerations, volumes."
+      },
       "properties": {
         "imagePullSecrets": {
           "type": "array",
@@ -234,9 +292,9 @@
             "type": "object",
             "required": ["topologyKey"],
             "properties": {
-              "maxSkew": { "type": "integer", "minimum": 1 },
+              "maxSkew": { "type": "integer", "minimum": 1, "default": 1 },
               "topologyKey": { "type": "string" },
-              "whenUnsatisfiable": { "type": "string", "enum": ["DoNotSchedule", "ScheduleAnyway"] },
+              "whenUnsatisfiable": { "type": "string", "enum": ["DoNotSchedule", "ScheduleAnyway"], "default": "DoNotSchedule" },
               "labelSelector": { "type": "object" },
               "matchLabelKeys": { "type": "array", "items": { "type": "string" } },
               "minDomains": { "type": "integer" },
@@ -260,12 +318,20 @@
         "services": {
           "type": "object",
           "description": "Map of service name to service config",
+          "x-wizard": {
+            "order": 7,
+            "group": "Networking",
+            "label": "Services",
+            "icon": "Network",
+            "description": "Configure Kubernetes Services to expose your application.",
+            "hiddenFor": ["Job"]
+          },
           "additionalProperties": {
             "type": "object",
             "required": ["ports"],
             "properties": {
               "headless": { "type": "boolean", "description": "Set true for clusterIP: None" },
-              "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"] },
+              "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"], "default": "ClusterIP" },
               "ports": {
                 "type": "object",
                 "minProperties": 1,
@@ -276,7 +342,7 @@
                   "properties": {
                     "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
                     "containerPort": { "type": "string", "description": "Container port name, defaults to port key name" },
-                    "protocol": { "type": "string" },
+                    "protocol": { "type": "string", "default": "TCP" },
                     "nodePort": { "type": "integer" }
                   }
                 }
@@ -299,17 +365,25 @@
         "oauth2Proxies": {
           "type": "object",
           "description": "Map of oauth2 proxy name to proxy config",
+          "x-wizard": {
+            "order": 10,
+            "group": "Networking",
+            "label": "OAuth2 Proxy",
+            "icon": "Lock",
+            "description": "Configure OAuth2 proxy for authentication (sidecar or separate deployment).",
+            "hiddenFor": ["Job", "CronJob"]
+          },
           "additionalProperties": {
             "type": "object",
             "properties": {
-              "mode": { "type": "string", "enum": ["sidecar", "deployment"], "description": "sidecar (default) runs in app pod, deployment creates separate pods" },
+              "mode": { "type": "string", "enum": ["sidecar", "deployment"], "default": "sidecar", "description": "sidecar runs in app pod, deployment creates separate pods" },
               "image": { "type": "object" },
-              "replicas": { "type": "integer", "description": "Only for deployment mode" },
-              "port": { "type": "integer" },
-              "portName": { "type": "string", "description": "Port name suffix (default: proxy)" },
-              "provider": { "type": "string" },
+              "replicas": { "type": "integer", "default": 1, "description": "Only for deployment mode" },
+              "port": { "type": "integer", "default": 4180 },
+              "portName": { "type": "string", "default": "proxy", "description": "Port name suffix" },
+              "provider": { "type": "string", "default": "oidc" },
               "issuerUrl": { "type": "string" },
-              "emailDomains": { "type": "array", "items": { "type": "string" } },
+              "emailDomains": { "type": "array", "items": { "type": "string" }, "default": ["*"] },
               "upstream": { "type": "string", "description": "Override auto-derived upstream URL" },
               "extraArgs": { "type": "object", "additionalProperties": { "type": "string" } },
               "args": { "type": "array", "items": { "type": "string" } },
@@ -324,6 +398,14 @@
         "ingresses": {
           "type": "object",
           "description": "Map of ingress name to ingress config",
+          "x-wizard": {
+            "order": 8,
+            "group": "Networking",
+            "label": "Ingresses",
+            "icon": "Globe",
+            "description": "Configure Kubernetes Ingresses for external access.",
+            "hiddenFor": ["Job", "CronJob"]
+          },
           "additionalProperties": {
             "type": "object",
             "properties": {
@@ -345,7 +427,7 @@
                         "required": ["path"],
                         "properties": {
                           "path": { "type": "string" },
-                          "pathType": { "type": "string", "enum": ["Prefix", "Exact", "ImplementationSpecific"] },
+                          "pathType": { "type": "string", "enum": ["Prefix", "Exact", "ImplementationSpecific"], "default": "Prefix" },
                           "serviceName": { "type": "string" },
                           "servicePort": { "type": "integer" }
                         }
@@ -370,6 +452,13 @@
         },
         "gatewayApi": {
           "type": "object",
+          "x-wizard": {
+            "order": 9,
+            "label": "Gateway API",
+            "icon": "Network",
+            "description": "Configure Gateway API routes (HTTPRoute, GRPCRoute, TLSRoute, etc.).",
+            "hiddenFor": ["Job", "CronJob"]
+          },
           "properties": {
             "routes": {
               "type": "object",
@@ -378,7 +467,7 @@
                 "type": "object",
                 "properties": {
                   "oauth2Proxy": { "type": "string", "description": "Key from networking.oauth2Proxies map" },
-                  "kind": { "type": "string", "enum": ["HTTPRoute", "GRPCRoute", "TLSRoute", "TCPRoute", "UDPRoute"] },
+                  "kind": { "type": "string", "enum": ["HTTPRoute", "GRPCRoute", "TLSRoute", "TCPRoute", "UDPRoute"], "default": "HTTPRoute" },
                   "parentRefs": {
                     "type": "array",
                     "items": {
@@ -432,6 +521,13 @@
         "certificates": {
           "type": "object",
           "description": "Map of cert-manager Certificate name to config",
+          "x-wizard": {
+            "order": 11,
+            "group": "Networking",
+            "label": "Certificates",
+            "icon": "FileKey",
+            "description": "Configure cert-manager Certificate resources for TLS. Certificates auto-mount when a mount path is set."
+          },
           "additionalProperties": {
             "type": "object",
             "required": ["issuerRef"],
@@ -441,7 +537,7 @@
                 "required": ["name"],
                 "properties": {
                   "name": { "type": "string" },
-                  "kind": { "type": "string", "enum": ["Issuer", "ClusterIssuer"] },
+                  "kind": { "type": "string", "enum": ["Issuer", "ClusterIssuer"], "default": "ClusterIssuer" },
                   "group": { "type": "string" }
                 }
               },
@@ -476,6 +572,13 @@
         "networkPolicies": {
           "type": "object",
           "description": "Map of NetworkPolicy name to config",
+          "x-wizard": {
+            "order": 12,
+            "group": "Networking",
+            "label": "Network Policies",
+            "icon": "ShieldCheck",
+            "description": "Configure Kubernetes NetworkPolicies to control pod-to-pod traffic."
+          },
           "additionalProperties": {
             "type": "object",
             "properties": {
@@ -490,6 +593,14 @@
         },
         "istio": {
           "type": "object",
+          "x-wizard": {
+            "order": 13,
+            "group": "Networking",
+            "label": "Istio",
+            "icon": "Shield",
+            "description": "Configure Istio service mesh resources: VirtualServices, DestinationRules, PeerAuthentication, AuthorizationPolicies.",
+            "hiddenFor": ["Job", "CronJob"]
+          },
           "properties": {
             "virtualServices": {
               "type": "object",
@@ -562,6 +673,13 @@
       "properties": {
         "configMaps": {
           "type": "object",
+          "x-wizard": {
+            "order": 14,
+            "group": "Config & Storage",
+            "label": "ConfigMaps",
+            "icon": "FileText",
+            "description": "Manage ConfigMaps. Chart-managed ConfigMaps are auto-prefixed and include checksum annotations for automatic pod rollouts."
+          },
           "additionalProperties": {
             "type": "object",
             "properties": {
@@ -575,10 +693,17 @@
         },
         "secrets": {
           "type": "object",
+          "x-wizard": {
+            "order": 15,
+            "group": "Config & Storage",
+            "label": "Secrets",
+            "icon": "Lock",
+            "description": "Manage Secrets with optional auto-generation via ESO Password generators."
+          },
           "additionalProperties": {
             "type": "object",
             "properties": {
-              "type": { "type": "string" },
+              "type": { "type": "string", "default": "Opaque" },
               "data": { "type": "object" },
               "stringData": { "type": "object", "additionalProperties": { "type": "string" } },
               "generate": {
@@ -587,7 +712,7 @@
                 "additionalProperties": {
                   "type": "object",
                   "properties": {
-                    "length": { "type": "integer" },
+                    "length": { "type": "integer", "default": 32 },
                     "digits": { "type": "integer" },
                     "symbols": { "type": "integer" },
                     "symbolCharacters": { "type": "string" },
@@ -597,7 +722,7 @@
                   }
                 }
               },
-              "generateRefreshInterval": { "type": "string", "description": "Refresh interval for generated secrets. 0 = generate once." },
+              "generateRefreshInterval": { "type": "string", "default": "0", "description": "Refresh interval for generated secrets. 0 = generate once." },
               "reloaderEnabled": { "type": "boolean", "description": "Include in Stakater Reloader annotations (default: true)" },
               "annotations": { "type": "object" },
               "labels": { "type": "object" }
@@ -606,6 +731,13 @@
         },
         "externalSecrets": {
           "type": "object",
+          "x-wizard": {
+            "order": 16,
+            "group": "Config & Storage",
+            "label": "External Secrets",
+            "icon": "FileKey",
+            "description": "Configure ExternalSecrets to sync secrets from external stores (AWS Secrets Manager, Vault, etc.)."
+          },
           "additionalProperties": {
             "type": "object",
             "properties": {
@@ -615,7 +747,7 @@
                 "required": ["name"],
                 "properties": {
                   "name": { "type": "string" },
-                  "kind": { "type": "string", "enum": ["SecretStore", "ClusterSecretStore"] }
+                  "kind": { "type": "string", "enum": ["SecretStore", "ClusterSecretStore"], "default": "SecretStore" }
                 }
               },
               "target": { "type": "object" },
@@ -630,12 +762,19 @@
     },
     "persistence": {
       "type": "object",
+      "x-wizard": {
+        "order": 17,
+        "group": "Config & Storage",
+        "label": "Persistence",
+        "icon": "HardDrive",
+        "description": "Configure persistent storage. For StatefulSets, entries become volumeClaimTemplates."
+      },
       "additionalProperties": {
         "type": "object",
         "properties": {
           "storageClass": { "type": "string" },
-          "accessModes": { "type": "array", "items": { "type": "string" } },
-          "size": { "type": "string" },
+          "accessModes": { "type": "array", "items": { "type": "string" }, "default": ["ReadWriteOnce"] },
+          "size": { "type": "string", "default": "1Gi" },
           "existingClaim": { "type": "string" },
           "volumeName": { "type": "string" },
           "selector": { "type": "object" },
@@ -646,6 +785,14 @@
     },
     "autoscaling": {
       "type": "object",
+      "x-wizard": {
+        "order": 19,
+        "group": "Scaling",
+        "label": "Autoscaling",
+        "icon": "TrendingUp",
+        "description": "Configure HPA, VPA, and KEDA autoscaling. Note: HPA and KEDA are mutually exclusive.",
+        "hiddenFor": ["Job", "CronJob", "DaemonSet"]
+      },
       "properties": {
         "hpa": {
           "type": "object",
@@ -710,6 +857,14 @@
     },
     "pdb": {
       "type": "object",
+      "x-wizard": {
+        "order": 20,
+        "group": "Scaling",
+        "label": "Pod Disruption Budget",
+        "icon": "ShieldCheck",
+        "description": "Configure Pod Disruption Budget to ensure availability during voluntary disruptions.",
+        "hiddenFor": ["Job", "CronJob"]
+      },
       "properties": {
         "enabled": { "type": "boolean" },
         "minAvailable": { "type": ["integer", "string"] },
@@ -722,6 +877,13 @@
     },
     "rbac": {
       "type": "object",
+      "x-wizard": {
+        "order": 18,
+        "group": "Config & Storage",
+        "label": "RBAC",
+        "icon": "Users",
+        "description": "Configure ServiceAccount, Roles, ClusterRoles, and their Bindings."
+      },
       "properties": {
         "serviceAccount": {
           "type": "object",
@@ -745,12 +907,19 @@
     "monitors": {
       "type": "object",
       "description": "Map of monitor name to monitor config",
+      "x-wizard": {
+        "order": 21,
+        "group": "Observability",
+        "label": "Monitors",
+        "icon": "Activity",
+        "description": "Configure ServiceMonitor/PodMonitor for Prometheus or VictoriaMetrics."
+      },
       "additionalProperties": {
         "type": "object",
         "properties": {
-          "kind": { "type": "string", "enum": ["service", "pod"] },
-          "operator": { "type": "string", "enum": ["prometheus", "victoriametrics"] },
-          "port": { "type": "string" },
+          "kind": { "type": "string", "enum": ["service", "pod"], "default": "service" },
+          "operator": { "type": "string", "enum": ["prometheus", "victoriametrics"], "default": "prometheus" },
+          "port": { "type": "string", "default": "http" },
           "path": { "type": "string" },
           "interval": { "type": "string" },
           "scrapeTimeout": { "type": "string" },
@@ -785,11 +954,18 @@
     "alerting": {
       "type": "object",
       "description": "Map of alerting rule name to config (PrometheusRule or VMRule)",
+      "x-wizard": {
+        "order": 22,
+        "group": "Observability",
+        "label": "Alerting Rules",
+        "icon": "Activity",
+        "description": "Configure PrometheusRule or VMRule alerting and recording rules."
+      },
       "additionalProperties": {
         "type": "object",
         "required": ["groups"],
         "properties": {
-          "operator": { "type": "string", "enum": ["prometheus", "victoriametrics"], "description": "prometheus → PrometheusRule, victoriametrics → VMRule" },
+          "operator": { "type": "string", "enum": ["prometheus", "victoriametrics"], "default": "prometheus", "description": "prometheus → PrometheusRule, victoriametrics → VMRule" },
           "groups": {
             "type": "array",
             "description": "Rule groups (standard Prometheus/VM rule group format)",
@@ -812,6 +988,13 @@
     },
     "dashboards": {
       "type": "object",
+      "x-wizard": {
+        "order": 23,
+        "group": "Observability",
+        "label": "Dashboards",
+        "icon": "Activity",
+        "description": "Configure Grafana dashboards via the Grafana Operator."
+      },
       "properties": {
         "grafana": {
           "type": "object",
@@ -849,6 +1032,14 @@
     },
     "workloads": {
       "type": "object",
+      "x-wizard": {
+        "order": 2,
+        "group": "Workload",
+        "label": "Workload Settings",
+        "icon": "Settings",
+        "description": "Configure settings specific to your workload type (replicas, strategy, schedule, etc.).",
+        "selectByValue": "workloadType"
+      },
       "properties": {
         "rollout": {
           "type": "object",
@@ -865,8 +1056,13 @@
         "deployment": {
           "type": "object",
           "properties": {
-            "replicaCount": { "type": "integer", "minimum": 0, "description": "Number of replicas" },
-            "strategy": { "type": "object" },
+            "replicaCount": { "type": "integer", "minimum": 0, "default": 1, "description": "Number of replicas" },
+            "strategy": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["RollingUpdate", "Recreate"], "default": "RollingUpdate" }
+              }
+            },
             "minReadySeconds": { "type": ["integer", "string"] },
             "revisionHistoryLimit": { "type": ["integer", "string"] }
           },
@@ -878,8 +1074,13 @@
             "replicaCount": { "type": "integer", "minimum": 0, "description": "Number of replicas" },
             "serviceName": { "type": "string" },
             "publishNotReadyAddresses": { "type": "boolean" },
-            "podManagementPolicy": { "type": "string", "enum": ["OrderedReady", "Parallel", ""] },
-            "updateStrategy": { "type": "object" },
+            "podManagementPolicy": { "type": "string", "enum": ["OrderedReady", "Parallel", ""], "default": "OrderedReady" },
+            "updateStrategy": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["RollingUpdate", "OnDelete"], "default": "RollingUpdate" }
+              }
+            },
             "minReadySeconds": { "type": ["integer", "string"] },
             "revisionHistoryLimit": { "type": ["integer", "string"] },
             "ordinals": { "type": "object" },
@@ -890,7 +1091,12 @@
         "daemonSet": {
           "type": "object",
           "properties": {
-            "updateStrategy": { "type": "object" },
+            "updateStrategy": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["RollingUpdate", "OnDelete"], "default": "RollingUpdate" }
+              }
+            },
             "minReadySeconds": { "type": ["integer", "string"] },
             "revisionHistoryLimit": { "type": ["integer", "string"] }
           },
@@ -901,7 +1107,7 @@
           "properties": {
             "schedule": { "type": "string" },
             "timeZone": { "type": "string" },
-            "concurrencyPolicy": { "type": "string", "enum": ["Allow", "Forbid", "Replace", ""] },
+            "concurrencyPolicy": { "type": "string", "enum": ["Allow", "Forbid", "Replace", ""], "default": "Allow" },
             "suspend": { "type": "boolean" },
             "successfulJobsHistoryLimit": { "type": ["integer", "string"] },
             "failedJobsHistoryLimit": { "type": ["integer", "string"] },
@@ -929,13 +1135,20 @@
     "hooks": {
       "type": "object",
       "description": "Map of hook name to hook Job config. Runs at Helm lifecycle events.",
+      "x-wizard": {
+        "order": 24,
+        "group": "Operations",
+        "label": "Hooks",
+        "icon": "Anchor",
+        "description": "Configure Helm lifecycle hooks (pre-install, pre-upgrade, etc.) that run as Jobs."
+      },
       "additionalProperties": {
         "type": "object",
         "required": ["events", "containers"],
         "properties": {
           "events": { "type": "array", "items": { "type": "string", "enum": ["pre-install", "post-install", "pre-upgrade", "post-upgrade", "pre-delete", "post-delete", "pre-rollback", "post-rollback"] } },
-          "weight": { "type": "string", "description": "Hook execution order (lower = first)" },
-          "deletePolicy": { "type": "string", "enum": ["before-hook-creation", "hook-succeeded", "hook-failed"] },
+          "weight": { "type": "string", "default": "0", "description": "Hook execution order (lower = first)" },
+          "deletePolicy": { "type": "string", "enum": ["before-hook-creation", "hook-succeeded", "hook-failed"], "default": "before-hook-creation" },
           "containers": { "type": "object", "description": "Hook containers (same format as main containers)" },
           "initContainers": { "type": "object" },
           "backoffLimit": { "type": ["integer", "string"] },
@@ -950,7 +1163,14 @@
     },
     "extraResources": {
       "type": "array",
-      "items": { "type": "object" }
+      "items": { "type": "object" },
+      "x-wizard": {
+        "order": 28,
+        "group": "Operations",
+        "label": "Extra Resources",
+        "icon": "Plus",
+        "description": "Add arbitrary Kubernetes resources not covered by the chart."
+      }
     }
   }
 }
