@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { HelpText } from './HelpText'
 
 interface TextInputProps {
@@ -14,7 +15,7 @@ interface TextInputProps {
 }
 
 export function TextInput({ label, value, onChange, placeholder, required, helpText, error, type = 'text', min, max }: TextInputProps) {
-  const id = label.replace(/\s+/g, '-').toLowerCase()
+  const id = useId()
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="block text-sm font-medium text-gray-700">

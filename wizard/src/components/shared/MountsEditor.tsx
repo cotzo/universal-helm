@@ -231,6 +231,7 @@ export function MountsEditor({ label, value = [], onChange, helpText }: MountsEd
                     <button
                       type="button"
                       role="switch"
+                      aria-label="Toggle read-only"
                       aria-checked={!!entry.readOnly}
                       onClick={() => updateMount(idx, { ...entry, readOnly: !entry.readOnly || undefined })}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${entry.readOnly ? 'bg-blue-600' : 'bg-gray-200'}`}
@@ -247,6 +248,7 @@ export function MountsEditor({ label, value = [], onChange, helpText }: MountsEd
                       <button
                         type="button"
                         role="switch"
+                        aria-label="Toggle external"
                         aria-checked={!!entry.external}
                         onClick={() => updateMount(idx, { ...entry, external: !entry.external || undefined })}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${entry.external ? 'bg-blue-600' : 'bg-gray-200'}`}

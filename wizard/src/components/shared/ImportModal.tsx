@@ -35,14 +35,21 @@ export function ImportModal({ onImport, onClose }: ImportModalProps) {
       return
     }
     setError(null)
-    const err = onImport(text)
-    if (err) setError(err)
+    try {
+      const err = onImport(text)
+      if (err) setError(err)
+    } catch (e) {
+      setError((e as Error).message || 'Import failed')
+    }
   }
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
+    reader.onerror = () => {
+      setError(reader.error?.message || 'Failed to read file')
+    }
     reader.onload = () => {
       setText(reader.result as string)
       setError(null)

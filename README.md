@@ -128,7 +128,7 @@ The core chart (Deployment, Service, Ingress, ConfigMap, Secret, HPA, PDB, RBAC)
 | Gateway API | [Gateway API CRDs](https://gateway-api.sigs.k8s.io/) | `networking.gatewayApi.routes` | v1.2+ |
 | Envoy policies | [Envoy Gateway](https://gateway.envoyproxy.io/) | `networking.gatewayApi.routes.*.policies.envoy` | v1.0+ |
 | Istio mesh | [Istio](https://istio.io/) | `networking.istio.*` | v1.20+ |
-| TLS certificates | [cert-manager](https://cert-manager.io/) | `networking.certificates` | v1.12+ |
+| TLS certificates | [cert-manager](https://cert-manager.io/) | `config.certificates` | v1.12+ |
 | External Secrets | [ESO](https://external-secrets.io/) | `config.externalSecrets` / `config.secrets.*.generate` | v0.9+ |
 | Prometheus | [Prometheus Operator](https://prometheus-operator.dev/) | `monitors` / `alerting` (operator: prometheus) | v0.70+ |
 | VictoriaMetrics | [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) | `monitors` / `alerting` (operator: victoriametrics) | v0.44+ |

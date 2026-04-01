@@ -8,16 +8,14 @@ Mounting is configured per container via the `mounts` list.
 persistence:
   data:
     storageClass: standard
-    accessModes:
-      - ReadWriteOnce            # ReadWriteOnce | ReadWriteMany | ReadOnlyMany | ReadWriteOncePod (1.29+)
+    accessMode: ReadWriteOnce     # ReadWriteOnce | ReadWriteMany | ReadOnlyMany | ReadWriteOncePod (1.29+)
     size: 10Gi
     annotations: {}
     labels: {}
 
   shared:
     storageClass: efs-sc
-    accessModes:
-      - ReadWriteMany
+    accessMode: ReadWriteMany
     size: 50Gi
 
   existing:
@@ -36,7 +34,7 @@ containers:
 
 ### Defaults
 
-- `accessModes` defaults to `["ReadWriteOnce"]` if omitted
+- `accessMode` defaults to `ReadWriteOnce` if omitted
 - `size` defaults to `1Gi` if omitted
 
 ### Storage Class

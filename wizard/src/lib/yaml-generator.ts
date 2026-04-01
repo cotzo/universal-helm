@@ -77,5 +77,9 @@ export function generateYaml(values: Record<string, unknown>): string {
 }
 
 export function parseYaml(yamlStr: string): Record<string, unknown> {
-  return (yaml.load(yamlStr) as Record<string, unknown>) || {}
+  const parsed = yaml.load(yamlStr)
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('YAML content must be a mapping (key-value object), not a scalar or list')
+  }
+  return parsed as Record<string, unknown>
 }

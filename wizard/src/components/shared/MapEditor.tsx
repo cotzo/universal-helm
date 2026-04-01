@@ -12,7 +12,7 @@ interface MapEditorProps<T> {
   keyPlaceholder?: string
 }
 
-export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange, renderItem, createDefault, helpText }: MapEditorProps<T>) {
+export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange, renderItem, createDefault, helpText, keyPlaceholder = 'Name' }: MapEditorProps<T>) {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
   const [stableIds] = useState(() => new Map<string, string>())
 
@@ -98,10 +98,10 @@ export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange,
             <button type="button" onClick={() => toggleExpand(key)} className="text-gray-500">
               {expandedKeys.has(key) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </button>
-            <input
-              value={key}
-              onChange={e => renameEntry(key, e.target.value)}
-              className="flex-1 bg-transparent text-sm font-medium text-gray-800 border-none focus:outline-none focus:ring-0"
+            <DraftKeyInput
+              entryKey={key}
+              onCommit={newKey => renameEntry(key, newKey)}
+              placeholder={keyPlaceholder}
             />
             <button type="button" aria-label="Remove entry" onClick={() => removeEntry(key)} className="text-gray-400 hover:text-red-600">
               <Trash2 className="h-4 w-4" />
@@ -117,5 +117,25 @@ export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange,
 
       {entries.length === 0 && <p className="text-xs text-gray-400 italic">No items</p>}
     </div>
+  )
+}
+
+function DraftKeyInput({ entryKey, onCommit, placeholder }: { entryKey: string; onCommit: (newKey: string) => void; placeholder?: string }) {
+  const [draft, setDraft] = useState(entryKey)
+
+  // Sync when parent key changes (e.g. after external rename)
+  if (draft !== entryKey && document.activeElement?.tagName !== 'INPUT') {
+    setDraft(entryKey)
+  }
+
+  return (
+    <input
+      value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => onCommit(draft)}
+      onKeyDown={e => { if (e.key === 'Enter') { onCommit(draft); (e.target as HTMLInputElement).blur() } }}
+      placeholder={placeholder}
+      className="flex-1 bg-transparent text-sm font-medium text-gray-800 border-none focus:outline-none focus:ring-0"
+    />
   )
 }

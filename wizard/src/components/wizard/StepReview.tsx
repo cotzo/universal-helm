@@ -169,7 +169,8 @@ export function StepReview({ values, schema }: StepReviewProps) {
     URL.revokeObjectURL(url)
   }
 
-  const lineCount = yamlOutput.split('\n').length
+  const yamlLines = yamlOutput.trimEnd().split('\n')
+  const lineCount = yamlLines.length
 
   return (
     <div className="space-y-4">
@@ -230,7 +231,7 @@ export function StepReview({ values, schema }: StepReviewProps) {
         <div className="flex">
           {/* Line numbers */}
           <div className="select-none px-3 py-4 text-right text-xs leading-relaxed text-gray-500 bg-gray-950 border-r border-gray-700">
-            {yamlOutput.split('\n').map((_, i) => (
+            {yamlLines.map((_, i) => (
               <div key={i}>{i + 1}</div>
             ))}
           </div>

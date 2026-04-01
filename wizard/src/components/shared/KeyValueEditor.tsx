@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { HelpText } from './HelpText'
 
@@ -23,7 +24,7 @@ export function KeyValueEditor({ label, value = {}, onChange, keyPlaceholder = '
     onChange(next)
   }
 
-  const updateKey = (oldKey: string, newKey: string) => {
+  const commitKey = (oldKey: string, newKey: string) => {
     if (newKey === oldKey) return
     if (Object.prototype.hasOwnProperty.call(value, newKey)) return
     const next: Record<string, string> = {}
@@ -47,25 +48,57 @@ export function KeyValueEditor({ label, value = {}, onChange, keyPlaceholder = '
       </div>
       {helpText && <HelpText text={helpText} />}
       {entries.map(([key, val], idx) => (
-        <div key={idx} className="flex items-center gap-2">
-          <input
-            value={key}
-            onChange={e => updateKey(key, e.target.value)}
-            placeholder={keyPlaceholder}
-            className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm"
-          />
-          <input
-            value={val}
-            onChange={e => updateValue(key, e.target.value)}
-            placeholder={valuePlaceholder}
-            className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm"
-          />
-          <button type="button" aria-label="Remove entry" onClick={() => removeEntry(key)} className="text-gray-400 hover:text-red-600">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <KeyValueRow
+          key={idx}
+          entryKey={key}
+          entryValue={val}
+          onKeyCommit={newKey => commitKey(key, newKey)}
+          onValueChange={v => updateValue(key, v)}
+          onRemove={() => removeEntry(key)}
+          keyPlaceholder={keyPlaceholder}
+          valuePlaceholder={valuePlaceholder}
+        />
       ))}
       {entries.length === 0 && <p className="text-xs text-gray-400 italic">No entries</p>}
+    </div>
+  )
+}
+
+function KeyValueRow({ entryKey, entryValue, onKeyCommit, onValueChange, onRemove, keyPlaceholder, valuePlaceholder }: {
+  entryKey: string
+  entryValue: string
+  onKeyCommit: (newKey: string) => void
+  onValueChange: (value: string) => void
+  onRemove: () => void
+  keyPlaceholder: string
+  valuePlaceholder: string
+}) {
+  const [draftKey, setDraftKey] = useState(entryKey)
+
+  // Sync draft when parent key changes (e.g. after another row commits)
+  if (draftKey !== entryKey && document.activeElement?.tagName !== 'INPUT') {
+    setDraftKey(entryKey)
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        value={draftKey}
+        onChange={e => setDraftKey(e.target.value)}
+        onBlur={() => onKeyCommit(draftKey)}
+        onKeyDown={e => { if (e.key === 'Enter') { onKeyCommit(draftKey); (e.target as HTMLInputElement).blur() } }}
+        placeholder={keyPlaceholder}
+        className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm"
+      />
+      <input
+        value={entryValue}
+        onChange={e => onValueChange(e.target.value)}
+        placeholder={valuePlaceholder}
+        className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm"
+      />
+      <button type="button" aria-label="Remove entry" onClick={onRemove} className="text-gray-400 hover:text-red-600">
+        <X className="h-4 w-4" />
+      </button>
     </div>
   )
 }

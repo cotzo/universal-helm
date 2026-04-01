@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { HelpText } from './HelpText'
 
 interface BooleanToggleProps {
@@ -8,7 +9,7 @@ interface BooleanToggleProps {
 }
 
 export function BooleanToggle({ label, value, onChange, helpText }: BooleanToggleProps) {
-  const id = label.replace(/\s+/g, '-').toLowerCase()
+  const id = useId()
   return (
     <div className="flex items-center justify-between">
       <div>

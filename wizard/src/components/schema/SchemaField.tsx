@@ -106,7 +106,7 @@ export function SchemaField({ schema, rootSchema, value, onChange, label, requir
       <TextInput
         label={label || ''}
         value={value != null ? String(value) : (resolved.default != null ? String(resolved.default) : '')}
-        onChange={v => onChange(v ? parseInt(v) : undefined)}
+        onChange={v => onChange(v ? parseInt(v, 10) : undefined)}
         type="number"
         min={resolved.minimum}
         max={resolved.maximum}

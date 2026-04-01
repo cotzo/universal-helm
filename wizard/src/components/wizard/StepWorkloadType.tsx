@@ -30,11 +30,13 @@ export function StepWorkloadType({ getValue, setValue }: StepProps) {
           const Icon = ICONS[wt.icon] || Rocket
           const isSelected = selected === wt.value
           return (
-            <button
+            <div
               key={wt.value}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => setValue('workloadType', wt.value)}
-              className={`flex flex-col items-center gap-3 rounded-xl border-2 p-6 text-center transition-all ${
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setValue('workloadType', wt.value) } }}
+              className={`flex flex-col items-center gap-3 rounded-xl border-2 p-6 text-center transition-all cursor-pointer ${
                 isSelected
                   ? 'border-blue-500 bg-blue-50 shadow-sm'
                   : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
@@ -58,7 +60,7 @@ export function StepWorkloadType({ getValue, setValue }: StepProps) {
                   Docs <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
-            </button>
+            </div>
           )
         })}
       </div>

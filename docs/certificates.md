@@ -1,13 +1,13 @@
 # Certificates
 
-TLS Certificates are defined in the `networking.certificates` map. Creates [cert-manager](https://cert-manager.io/) Certificate resources that automatically provision and renew TLS certificates.
+TLS Certificates are defined in the `config.certificates` map. Creates [cert-manager](https://cert-manager.io/) Certificate resources that automatically provision and renew TLS certificates.
 
 Each entry is named `<fullname>-<key>`. The `secretName` defaults to `<fullname>-<key>-tls` — reference this secret in your Ingress TLS config.
 
 ## Basic Usage
 
 ```yaml
-networking:
+config:
   certificates:
     app-tls:
       issuerRef:
@@ -36,7 +36,7 @@ networking:
 Override the auto-generated secret name:
 
 ```yaml
-networking:
+config:
   certificates:
     app-tls:
       issuerRef:
@@ -49,7 +49,7 @@ networking:
 ## Duration and Renewal
 
 ```yaml
-networking:
+config:
   certificates:
     app-tls:
       issuerRef:
@@ -63,7 +63,7 @@ networking:
 ## Private Key Settings
 
 ```yaml
-networking:
+config:
   certificates:
     app-tls:
       issuerRef:
@@ -78,30 +78,29 @@ networking:
 
 ## Auto-Mount to Containers
 
-Set `mount.path` to automatically mount the TLS certificate into all containers as a read-only volume:
+Set `mountPath` to automatically mount the TLS certificate into all containers as a read-only volume:
 
 ```yaml
-networking:
+config:
   certificates:
     app-tls:
       issuerRef:
         name: letsencrypt-prod
       dnsNames:
         - app.example.com
-      mount:
-        path: /etc/tls
+      mountPath: /etc/tls
 ```
 
 The certificate files (`tls.crt`, `tls.key`, `ca.crt`) will be available at `/etc/tls/` in every container. No need to manually configure mounts or mark the secret as external.
 
-If `mount` is not set, the certificate Secret is still created but not mounted — useful when only the Ingress controller needs it.
+If `mountPath` is not set, the certificate Secret is still created but not mounted — useful when only the Ingress controller needs it.
 
 ## Namespace-Scoped Issuer
 
 Use `kind: Issuer` for namespace-scoped issuers:
 
 ```yaml
-networking:
+config:
   certificates:
     internal-tls:
       issuerRef:
@@ -119,7 +118,7 @@ networking:
 | `issuerRef.kind` | `ClusterIssuer` | `Issuer` or `ClusterIssuer` |
 | `issuerRef.group` | `cert-manager.io` | Issuer API group |
 | `secretName` | `<fullname>-<key>-tls` | Target Secret for the TLS cert |
-| `mount.path` | | Auto-mount cert to all containers at this path (read-only) |
+| `mountPath` | | Auto-mount cert to all containers at this path (read-only) |
 | `commonName` | | Certificate common name |
 | `dnsNames` | | DNS subject alternative names |
 | `ipAddresses` | | IP address SANs |

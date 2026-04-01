@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { HelpText } from './HelpText'
 
@@ -12,7 +13,7 @@ interface EnumSelectProps {
 }
 
 export function EnumSelect({ label, value, onChange, options, required, helpText, placeholder }: EnumSelectProps) {
-  const id = label.replace(/\s+/g, '-').toLowerCase()
+  const id = useId()
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="block text-sm font-medium text-gray-700">
