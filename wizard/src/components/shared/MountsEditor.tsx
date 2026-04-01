@@ -37,8 +37,11 @@ function getSourceValue(entry: MountEntry, type: SourceType): string {
 }
 
 function setSource(entry: MountEntry, type: SourceType, value: string): MountEntry {
-  const next: MountEntry = { path: entry.path, readOnly: entry.readOnly, subPath: entry.subPath, items: entry.items, defaultMode: entry.defaultMode, external: entry.external }
+  const next: MountEntry = { path: entry.path, readOnly: entry.readOnly, subPath: entry.subPath, items: entry.items, defaultMode: entry.defaultMode }
   next[type] = value
+  if ((type === 'configMap' || type === 'secret') && entry.external) {
+    next.external = true
+  }
   // Clean undefined fields
   if (!next.readOnly) delete next.readOnly
   if (!next.subPath) delete next.subPath

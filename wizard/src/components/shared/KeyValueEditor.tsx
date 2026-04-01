@@ -24,6 +24,8 @@ export function KeyValueEditor({ label, value = {}, onChange, keyPlaceholder = '
   }
 
   const updateKey = (oldKey: string, newKey: string) => {
+    if (newKey === oldKey) return
+    if (Object.prototype.hasOwnProperty.call(value, newKey)) return
     const next: Record<string, string> = {}
     for (const [k, v] of Object.entries(value)) {
       next[k === oldKey ? newKey : k] = v

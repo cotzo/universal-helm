@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { HelpText } from './HelpText'
 
@@ -12,9 +13,30 @@ interface ArrayObjectEditorProps {
 }
 
 export function ArrayObjectEditor({ label, value = [], onChange, renderItem, createDefault, helpText, itemLabel }: ArrayObjectEditorProps) {
-  const addItem = () => onChange([...value, createDefault()])
+  const [stableIds] = useState(() => new Map<number, string>())
+  const [nextId, setNextId] = useState(0)
+
+  // Ensure each index has a stable ID; grow as items are added
+  while (stableIds.size < value.length) {
+    stableIds.set(stableIds.size, crypto.randomUUID())
+  }
+
+  const addItem = () => {
+    stableIds.set(value.length, crypto.randomUUID())
+    setNextId(nextId + 1) // trigger re-render
+    onChange([...value, createDefault()])
+  }
 
   const removeItem = (idx: number) => {
+    // Shift stable IDs down
+    const newIds = new Map<number, string>()
+    for (let i = 0; i < value.length; i++) {
+      if (i < idx) newIds.set(i, stableIds.get(i)!)
+      else if (i > idx) newIds.set(i - 1, stableIds.get(i)!)
+    }
+    stableIds.clear()
+    for (const [k, v] of newIds) stableIds.set(k, v)
+
     const next = [...value]
     next.splice(idx, 1)
     onChange(next)
@@ -37,7 +59,7 @@ export function ArrayObjectEditor({ label, value = [], onChange, renderItem, cre
       {helpText && <HelpText text={helpText} />}
 
       {value.map((item, idx) => (
-        <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+        <div key={stableIds.get(idx) ?? idx} className="border border-gray-200 rounded-lg overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 bg-gray-50">
             <span className="text-sm font-medium text-gray-600">
               {itemLabel ? itemLabel(item, idx) : `#${idx + 1}`}

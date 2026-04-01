@@ -5,7 +5,7 @@ export function HelpText({ text, className = 'text-xs text-gray-500' }: { text: 
   return (
     <p className={className}>
       {parts.map((part, i) =>
-        URL_RE.test(part) ? (
+        i % 2 === 1 ? (
           <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
             {simplifyUrl(part)}
           </a>

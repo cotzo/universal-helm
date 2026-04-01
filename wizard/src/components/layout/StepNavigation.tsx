@@ -16,20 +16,16 @@ interface StepNavigationProps {
 export function StepNavigation({ groups, currentStep, onStepClick, completedSteps }: StepNavigationProps) {
   // Auto-expand group containing current step
   const activeGroup = groups.find(g => g.steps.some(s => s.id === currentStep))?.label
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(activeGroup ? [activeGroup] : []))
+  const [manualToggles, setManualToggles] = useState<Record<string, boolean>>({})
 
   const toggleGroup = (label: string) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev)
-      if (next.has(label)) next.delete(label)
-      else next.add(label)
-      return next
-    })
+    setManualToggles(prev => ({ ...prev, [label]: !isGroupExpanded(label) }))
   }
 
-  // Ensure active group is always expanded
-  if (activeGroup && !expandedGroups.has(activeGroup)) {
-    setExpandedGroups(prev => new Set([...prev, activeGroup]))
+  // A group is expanded if manually toggled open, or if it contains the active step
+  const isGroupExpanded = (label: string) => {
+    if (label in manualToggles) return manualToggles[label]
+    return label === activeGroup
   }
 
   return (
@@ -41,7 +37,7 @@ export function StepNavigation({ groups, currentStep, onStepClick, completedStep
       <div className="py-2">
         {groups.map(group => {
           const isSingle = group.steps.length === 1 && !group.steps[0].group
-          const isExpanded = expandedGroups.has(group.label)
+          const isExpanded = isGroupExpanded(group.label)
           const groupHasActive = group.steps.some(s => s.id === currentStep)
           const groupAllComplete = group.steps.every(s => completedSteps.has(s.id))
 

@@ -33,7 +33,7 @@ export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange,
     do {
       c++
       name = `item-${c}`
-    } while (value[name])
+    } while (Object.prototype.hasOwnProperty.call(value, name))
     setCounter(c)
     stableIds.set(name, crypto.randomUUID())
     onChange({ ...value, [name]: createDefault() })
@@ -62,7 +62,7 @@ export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange,
 
   const renameEntry = (oldKey: string, newKey: string) => {
     if (newKey === oldKey || !newKey.trim()) return
-    if (value[newKey]) return
+    if (Object.prototype.hasOwnProperty.call(value, newKey)) return
     const next: Record<string, T> = {}
     for (const [k, v] of Object.entries(value)) {
       next[k === oldKey ? newKey : k] = v

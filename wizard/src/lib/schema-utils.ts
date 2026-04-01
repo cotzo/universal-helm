@@ -48,8 +48,15 @@ let rootSchema: JsonSchema | null = null
 export async function loadSchema(): Promise<JsonSchema> {
   if (rootSchema) return rootSchema
   const resp = await fetch(import.meta.env.BASE_URL + 'values.schema.json')
-  rootSchema = await resp.json()
-  return rootSchema!
+  if (!resp.ok) {
+    throw new Error(`Failed to load schema: ${resp.status} ${resp.statusText}`)
+  }
+  try {
+    rootSchema = await resp.json()
+    return rootSchema!
+  } catch {
+    throw new Error('Failed to parse schema JSON')
+  }
 }
 
 export function resolveRef(schema: JsonSchema, root: JsonSchema): JsonSchema {
@@ -161,17 +168,18 @@ export function getSchemaAtPath(path: string, root: JsonSchema): JsonSchema | nu
 }
 
 /** Walk the schema and collect all properties that have a `default` value into a nested object */
-export function extractDefaults(schema: JsonSchema): Record<string, unknown> {
+export function extractDefaults(schema: JsonSchema, root?: JsonSchema): Record<string, unknown> {
+  const rootSchema = root ?? schema
   const result: Record<string, unknown> = {}
   if (!schema.properties) return result
 
   for (const [key, prop] of Object.entries(schema.properties)) {
-    const resolved = resolveSchema(prop, schema)
+    const resolved = resolveSchema(prop, rootSchema)
 
     if (resolved.default !== undefined) {
       result[key] = resolved.default
     } else if (resolved.type === 'object' && resolved.properties) {
-      const nested = extractDefaults({ ...resolved, definitions: schema.definitions })
+      const nested = extractDefaults(resolved, rootSchema)
       if (Object.keys(nested).length > 0) {
         result[key] = nested
       }

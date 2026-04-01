@@ -20,8 +20,12 @@ export function ImportModal({ onImport, onClose }: ImportModalProps) {
     }
   }, [])
 
-  const handleClose = useCallback(() => {
-    dialogRef.current?.close()
+  // Buttons request close via the native dialog API; onClose fires once from the dialog's close event
+  const requestClose = useCallback(() => {
+    if (dialogRef.current?.open) dialogRef.current.close()
+  }, [])
+
+  const handleDialogClose = useCallback(() => {
     onClose()
   }, [onClose])
 
@@ -49,14 +53,14 @@ export function ImportModal({ onImport, onClose }: ImportModalProps) {
   return (
     <dialog
       ref={dialogRef}
-      onClose={handleClose}
+      onClose={handleDialogClose}
       className="fixed inset-0 z-50 bg-transparent p-0 backdrop:bg-black/50"
     >
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">Import values.yaml</h3>
-            <button type="button" aria-label="Close dialog" onClick={handleClose} className="text-gray-400 hover:text-gray-600">
+            <button type="button" aria-label="Close dialog" onClick={requestClose} className="text-gray-400 hover:text-gray-600">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -84,7 +88,7 @@ export function ImportModal({ onImport, onClose }: ImportModalProps) {
             </div>
           </div>
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
-            <button type="button" onClick={handleClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            <button type="button" onClick={requestClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
               Cancel
             </button>
             <button type="button" onClick={handleImport} className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700">

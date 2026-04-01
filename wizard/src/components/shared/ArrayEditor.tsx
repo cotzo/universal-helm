@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { HelpText } from './HelpText'
 
@@ -10,9 +11,27 @@ interface ArrayEditorProps {
 }
 
 export function ArrayEditor({ label, value = [], onChange, placeholder = 'Value', helpText }: ArrayEditorProps) {
-  const addItem = () => onChange([...value, ''])
+  const [stableIds] = useState(() => new Map<number, string>())
+
+  // Ensure each index has a stable ID
+  while (stableIds.size < value.length) {
+    stableIds.set(stableIds.size, crypto.randomUUID())
+  }
+
+  const addItem = () => {
+    stableIds.set(value.length, crypto.randomUUID())
+    onChange([...value, ''])
+  }
 
   const removeItem = (idx: number) => {
+    const newIds = new Map<number, string>()
+    for (let i = 0; i < value.length; i++) {
+      if (i < idx) newIds.set(i, stableIds.get(i)!)
+      else if (i > idx) newIds.set(i - 1, stableIds.get(i)!)
+    }
+    stableIds.clear()
+    for (const [k, v] of newIds) stableIds.set(k, v)
+
     const next = [...value]
     next.splice(idx, 1)
     onChange(next)
@@ -34,7 +53,7 @@ export function ArrayEditor({ label, value = [], onChange, placeholder = 'Value'
       </div>
       {helpText && <HelpText text={helpText} />}
       {value.map((item, idx) => (
-        <div key={idx} className="flex items-center gap-2">
+        <div key={stableIds.get(idx) ?? idx} className="flex items-center gap-2">
           <input
             value={item}
             onChange={e => updateItem(idx, e.target.value)}
