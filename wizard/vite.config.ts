@@ -10,7 +10,8 @@ export default defineConfig({
     {
       name: 'serve-root-schema',
       configureServer(server) {
-        server.middlewares.use('/chartpack/wizard/values.schema.json', (_req, res) => {
+        const base = process.env.VITE_BASE || '/chartpack/wizard/'
+        server.middlewares.use(`${base}values.schema.json`, (_req, res) => {
           const fs = require('fs')
           const file = path.resolve(__dirname, '../values.schema.json')
           res.setHeader('Content-Type', 'application/json')
@@ -19,7 +20,7 @@ export default defineConfig({
       },
     },
   ],
-  base: '/chartpack/wizard/',
+  base: process.env.VITE_BASE || '/chartpack/wizard/',
   build: {
     rollupOptions: {
       plugins: [

@@ -143,13 +143,13 @@ containers: {}
 #   # limits:
 #   #   cpu: 500m
 #   #   memory: 256Mi
-#   # -- In-place resize policy (K8s 1.35+). Controls restart behavior on resource changes.
+#   # -- In-place resize policy. Controls restart behavior on resource changes.
 #   resizePolicy: []
 #   # - resourceName: cpu
 #   #   restartPolicy: NotRequired
 #   # - resourceName: memory
 #   #   restartPolicy: RestartContainer
-#   # -- Restart policy for init containers. Set to "Always" for native sidecar (K8s 1.33+).
+#   # -- Restart policy for init containers. Set to "Always" for native sidecar.
 #   restartPolicy: ""
 #   securityContext: {}
 #   healthChecks:

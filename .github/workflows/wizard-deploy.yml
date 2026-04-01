@@ -6,10 +6,15 @@ on:
     paths:
       - 'wizard/**'
       - 'values.schema.json'
+  pull_request:
+    paths:
+      - 'wizard/**'
+      - 'values.schema.json'
   workflow_dispatch:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   build-deploy:
@@ -23,17 +28,60 @@ jobs:
           cache: npm
           cache-dependency-path: wizard/package-lock.json
 
+      - name: Set deploy path
+        id: path
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NAME=$(echo "${{ github.head_ref }}" | sed 's/[^a-zA-Z0-9-]/-/g')
+            echo "dest=dev/${PR_NAME}" >> "$GITHUB_OUTPUT"
+            echo "base=/chartpack/dev/${PR_NAME}/" >> "$GITHUB_OUTPUT"
+          else
+            echo "dest=wizard" >> "$GITHUB_OUTPUT"
+            echo "base=/chartpack/wizard/" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build wizard
         run: |
           cd wizard
-          cp ../values.schema.json public/
           npm ci
-          npm run build
+          VITE_BASE="${{ steps.path.outputs.base }}" npm run build
+        env:
+          VITE_BASE: ${{ steps.path.outputs.base }}
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: wizard/dist
-          destination_dir: wizard
+          destination_dir: ${{ steps.path.outputs.dest }}
           keep_files: true
+
+      - name: Comment PR with preview link
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const dest = '${{ steps.path.outputs.dest }}';
+            const url = `https://${{ github.repository_owner }}.github.io/chartpack/${dest}/`;
+            const body = `🧙 **Wizard Preview:** ${url}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('Wizard Preview:'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
