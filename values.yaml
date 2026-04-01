@@ -1176,7 +1176,7 @@ workloads:
   # -- CronJob-specific settings
   cronJob:
     # -- Cron schedule expression (required for CronJob workloadType)
-    # schedule: "0 * * * *"
+    schedule: "0 * * * *"
     # -- Timezone
     # timeZone: ""
     # -- Concurrency policy (default: Allow)
@@ -1191,7 +1191,7 @@ workloads:
     # startingDeadlineSeconds: ""
 
   # -- Job-specific settings (also used by CronJob's jobTemplate)
-  job:
+  job: {}
     # -- Backoff limit (default: 6)
     # backoffLimit: 6
     # -- Active deadline seconds

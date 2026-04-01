@@ -13,3 +13,4 @@ docs/
 .github/
 .releaserc.json
 LICENSE
+wizard/

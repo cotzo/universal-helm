@@ -406,3 +406,63 @@ tests:
       - equal:
           path: spec.analysis.unsuccessfulRunHistoryLimit
           value: 1
+
+  # ── Default values ───────────────────────────────────────────────────
+  - it: should use default schedule for CronJob when not set
+    templates:
+      - templates/workloads/cronjob.yaml
+    set:
+      workloadType: CronJob
+      containers:
+        app:
+          image:
+            repository: nginx
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "0 * * * *"
+
+  - it: should use default replicaCount for Deployment when not set
+    templates:
+      - templates/workloads/deployment.yaml
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: should use default replicaCount for StatefulSet when not set
+    templates:
+      - templates/workloads/statefulset.yaml
+    set:
+      workloadType: StatefulSet
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1

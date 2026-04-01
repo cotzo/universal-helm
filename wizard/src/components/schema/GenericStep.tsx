@@ -42,7 +42,7 @@ function lcFirst(s: string): string {
 }
 
 export function GenericStep({ step, schema, values, onChange }: GenericStepProps) {
-  let fieldSchema = getSchemaAtPath(step.schemaPath, schema)
+  const fieldSchema = getSchemaAtPath(step.schemaPath, schema)
   if (!fieldSchema) {
     return <p className="text-sm text-red-500">Schema not found for path: {step.schemaPath}</p>
   }

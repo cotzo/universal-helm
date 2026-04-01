@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import fs from 'fs'
 
 export default defineConfig({
   plugins: [
@@ -12,7 +13,6 @@ export default defineConfig({
       configureServer(server) {
         const base = process.env.VITE_BASE || '/chartpack/wizard/'
         server.middlewares.use(`${base}values.schema.json`, (_req, res) => {
-          const fs = require('fs')
           const file = path.resolve(__dirname, '../values.schema.json')
           res.setHeader('Content-Type', 'application/json')
           fs.createReadStream(file).pipe(res)
@@ -27,7 +27,6 @@ export default defineConfig({
         {
           name: 'copy-root-schema',
           generateBundle() {
-            const fs = require('fs')
             this.emitFile({
               type: 'asset',
               fileName: 'values.schema.json',

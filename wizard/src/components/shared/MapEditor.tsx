@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { HelpText } from './HelpText'
 
@@ -14,19 +14,15 @@ interface MapEditorProps<T> {
 
 export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange, renderItem, createDefault, helpText }: MapEditorProps<T>) {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
-  const stableIdsRef = useRef<Map<string, string>>(new Map())
+  const [stableIds] = useState(() => new Map<string, string>())
 
   const entries = Object.entries(value)
   const [counter, setCounter] = useState(entries.length)
 
   // Assign stable IDs to map keys so React doesn't remount on rename
-  const stableIds = stableIdsRef.current
   for (const [key] of entries) {
-    if (!stableIds.has(key)) {
-      stableIds.set(key, crypto.randomUUID())
-    }
+    if (!stableIds.has(key)) stableIds.set(key, crypto.randomUUID())
   }
-  // Clean up removed keys
   for (const tracked of stableIds.keys()) {
     if (!(tracked in value)) stableIds.delete(tracked)
   }

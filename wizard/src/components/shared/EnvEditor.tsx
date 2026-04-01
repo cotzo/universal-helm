@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Plus, Trash2, ChevronDown } from 'lucide-react'
 import { HelpText } from './HelpText'
 
@@ -57,10 +57,9 @@ interface EnvEditorProps {
 
 export function EnvEditor({ label, value = {}, onChange, helpText }: EnvEditorProps) {
   const [counter, setCounter] = useState(Object.keys(value).length)
-  const stableIdsRef = useRef<Map<string, string>>(new Map())
+  const [stableIds] = useState(() => new Map<string, string>())
 
   const entries = Object.entries(value)
-  const stableIds = stableIdsRef.current
   for (const [key] of entries) {
     if (!stableIds.has(key)) stableIds.set(key, crypto.randomUUID())
   }

@@ -632,3 +632,67 @@ tests:
       - hasDocuments:
           count: 0
         template: templates/autoscaling/vpa.yaml
+
+  # ---------------------------------------------------------------------------
+  # Default values
+  # ---------------------------------------------------------------------------
+  - it: should use HPA defaults when minReplicas and maxReplicas not set
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      autoscaling:
+        hpa:
+          enabled: true
+    asserts:
+      - equal:
+          path: spec.minReplicas
+          value: 1
+        template: templates/autoscaling/hpa.yaml
+      - equal:
+          path: spec.maxReplicas
+          value: 10
+        template: templates/autoscaling/hpa.yaml
+
+  - it: should use KEDA defaults when minReplicaCount and maxReplicaCount not set
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      autoscaling:
+        keda:
+          enabled: true
+          triggers:
+            - type: prometheus
+              metadata:
+                query: up
+                threshold: "1"
+    asserts:
+      - equal:
+          path: spec.minReplicaCount
+          value: 1
+        template: templates/autoscaling/scaledobject.yaml
+      - equal:
+          path: spec.maxReplicaCount
+          value: 10
+        template: templates/autoscaling/scaledobject.yaml
