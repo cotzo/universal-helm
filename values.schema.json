@@ -2190,6 +2190,7 @@
                 "required": [
                   "name"
                 ],
+                "x-wizard": { "expanded": true },
                 "properties": {
                   "name": {
                     "type": "string",
@@ -2197,6 +2198,7 @@
                   },
                   "kind": {
                     "type": "string",
+                    "x-wizard": { "narrow": true },
                     "enum": [
                       "Issuer",
                       "ClusterIssuer"
@@ -2206,6 +2208,7 @@
                   },
                   "group": {
                     "type": "string",
+                    "x-wizard": { "narrow": true },
                     "description": "API group (defaults to cert-manager.io)"
                   }
                 },
@@ -2213,25 +2216,33 @@
               },
               "secretName": {
                 "type": "string",
+                "x-wizard": { "narrow": true },
                 "description": "Target Secret name for the TLS cert (defaults to <fullname>-<key>-tls)"
               },
-              "mount": {
-                "type": "object",
-                "description": "Auto-mount the certificate Secret to all containers",
-                "required": [
-                  "path"
-                ],
-                "properties": {
-                  "path": {
-                    "type": "string",
-                    "description": "Container mount path for the certificate files"
-                  }
-                },
-                "additionalProperties": false
+              "mountPath": {
+                "type": "string",
+                "x-wizard": { "narrow": true },
+                "description": "Auto-mount the certificate Secret to all containers at this path"
               },
               "commonName": {
                 "type": "string",
+                "x-wizard": { "narrow": true },
                 "description": "X.509 common name (CN) for the certificate"
+              },
+              "isCA": {
+                "type": "boolean",
+                "x-wizard": { "narrow": true },
+                "description": "Mark this certificate as a Certificate Authority"
+              },
+               "duration": {
+                "type": "string",
+                "x-wizard": { "narrow": true },
+                "description": "Certificate validity duration (e.g. 2160h for 90 days). See https://cert-manager.io/docs/usage/certificate/#renewal"
+              },
+              "renewBefore": {
+                "type": "string",
+                "x-wizard": { "narrow": true },
+                "description": "Time before expiry to begin renewal (e.g. 360h for 15 days)"
               },
               "dnsNames": {
                 "type": "array",
@@ -2261,18 +2272,6 @@
                 },
                 "description": "Subject Alternative Names (SANs) — email addresses"
               },
-              "duration": {
-                "type": "string",
-                "description": "Certificate validity duration (e.g. 2160h for 90 days). See https://cert-manager.io/docs/usage/certificate/#renewal"
-              },
-              "renewBefore": {
-                "type": "string",
-                "description": "Time before expiry to begin renewal (e.g. 360h for 15 days)"
-              },
-              "privateKey": {
-                "type": "object",
-                "description": "Private key configuration (algorithm, encoding, size, rotation). See https://cert-manager.io/docs/usage/certificate/#private-key"
-              },
               "usages": {
                 "type": "array",
                 "items": {
@@ -2280,9 +2279,9 @@
                 },
                 "description": "Key usages (e.g. ['server auth', 'digital signature']). See https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.KeyUsage"
               },
-              "isCA": {
-                "type": "boolean",
-                "description": "Mark this certificate as a Certificate Authority"
+              "privateKey": {
+                "type": "object",
+                "description": "Private key configuration (algorithm, encoding, size, rotation). See https://cert-manager.io/docs/usage/certificate/#private-key"
               },
               "subject": {
                 "type": "object",
@@ -2298,10 +2297,12 @@
               },
               "annotations": {
                 "type": "object",
+                "x-wizard": { "advanced": true },
                 "description": "Annotations on the Certificate resource"
               },
               "labels": {
                 "type": "object",
+                "x-wizard": { "advanced": true },
                 "description": "Labels on the Certificate resource"
               }
             },
@@ -2324,41 +2325,45 @@
         "properties": {
           "storageClass": {
             "type": "string",
+            "x-wizard": { "narrow": true },
             "description": "StorageClass name (e.g. gp3, standard). Empty = cluster default. See https://kubernetes.io/docs/concepts/storage/storage-classes/"
           },
-          "accessModes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "default": [
-              "ReadWriteOnce"
-            ],
-            "description": "Access modes: ReadWriteOnce, ReadOnlyMany, ReadWriteMany. See https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes"
+          "accessMode": {
+            "type": "string",
+            "x-wizard": { "narrow": true },
+            "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"],
+            "default": "ReadWriteOnce",
+            "description": "Volume access mode. See https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes"
           },
           "size": {
             "type": "string",
+            "x-wizard": { "narrow": true },
             "default": "1Gi",
             "description": "Storage size (e.g. 1Gi, 10Gi, 100Gi)"
           },
           "existingClaim": {
             "type": "string",
+            "x-wizard": { "narrow": true },
             "description": "Use an existing PVC instead of creating a new one"
           },
           "volumeName": {
             "type": "string",
+            "x-wizard": { "narrow": true },
             "description": "Bind to a specific PersistentVolume by name"
           },
           "selector": {
             "type": "object",
+            "x-wizard": { "advanced": true },
             "description": "Label selector to filter available PersistentVolumes"
           },
           "annotations": {
             "type": "object",
+            "x-wizard": { "advanced": true },
             "description": "Annotations on the PVC resource"
           },
           "labels": {
             "type": "object",
+            "x-wizard": { "advanced": true },
             "description": "Labels on the PVC resource"
           }
         },
@@ -2626,30 +2631,37 @@
       "properties": {
         "serviceAccount": {
           "type": "object",
+          "x-wizard": { "expanded": true },
           "properties": {
             "create": {
               "type": "boolean",
+              "x-wizard": { "narrow": true },
               "description": "Create a ServiceAccount for this release"
+            },
+            "automountServiceAccountToken": {
+              "type": "boolean",
+              "x-wizard": { "narrow": true },
+              "description": "Auto-mount the service account token in pods. See https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#opt-out-of-api-credential-automounting"
             },
             "name": {
               "type": "string",
+              "x-wizard": { "narrow": true },
               "description": "ServiceAccount name (defaults to fullname if create=true, or 'default')"
+            },
+            "imagePullSecrets": {
+              "type": "array",
+              "x-wizard": { "advanced": true },
+              "description": "Image pull secrets to add to the ServiceAccount"
             },
             "annotations": {
               "type": "object",
+              "x-wizard": { "advanced": true },
               "description": "Annotations on the ServiceAccount (e.g. for IAM role binding)"
             },
             "labels": {
               "type": "object",
+              "x-wizard": { "advanced": true },
               "description": "Labels on the ServiceAccount"
-            },
-            "automountServiceAccountToken": {
-              "type": "boolean",
-              "description": "Auto-mount the service account token in pods. See https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#opt-out-of-api-credential-automounting"
-            },
-            "imagePullSecrets": {
-              "type": "array",
-              "description": "Image pull secrets to add to the ServiceAccount"
             }
           },
           "additionalProperties": false,
@@ -2658,30 +2670,216 @@
         "roles": {
           "type": "object",
           "additionalProperties": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "rules": {
+                "type": "array",
+                "description": "Permission rules. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "apiGroups": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "API groups (e.g. \"\", apps, batch)"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "Resources (e.g. pods, deployments, secrets)"
+                    },
+                    "verbs": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "Allowed verbs (e.g. get, list, watch, create, update, delete)"
+                    }
+                  }
+                }
+              },
+              "annotations": {
+                "type": "object",
+                "x-wizard": { "advanced": true },
+                "description": "Annotations on the Role resource"
+              },
+              "labels": {
+                "type": "object",
+                "x-wizard": { "advanced": true },
+                "description": "Labels on the Role resource"
+              }
+            }
           },
-          "description": "Map of Role name → Role rules. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole"
+          "description": "Map of Role name to config. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole"
         },
         "clusterRoles": {
           "type": "object",
           "additionalProperties": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "rules": {
+                "type": "array",
+                "description": "Permission rules. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "apiGroups": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "API groups (e.g. \"\", apps, batch)"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "Resources (e.g. pods, deployments, secrets)"
+                    },
+                    "verbs": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "Allowed verbs (e.g. get, list, watch, create, update, delete)"
+                    }
+                  }
+                }
+              },
+              "annotations": {
+                "type": "object",
+                "x-wizard": { "advanced": true },
+                "description": "Annotations on the ClusterRole resource"
+              },
+              "labels": {
+                "type": "object",
+                "x-wizard": { "advanced": true },
+                "description": "Labels on the ClusterRole resource"
+              }
+            }
           },
-          "description": "Map of ClusterRole name → ClusterRole rules. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole"
+          "description": "Map of ClusterRole name to config. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole"
         },
         "roleBindings": {
           "type": "object",
           "additionalProperties": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "roleRef": {
+                "type": "object",
+                "x-wizard": { "expanded": true },
+                "required": ["name"],
+                "description": "Reference to the Role to bind. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "description": "Role name (from rbac.roles map key)"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "enum": ["Role", "ClusterRole"],
+                    "default": "Role",
+                    "description": "Role or ClusterRole"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "subjects": {
+                "type": "array",
+                "description": "Subjects to bind (defaults to chart's ServiceAccount)",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "x-wizard": { "narrow": true },
+                      "enum": ["ServiceAccount", "User", "Group"],
+                      "description": "Subject kind"
+                    },
+                    "name": {
+                      "type": "string",
+                      "x-wizard": { "narrow": true },
+                      "description": "Subject name"
+                    },
+                    "namespace": {
+                      "type": "string",
+                      "description": "Subject namespace (for ServiceAccount)"
+                    }
+                  }
+                }
+              },
+              "annotations": {
+                "type": "object",
+                "x-wizard": { "advanced": true },
+                "description": "Annotations on the RoleBinding resource"
+              },
+              "labels": {
+                "type": "object",
+                "x-wizard": { "advanced": true },
+                "description": "Labels on the RoleBinding resource"
+              }
+            }
           },
-          "description": "Map of RoleBinding name → RoleBinding config. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding"
+          "description": "Map of RoleBinding name to config. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding"
         },
         "clusterRoleBindings": {
           "type": "object",
           "additionalProperties": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "roleRef": {
+                "type": "object",
+                "x-wizard": { "expanded": true },
+                "required": ["name"],
+                "description": "Reference to the ClusterRole to bind. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "description": "ClusterRole name (from rbac.clusterRoles map key)"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "enum": ["ClusterRole"],
+                    "default": "ClusterRole",
+                    "description": "Always ClusterRole for ClusterRoleBindings"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "subjects": {
+                "type": "array",
+                "description": "Subjects to bind (defaults to chart's ServiceAccount)",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "x-wizard": { "narrow": true },
+                      "enum": ["ServiceAccount", "User", "Group"],
+                      "description": "Subject kind"
+                    },
+                    "name": {
+                      "type": "string",
+                      "x-wizard": { "narrow": true },
+                      "description": "Subject name"
+                    },
+                    "namespace": {
+                      "type": "string",
+                      "description": "Subject namespace (for ServiceAccount)"
+                    }
+                  }
+                }
+              },
+              "annotations": {
+                "type": "object",
+                "x-wizard": { "advanced": true },
+                "description": "Annotations on the ClusterRoleBinding resource"
+              },
+              "labels": {
+                "type": "object",
+                "x-wizard": { "advanced": true },
+                "description": "Labels on the ClusterRoleBinding resource"
+              }
+            }
           },
-          "description": "Map of ClusterRoleBinding name → config. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding"
+          "description": "Map of ClusterRoleBinding name to config. See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding"
         }
       },
       "additionalProperties": false

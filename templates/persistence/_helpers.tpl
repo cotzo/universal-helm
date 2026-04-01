@@ -67,7 +67,7 @@ and init container mounts. Deduplicates by volume name.
 
 {{- /* Certificate volumes (cert-manager automount) */ -}}
 {{- range $name, $cert := .Values.config.certificates }}
-{{- if and $cert $cert.mount }}
+{{- if and $cert $cert.mountPath }}
 {{- $volName := printf "cert-%s" $name }}
 {{- if not (hasKey $seen $volName) }}
 {{- $_ := set $seen $volName true }}
@@ -101,7 +101,7 @@ Only includes persistence entries without existingClaim.
 {{- end }}
 {{- $_ := set $vct "metadata" $metadata }}
 {{- $spec := dict }}
-{{- $_ := set $spec "accessModes" (default (list "ReadWriteOnce") $config.accessModes) }}
+{{- $_ := set $spec "accessModes" (list (default "ReadWriteOnce" $config.accessMode)) }}
 {{- $resources := dict "requests" (dict "storage" (default "1Gi" $config.size)) }}
 {{- $_ := set $spec "resources" $resources }}
 {{- if $config.storageClass }}
