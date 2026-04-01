@@ -30,6 +30,7 @@ export interface JsonSchema {
   default?: unknown
   definitions?: Record<string, JsonSchema>
   'x-wizard'?: WizardMeta
+  'x-wizard-field'?: string
 }
 
 let rootSchema: JsonSchema | null = null

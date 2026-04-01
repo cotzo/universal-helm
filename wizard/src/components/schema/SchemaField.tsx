@@ -15,6 +15,8 @@ import { ArrayEditor } from '../shared/ArrayEditor'
 import { ObjectEditor } from '../shared/ObjectEditor'
 import { KeyValueEditor } from '../shared/KeyValueEditor'
 import { MapEditor } from '../shared/MapEditor'
+import { ArrayObjectEditor } from '../shared/ArrayObjectEditor'
+import { EnvEditor } from '../shared/EnvEditor'
 import { CollapsibleSection } from '../shared/CollapsibleSection'
 
 interface SchemaFieldProps {
@@ -106,7 +108,37 @@ export function SchemaField({ schema, rootSchema, value, onChange, label, requir
     )
   }
 
-  // --- Array of objects (or complex items) ---
+  // --- Array of structured objects ---
+  if (type === 'array' && resolved.items) {
+    const itemSchema = resolveSchema(resolved.items, rootSchema)
+    if (itemSchema.properties && Object.keys(itemSchema.properties).length > 0) {
+      return (
+        <ArrayObjectEditor
+          label={label || ''}
+          value={(value as Record<string, unknown>[]) ?? []}
+          onChange={v => onChange(v.length > 0 ? v : undefined)}
+          createDefault={() => createDefaultFromSchema(itemSchema, rootSchema) as Record<string, unknown>}
+          helpText={desc}
+          itemLabel={(item, idx) => {
+            // Use first string value as label if available
+            const first = Object.values(item).find(v => typeof v === 'string' && v)
+            return first ? String(first) : `#${idx + 1}`
+          }}
+          renderItem={(item, onItemChange) => (
+            <SchemaObjectFields
+              schema={itemSchema}
+              rootSchema={rootSchema}
+              value={item}
+              onChange={v => onItemChange((v ?? {}) as Record<string, unknown>)}
+              depth={depth + 1}
+            />
+          )}
+        />
+      )
+    }
+  }
+
+  // --- Array (fallback: free-form YAML) ---
   if (type === 'array') {
     return (
       <ObjectEditor
@@ -116,6 +148,19 @@ export function SchemaField({ schema, rootSchema, value, onChange, label, requir
           const arr = (v as Record<string, unknown>)._arr
           onChange(arr !== undefined ? arr : Object.keys(v).length > 0 ? v : undefined)
         }}
+        helpText={desc}
+      />
+    )
+  }
+
+  // --- Env map (custom editor) ---
+  if (resolved['x-wizard-field'] === 'env') {
+    const mapValue = (value ?? {}) as Record<string, Record<string, unknown>>
+    return (
+      <EnvEditor
+        label={label || ''}
+        value={mapValue}
+        onChange={v => onChange(Object.keys(v).length > 0 ? v : undefined)}
         helpText={desc}
       />
     )

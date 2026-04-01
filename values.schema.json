@@ -118,6 +118,7 @@
         },
         "env": {
           "type": "object",
+          "x-wizard-field": "env",
           "description": "Environment variables map. Use value for plain strings, valueFrom for field/resource/configMap/secret key refs, or configMapRef/secretRef for bulk injection. See https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/",
           "additionalProperties": {
             "type": "object",
@@ -147,11 +148,33 @@
           "properties": {
             "requests": {
               "type": "object",
-              "description": "Minimum resources guaranteed (e.g. {cpu: 100m, memory: 128Mi})"
+              "description": "Minimum resources guaranteed",
+              "properties": {
+                "cpu": {
+                  "type": "string",
+                  "description": "CPU request (e.g. 100m, 0.5, 1)"
+                },
+                "memory": {
+                  "type": "string",
+                  "description": "Memory request (e.g. 128Mi, 1Gi)"
+                }
+              },
+              "additionalProperties": false
             },
             "limits": {
               "type": "object",
-              "description": "Maximum resources allowed (e.g. {cpu: 500m, memory: 256Mi})"
+              "description": "Maximum resources allowed",
+              "properties": {
+                "cpu": {
+                  "type": "string",
+                  "description": "CPU limit (e.g. 500m, 1, 2)"
+                },
+                "memory": {
+                  "type": "string",
+                  "description": "Memory limit (e.g. 256Mi, 1Gi)"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -168,6 +191,7 @@
             "properties": {
               "resourceName": {
                 "type": "string",
+                "enum": ["cpu", "memory"],
                 "description": "Resource name: cpu or memory"
               },
               "restartPolicy": {
@@ -183,7 +207,67 @@
         },
         "securityContext": {
           "type": "object",
-          "description": "Container-level security context. See https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1"
+          "description": "Container-level security context. See https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1",
+          "properties": {
+            "runAsUser": {
+              "type": "integer",
+              "description": "UID to run the container process as"
+            },
+            "runAsGroup": {
+              "type": "integer",
+              "description": "GID to run the container process as"
+            },
+            "runAsNonRoot": {
+              "type": "boolean",
+              "description": "Require the container to run as a non-root user"
+            },
+            "privileged": {
+              "type": "boolean",
+              "description": "Run container in privileged mode"
+            },
+            "allowPrivilegeEscalation": {
+              "type": "boolean",
+              "description": "Allow the process to gain more privileges than its parent"
+            },
+            "readOnlyRootFilesystem": {
+              "type": "boolean",
+              "description": "Mount the root filesystem as read-only"
+            },
+            "capabilities": {
+              "type": "object",
+              "description": "Linux capabilities to add or drop",
+              "properties": {
+                "add": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Capabilities to add (e.g. NET_ADMIN, SYS_TIME)"
+                },
+                "drop": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Capabilities to drop (e.g. ALL)"
+                }
+              },
+              "additionalProperties": false
+            },
+            "seccompProfile": {
+              "type": "object",
+              "description": "Seccomp profile settings",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["RuntimeDefault", "Unconfined", "Localhost"],
+                  "description": "Seccomp profile type"
+                },
+                "localhostProfile": {
+                  "type": "string",
+                  "description": "Path to a localhost seccomp profile (when type is Localhost)"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         },
         "healthChecks": {
           "type": "object",
@@ -191,22 +275,220 @@
           "properties": {
             "liveness": {
               "type": "object",
-              "description": "Liveness probe — restarts the container if it fails"
+              "description": "Liveness probe — restarts the container if it fails",
+              "properties": {
+                "httpGet": {
+                  "type": "object",
+                  "description": "HTTP GET probe",
+                  "properties": {
+                    "path": { "type": "string", "description": "URL path (e.g. /healthz)" },
+                    "port": { "type": ["integer", "string"], "description": "Port number or name" },
+                    "scheme": { "type": "string", "enum": ["HTTP", "HTTPS"], "description": "URI scheme" }
+                  },
+                  "additionalProperties": false
+                },
+                "tcpSocket": {
+                  "type": "object",
+                  "description": "TCP socket probe",
+                  "properties": {
+                    "port": { "type": ["integer", "string"], "description": "Port number or name" }
+                  },
+                  "additionalProperties": false
+                },
+                "exec": {
+                  "type": "object",
+                  "description": "Exec command probe",
+                  "properties": {
+                    "command": { "type": "array", "items": { "type": "string" }, "description": "Command to execute" }
+                  },
+                  "additionalProperties": false
+                },
+                "grpc": {
+                  "type": "object",
+                  "description": "gRPC probe",
+                  "properties": {
+                    "port": { "type": "integer", "description": "gRPC service port" },
+                    "service": { "type": "string", "description": "gRPC service name" }
+                  },
+                  "additionalProperties": false
+                },
+                "initialDelaySeconds": { "type": "integer", "minimum": 0, "description": "Seconds before the first probe" },
+                "periodSeconds": { "type": "integer", "minimum": 1, "description": "How often to probe (seconds)" },
+                "timeoutSeconds": { "type": "integer", "minimum": 1, "description": "Probe timeout (seconds)" },
+                "successThreshold": { "type": "integer", "minimum": 1, "description": "Consecutive successes to be considered healthy" },
+                "failureThreshold": { "type": "integer", "minimum": 1, "description": "Consecutive failures to be considered unhealthy" }
+              },
+              "additionalProperties": false
             },
             "readiness": {
               "type": "object",
-              "description": "Readiness probe — removes the pod from endpoints if it fails"
+              "description": "Readiness probe — removes the pod from endpoints if it fails",
+              "properties": {
+                "httpGet": {
+                  "type": "object",
+                  "description": "HTTP GET probe",
+                  "properties": {
+                    "path": { "type": "string", "description": "URL path (e.g. /ready)" },
+                    "port": { "type": ["integer", "string"], "description": "Port number or name" },
+                    "scheme": { "type": "string", "enum": ["HTTP", "HTTPS"], "description": "URI scheme" }
+                  },
+                  "additionalProperties": false
+                },
+                "tcpSocket": {
+                  "type": "object",
+                  "description": "TCP socket probe",
+                  "properties": {
+                    "port": { "type": ["integer", "string"], "description": "Port number or name" }
+                  },
+                  "additionalProperties": false
+                },
+                "exec": {
+                  "type": "object",
+                  "description": "Exec command probe",
+                  "properties": {
+                    "command": { "type": "array", "items": { "type": "string" }, "description": "Command to execute" }
+                  },
+                  "additionalProperties": false
+                },
+                "grpc": {
+                  "type": "object",
+                  "description": "gRPC probe",
+                  "properties": {
+                    "port": { "type": "integer", "description": "gRPC service port" },
+                    "service": { "type": "string", "description": "gRPC service name" }
+                  },
+                  "additionalProperties": false
+                },
+                "initialDelaySeconds": { "type": "integer", "minimum": 0, "description": "Seconds before the first probe" },
+                "periodSeconds": { "type": "integer", "minimum": 1, "description": "How often to probe (seconds)" },
+                "timeoutSeconds": { "type": "integer", "minimum": 1, "description": "Probe timeout (seconds)" },
+                "successThreshold": { "type": "integer", "minimum": 1, "description": "Consecutive successes to be considered healthy" },
+                "failureThreshold": { "type": "integer", "minimum": 1, "description": "Consecutive failures to be considered unhealthy" }
+              },
+              "additionalProperties": false
             },
             "startup": {
               "type": "object",
-              "description": "Startup probe — delays liveness/readiness checks until it succeeds"
+              "description": "Startup probe — delays liveness/readiness checks until it succeeds",
+              "properties": {
+                "httpGet": {
+                  "type": "object",
+                  "description": "HTTP GET probe",
+                  "properties": {
+                    "path": { "type": "string", "description": "URL path (e.g. /startup)" },
+                    "port": { "type": ["integer", "string"], "description": "Port number or name" },
+                    "scheme": { "type": "string", "enum": ["HTTP", "HTTPS"], "description": "URI scheme" }
+                  },
+                  "additionalProperties": false
+                },
+                "tcpSocket": {
+                  "type": "object",
+                  "description": "TCP socket probe",
+                  "properties": {
+                    "port": { "type": ["integer", "string"], "description": "Port number or name" }
+                  },
+                  "additionalProperties": false
+                },
+                "exec": {
+                  "type": "object",
+                  "description": "Exec command probe",
+                  "properties": {
+                    "command": { "type": "array", "items": { "type": "string" }, "description": "Command to execute" }
+                  },
+                  "additionalProperties": false
+                },
+                "grpc": {
+                  "type": "object",
+                  "description": "gRPC probe",
+                  "properties": {
+                    "port": { "type": "integer", "description": "gRPC service port" },
+                    "service": { "type": "string", "description": "gRPC service name" }
+                  },
+                  "additionalProperties": false
+                },
+                "initialDelaySeconds": { "type": "integer", "minimum": 0, "description": "Seconds before the first probe" },
+                "periodSeconds": { "type": "integer", "minimum": 1, "description": "How often to probe (seconds)" },
+                "timeoutSeconds": { "type": "integer", "minimum": 1, "description": "Probe timeout (seconds)" },
+                "successThreshold": { "type": "integer", "minimum": 1, "description": "Consecutive successes to be considered healthy" },
+                "failureThreshold": { "type": "integer", "minimum": 1, "description": "Consecutive failures to be considered unhealthy" }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
         },
         "lifecycle": {
           "type": "object",
-          "description": "Lifecycle hooks (postStart, preStop). See https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/"
+          "description": "Lifecycle hooks (postStart, preStop). See https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/",
+          "properties": {
+            "postStart": {
+              "type": "object",
+              "description": "Runs immediately after a container is created",
+              "properties": {
+                "exec": {
+                  "type": "object",
+                  "description": "Execute a command",
+                  "properties": {
+                    "command": { "type": "array", "items": { "type": "string" }, "description": "Command to execute" }
+                  },
+                  "additionalProperties": false
+                },
+                "httpGet": {
+                  "type": "object",
+                  "description": "HTTP GET request",
+                  "properties": {
+                    "path": { "type": "string", "description": "URL path" },
+                    "port": { "type": ["integer", "string"], "description": "Port number or name" },
+                    "scheme": { "type": "string", "enum": ["HTTP", "HTTPS"], "description": "URI scheme" }
+                  },
+                  "additionalProperties": false
+                },
+                "sleep": {
+                  "type": "object",
+                  "description": "Sleep for a duration",
+                  "properties": {
+                    "seconds": { "type": "integer", "minimum": 0, "description": "Seconds to sleep" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "preStop": {
+              "type": "object",
+              "description": "Runs before a container is terminated",
+              "properties": {
+                "exec": {
+                  "type": "object",
+                  "description": "Execute a command",
+                  "properties": {
+                    "command": { "type": "array", "items": { "type": "string" }, "description": "Command to execute" }
+                  },
+                  "additionalProperties": false
+                },
+                "httpGet": {
+                  "type": "object",
+                  "description": "HTTP GET request",
+                  "properties": {
+                    "path": { "type": "string", "description": "URL path" },
+                    "port": { "type": ["integer", "string"], "description": "Port number or name" },
+                    "scheme": { "type": "string", "enum": ["HTTP", "HTTPS"], "description": "URI scheme" }
+                  },
+                  "additionalProperties": false
+                },
+                "sleep": {
+                  "type": "object",
+                  "description": "Sleep for a duration",
+                  "properties": {
+                    "seconds": { "type": "integer", "minimum": 0, "description": "Seconds to sleep" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         },
         "workingDir": {
           "type": "string",
@@ -553,7 +835,52 @@
         },
         "securityContext": {
           "type": "object",
-          "description": "Pod-level security context (fsGroup, runAsUser, etc.). See https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context"
+          "description": "Pod-level security context (fsGroup, runAsUser, etc.). See https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context",
+          "properties": {
+            "runAsUser": {
+              "type": "integer",
+              "description": "UID to run all pod containers as"
+            },
+            "runAsGroup": {
+              "type": "integer",
+              "description": "GID to run all pod containers as"
+            },
+            "runAsNonRoot": {
+              "type": "boolean",
+              "description": "Require all containers to run as non-root"
+            },
+            "fsGroup": {
+              "type": "integer",
+              "description": "GID applied to all volumes mounted by the pod"
+            },
+            "fsGroupChangePolicy": {
+              "type": "string",
+              "enum": ["OnRootMismatch", "Always"],
+              "description": "When to change ownership of mounted volumes"
+            },
+            "supplementalGroups": {
+              "type": "array",
+              "items": { "type": "integer" },
+              "description": "Additional GIDs applied to the first process in each container"
+            },
+            "seccompProfile": {
+              "type": "object",
+              "description": "Seccomp profile settings",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["RuntimeDefault", "Unconfined", "Localhost"],
+                  "description": "Seccomp profile type"
+                },
+                "localhostProfile": {
+                  "type": "string",
+                  "description": "Path to a localhost seccomp profile (when type is Localhost)"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         },
         "annotations": {
           "type": "object",
@@ -911,6 +1238,7 @@
               },
               "env": {
                 "type": "object",
+                "x-wizard-field": "env",
                 "description": "Environment variables for the OAuth2 proxy container"
               },
               "resources": {
