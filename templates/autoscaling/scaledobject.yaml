@@ -16,8 +16,8 @@ spec:
   {{- if or (kindIs "int64" .Values.autoscaling.keda.idleReplicaCount) (kindIs "float64" .Values.autoscaling.keda.idleReplicaCount) }}
   idleReplicaCount: {{ .Values.autoscaling.keda.idleReplicaCount }}
   {{- end }}
-  minReplicaCount: {{ .Values.autoscaling.keda.minReplicaCount }}
-  maxReplicaCount: {{ .Values.autoscaling.keda.maxReplicaCount }}
+  minReplicaCount: {{ default 1 .Values.autoscaling.keda.minReplicaCount }}
+  maxReplicaCount: {{ default 10 .Values.autoscaling.keda.maxReplicaCount }}
   {{- with .Values.autoscaling.keda.fallback }}
   fallback:
     {{- toYaml . | nindent 4 }}

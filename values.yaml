@@ -21,22 +21,15 @@ global:
 # Maps friendly names to actual Kubernetes node label keys. Use these names in
 # topologySpreadConstraints.topologyKey and other scheduling references.
 # Override defaults to match your cluster's labeling conventions.
-infraSettings:
-  nodeLabels:
-    # -- Region topology label key
-    topologyRegion: topology.kubernetes.io/region
-    # -- Zone topology label key
-    topologyZone: topology.kubernetes.io/zone
-    # -- Rack topology label key (if applicable)
-    topologyRack: topology.kubernetes.io/rack
-    # -- Node pool label key
-    nodePool: node.cluster.x-k8s.io/node-pool
-    # -- OS label key
-    os: kubernetes.io/os
-    # -- Architecture label key
-    arch: kubernetes.io/arch
-    # -- Node type label key (e.g. node.kubernetes.io/instance-type)
-    nodeType: node.kubernetes.io/instance-type
+# infraSettings:
+#   nodeLabels:
+#     topologyRegion: topology.kubernetes.io/region
+#     topologyZone: topology.kubernetes.io/zone
+#     topologyRack: topology.kubernetes.io/rack
+#     nodePool: node.cluster.x-k8s.io/node-pool
+#     os: kubernetes.io/os
+#     arch: kubernetes.io/arch
+#     nodeType: node.kubernetes.io/instance-type
 
 # =============================================================================
 # Argo CD
@@ -66,11 +59,9 @@ argocd:
 # soft = preferredDuringScheduling (best-effort), hard = requiredDuringScheduling (strict).
 nodeTargeting:
   # -- Pod placement restrictions.
-  restrictions:
-    # -- Placement type: differentNodes (spread), sameNode (colocate), none
-    type: differentNodes
-    # -- Enforcement: soft (preferred, best-effort) or hard (required, may leave pods unschedulable)
-    enforcement: soft
+  # restrictions:
+  #   type: differentNodes
+  #   enforcement: soft
   # -- Target OS(es). Label key: infraSettings.nodeLabels.os
   os: []
   # -- Target architecture(s). Label key: infraSettings.nodeLabels.arch
@@ -275,22 +266,22 @@ podSettings:
   #   whenUnsatisfiable: ScheduleAnyway
 
   # -- Priority class name
-  priorityClassName: ""
+  # priorityClassName: ""
 
-  # -- Termination grace period in seconds
-  terminationGracePeriodSeconds: ""
+  # -- Termination grace period in seconds (default: 30)
+  # terminationGracePeriodSeconds: 30
 
-  # -- DNS policy
-  dnsPolicy: ""
+  # -- DNS policy (default: ClusterFirst)
+  # dnsPolicy: ClusterFirst
 
   # -- DNS config
-  dnsConfig: {}
+  # dnsConfig: {}
 
   # -- Enable host networking
-  hostNetwork: false
+  # hostNetwork: false
 
-  # -- Restart policy (defaults to OnFailure for Job/CronJob)
-  restartPolicy: ""
+  # -- Restart policy (defaults to Always for Deployments, OnFailure for Jobs)
+  # restartPolicy: ""
 
 # =============================================================================
 # Networking (Services, Ingresses, Gateway API, OAuth2 Proxies)
@@ -786,10 +777,10 @@ autoscaling:
   # -- HPA configuration (not applicable to CronJob, Job, DaemonSet)
   hpa:
     enabled: false
-    # -- Minimum replicas
-    minReplicas: 1
-    # -- Maximum replicas
-    maxReplicas: 10
+    # -- Minimum replicas (default: 1)
+    # minReplicas: 1
+    # -- Maximum replicas (default: 10)
+    # maxReplicas: 10
     # -- HPA metrics (v2 API)
     metrics: []
     # - type: Resource
@@ -841,16 +832,16 @@ autoscaling:
   # Cannot be used together with autoscaling.hpa (they would conflict)
   keda:
     enabled: false
-    # -- Minimum replicas
-    minReplicaCount: 1
-    # -- Maximum replicas
-    maxReplicaCount: 10
+    # -- Minimum replicas (default: 1)
+    # minReplicaCount: 1
+    # -- Maximum replicas (default: 10)
+    # maxReplicaCount: 10
     # -- Polling interval in seconds
-    pollingInterval: ""
+    # pollingInterval: 30
     # -- Cooldown period in seconds
-    cooldownPeriod: ""
+    # cooldownPeriod: 300
     # -- Number of replicas when idle (0 = scale to zero)
-    idleReplicaCount: ""
+    # idleReplicaCount: 0
     # -- Fallback configuration
     fallback: {}
     # failureThreshold: 3
@@ -881,9 +872,9 @@ autoscaling:
     #     end: "0 18 * * *"
     #     desiredReplicas: "5"
     # -- ScaledJob: successful jobs history limit
-    successfulJobsHistoryLimit: ""
+    # successfulJobsHistoryLimit: ""
     # -- ScaledJob: failed jobs history limit
-    failedJobsHistoryLimit: ""
+    # failedJobsHistoryLimit: ""
     # -- ScaledJob: scaling strategy
     scalingStrategy: {}
     # strategy: default           # default, custom, accurate
@@ -904,11 +895,11 @@ pdb:
   # -- Enable PDB (not applicable to CronJob, Job)
   enabled: false
   # -- Minimum available pods (number or percentage)
-  minAvailable: ""
+  # minAvailable: ""
   # -- Maximum unavailable pods (number or percentage)
-  maxUnavailable: ""
+  # maxUnavailable: ""
   # -- Unhealthy pod eviction policy
-  unhealthyPodEvictionPolicy: ""
+  # unhealthyPodEvictionPolicy: ""
   # -- PDB annotations
   annotations: {}
   # -- PDB labels
@@ -921,10 +912,10 @@ pdb:
 rbac:
   # -- Service account configuration
   serviceAccount:
-    # -- Create a service account
-    create: true
+    # -- Create a service account (default: true)
+    # create: true
     # -- Service account name (defaults to fullname)
-    name: ""
+    # name: ""
     # -- Service account annotations
     annotations: {}
     # -- Service account labels
@@ -1096,8 +1087,8 @@ dashboards:
 workloads:
   # -- Argo Rollout-specific settings (requires Argo Rollouts controller)
   rollout:
-    # -- Number of replicas
-    replicaCount: 1
+    # -- Number of replicas (default: 1)
+    # replicaCount: 1
     # -- Rollout strategy (canary or blueGreen)
     strategy: {}
     # canary:
@@ -1116,10 +1107,10 @@ workloads:
     #   previewService: my-app-preview
     #   autoPromotionEnabled: true
     #   autoPromotionSeconds: 30
-    # -- Min ready seconds
-    minReadySeconds: ""
-    # -- Revision history limit
-    revisionHistoryLimit: ""
+    # -- Min ready seconds (default: 0)
+    # minReadySeconds: 0
+    # -- Revision history limit (default: 10)
+    # revisionHistoryLimit: 10
     # -- Restart at time (RFC 3339 format)
     restartAt: ""
     # -- Background analysis to run during an update
@@ -1131,42 +1122,42 @@ workloads:
 
   # -- Deployment-specific settings
   deployment:
-    # -- Number of replicas
-    replicaCount: 1
+    # -- Number of replicas (default: 1)
+    # replicaCount: 1
     # -- Deployment strategy
     strategy: {}
     # type: RollingUpdate
     # rollingUpdate:
     #   maxSurge: 25%
     #   maxUnavailable: 25%
-    # -- Min ready seconds
-    minReadySeconds: ""
-    # -- Revision history limit
-    revisionHistoryLimit: ""
+    # -- Min ready seconds (default: 0)
+    # minReadySeconds: 0
+    # -- Revision history limit (default: 10)
+    # revisionHistoryLimit: 10
 
   # -- StatefulSet-specific settings
   statefulSet:
-    # -- Number of replicas
-    replicaCount: 1
+    # -- Number of replicas (default: 1)
+    # replicaCount: 1
     # -- Headless service name (defaults to <fullname>-headless)
-    serviceName: ""
+    # serviceName: ""
     # -- Publish not ready addresses on headless service
-    publishNotReadyAddresses: false
-    # -- Pod management policy: OrderedReady or Parallel
-    podManagementPolicy: ""
+    # publishNotReadyAddresses: false
+    # -- Pod management policy (default: OrderedReady)
+    # podManagementPolicy: OrderedReady
     # -- Update strategy
     updateStrategy: {}
     # type: RollingUpdate
     # rollingUpdate:
     #   partition: 0
-    # -- Min ready seconds
-    minReadySeconds: ""
-    # -- Revision history limit
-    revisionHistoryLimit: ""
+    # -- Min ready seconds (default: 0)
+    # minReadySeconds: 0
+    # -- Revision history limit (default: 10)
+    # revisionHistoryLimit: 10
     # -- Ordinals configuration
-    ordinals: {}
+    # ordinals: {}
     # -- PVC retention policy
-    persistentVolumeClaimRetentionPolicy: {}
+    # persistentVolumeClaimRetentionPolicy: {}
     # whenDeleted: Retain
     # whenScaled: Retain
 
@@ -1177,46 +1168,46 @@ workloads:
     # type: RollingUpdate
     # rollingUpdate:
     #   maxUnavailable: 1
-    # -- Min ready seconds
-    minReadySeconds: ""
-    # -- Revision history limit
-    revisionHistoryLimit: ""
+    # -- Min ready seconds (default: 0)
+    # minReadySeconds: 0
+    # -- Revision history limit (default: 10)
+    # revisionHistoryLimit: 10
 
   # -- CronJob-specific settings
   cronJob:
     # -- Cron schedule expression (required for CronJob workloadType)
-    schedule: "0 * * * *"
+    # schedule: "0 * * * *"
     # -- Timezone
-    timeZone: ""
-    # -- Concurrency policy: Allow, Forbid, Replace
-    concurrencyPolicy: ""
+    # timeZone: ""
+    # -- Concurrency policy (default: Allow)
+    # concurrencyPolicy: Allow
     # -- Suspend the cron job
-    suspend: false
+    # suspend: false
     # -- Successful jobs history limit
-    successfulJobsHistoryLimit: ""
+    # successfulJobsHistoryLimit: 3
     # -- Failed jobs history limit
-    failedJobsHistoryLimit: ""
+    # failedJobsHistoryLimit: 1
     # -- Starting deadline seconds
-    startingDeadlineSeconds: ""
+    # startingDeadlineSeconds: ""
 
   # -- Job-specific settings (also used by CronJob's jobTemplate)
   job:
-    # -- Backoff limit
-    backoffLimit: ""
+    # -- Backoff limit (default: 6)
+    # backoffLimit: 6
     # -- Active deadline seconds
-    activeDeadlineSeconds: ""
+    # activeDeadlineSeconds: ""
     # -- TTL seconds after finished
-    ttlSecondsAfterFinished: ""
+    # ttlSecondsAfterFinished: ""
     # -- Number of completions
-    completions: ""
+    # completions: 1
     # -- Parallelism
-    parallelism: ""
+    # parallelism: 1
     # -- Completion mode: NonIndexed or Indexed
-    completionMode: ""
+    # completionMode: NonIndexed
     # -- Pod replacement policy: Failed or TerminatingOrFailed (K8s 1.34+)
-    podReplacementPolicy: ""
+    # podReplacementPolicy: ""
     # -- Suspend the job
-    suspend: false
+    # suspend: false
 
 # =============================================================================
 # Hooks (pre-install/pre-upgrade Jobs)

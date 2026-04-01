@@ -657,41 +657,49 @@
       "properties": {
         "nodeLabels": {
           "type": "object",
+          "x-wizard": { "expanded": true },
           "description": "Node label key mapping. Customize the Kubernetes node label keys used by nodeTargeting.",
           "properties": {
             "topologyRegion": {
               "type": "string",
               "minLength": 1,
-              "description": "Node label key for region topology (default: topology.kubernetes.io/region)"
+              "default": "topology.kubernetes.io/region",
+              "description": "Node label key for region topology"
             },
             "topologyZone": {
               "type": "string",
               "minLength": 1,
-              "description": "Node label key for zone topology (default: topology.kubernetes.io/zone)"
+              "default": "topology.kubernetes.io/zone",
+              "description": "Node label key for zone topology"
             },
             "topologyRack": {
               "type": "string",
               "minLength": 1,
+              "default": "topology.kubernetes.io/rack",
               "description": "Node label key for rack topology"
             },
             "nodePool": {
               "type": "string",
               "minLength": 1,
+              "default": "node.cluster.x-k8s.io/node-pool",
               "description": "Node label key for node pool identification"
             },
             "os": {
               "type": "string",
               "minLength": 1,
-              "description": "Node label key for operating system (default: kubernetes.io/os)"
+              "default": "kubernetes.io/os",
+              "description": "Node label key for operating system"
             },
             "arch": {
               "type": "string",
               "minLength": 1,
-              "description": "Node label key for CPU architecture (default: kubernetes.io/arch)"
+              "default": "kubernetes.io/arch",
+              "description": "Node label key for CPU architecture"
             },
             "nodeType": {
               "type": "string",
               "minLength": 1,
+              "default": "node.kubernetes.io/instance-type",
               "description": "Node label key for instance/node type"
             }
           },
@@ -1328,12 +1336,21 @@
                   "repository": {
                     "type": "string",
                     "x-wizard": { "narrow": true },
+                    "default": "quay.io/oauth2-proxy/oauth2-proxy",
                     "description": "Image repository"
                   },
                   "tag": {
                     "type": "string",
                     "x-wizard": { "narrow": true },
+                    "default": "v7.15.1",
                     "description": "Image tag"
+                  },
+                  "pullPolicy": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "enum": ["Always", "IfNotPresent", "Never"],
+                    "default": "IfNotPresent",
+                    "description": "Image pull policy"
                   }
                 },
                 "additionalProperties": false
@@ -2462,12 +2479,14 @@
               "type": "integer",
               "x-wizard": { "narrow": true },
               "minimum": 1,
+              "default": 1,
               "description": "Minimum number of replicas"
             },
             "maxReplicas": {
               "type": "integer",
               "x-wizard": { "narrow": true },
               "minimum": 1,
+              "default": 10,
               "description": "Maximum number of replicas"
             },
             "metrics": {
@@ -2604,12 +2623,14 @@
               "type": "integer",
               "x-wizard": { "narrow": true },
               "minimum": 0,
+              "default": 1,
               "description": "Minimum number of replicas (0 = scale to zero)"
             },
             "maxReplicaCount": {
               "type": "integer",
               "x-wizard": { "narrow": true },
               "minimum": 1,
+              "default": 10,
               "description": "Maximum number of replicas"
             },
             "pollingInterval": {
@@ -2787,6 +2808,7 @@
             "create": {
               "type": "boolean",
               "x-wizard": { "narrow": true },
+              "default": true,
               "description": "Create a ServiceAccount for this release"
             },
             "automountServiceAccountToken": {
@@ -3752,6 +3774,7 @@
           "properties": {
             "schedule": {
               "type": "string",
+              "default": "0 * * * *",
               "description": "Cron schedule expression (e.g. '0 */6 * * *'). Use https://crontab.guru to build expressions."
             },
             "timeZone": {

@@ -116,7 +116,7 @@ export function SchemaField({ schema, rootSchema, value, onChange, label, requir
     return (
       <TextInput
         label={label || ''}
-        value={(value as string) ?? ''}
+        value={(value as string) ?? (resolved.default as string) ?? ''}
         onChange={v => onChange(v || undefined)}
         required={required}
         helpText={desc}
