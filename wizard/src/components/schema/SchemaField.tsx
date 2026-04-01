@@ -320,6 +320,18 @@ export function SchemaObjectFields({
   const advancedFields: [string, JsonSchema][] = []
 
   for (const [key, propSchema] of Object.entries(properties)) {
+    const wizard = propSchema['x-wizard']
+    if (wizard?.hiddenWhen && value?.[wizard.hiddenWhen]) continue
+    if (wizard?.visibleWhen) {
+      const hidden = Object.entries(wizard.visibleWhen).some(
+        ([field, allowed]) => {
+          const current = value?.[field]
+          return current !== undefined && !(allowed as string[]).includes(current as string)
+        }
+      )
+      if (hidden) continue
+    }
+
     if (propSchema['x-wizard']?.advanced) {
       advancedFields.push([key, propSchema])
     } else {

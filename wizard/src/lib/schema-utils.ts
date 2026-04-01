@@ -14,6 +14,10 @@ export interface WizardMeta {
   expanded?: boolean
   /** If true, render this field as narrow (half-width) to allow side-by-side layout */
   narrow?: boolean
+  /** Hide this field when a sibling boolean field is true (e.g. "headless") */
+  hiddenWhen?: string
+  /** Show this field only when a sibling field matches one of the listed values (e.g. { "type": ["LoadBalancer"] }) */
+  visibleWhen?: Record<string, string[]>
 }
 
 export interface JsonSchema {

@@ -1105,12 +1105,12 @@
               "ports"
             ],
             "properties": {
-              "headless": {
-                "type": "boolean",
-                "description": "Create a headless Service (clusterIP: None), used for StatefulSets or direct pod DNS. See https://kubernetes.io/docs/concepts/services-networking/service/#headless-services"
-              },
               "type": {
                 "type": "string",
+                "x-wizard": {
+                  "hiddenWhen": "headless",
+                  "narrow": true
+                },
                 "enum": [
                   "ClusterIP",
                   "NodePort",
@@ -1119,6 +1119,13 @@
                 ],
                 "default": "ClusterIP",
                 "description": "Service type determining how the Service is exposed. See https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types"
+              },
+              "headless": {
+                "type": "boolean",
+                "x-wizard": {
+                  "narrow": true
+                },
+                "description": "Create a headless Service (clusterIP: None), used for StatefulSets or direct pod DNS. See https://kubernetes.io/docs/concepts/services-networking/service/#headless-services"
               },
               "ports": {
                 "type": "object",
@@ -1132,21 +1139,26 @@
                   "properties": {
                     "port": {
                       "type": "integer",
+                      "x-wizard": { "narrow": true },
                       "minimum": 1,
                       "maximum": 65535,
                       "description": "The port number exposed by the Service"
                     },
                     "containerPort": {
                       "type": "string",
+                      "x-wizard": { "narrow": true },
                       "description": "Container port name, defaults to port key name"
                     },
                     "protocol": {
                       "type": "string",
+                      "x-wizard": { "narrow": true },
+                      "enum": ["TCP", "UDP", "SCTP"],
                       "default": "TCP",
-                      "description": "Protocol for this port: TCP (default), UDP, or SCTP"
+                      "description": "Protocol for this port"
                     },
                     "nodePort": {
                       "type": "integer",
+                      "x-wizard": { "narrow": true },
                       "description": "Static port on every node (only for NodePort/LoadBalancer type services, range 30000-32767)"
                     }
                   }
@@ -1154,14 +1166,17 @@
               },
               "clusterIP": {
                 "type": "string",
-                "description": "Explicit cluster IP address, or 'None' for headless. See https://kubernetes.io/docs/concepts/services-networking/service/#choosing-your-own-ip-address"
+                "x-wizard": { "hiddenWhen": "headless", "narrow": true, "visibleWhen": { "type": ["ClusterIP", "NodePort", "LoadBalancer"] } },
+                "description": "Explicit cluster IP address. See https://kubernetes.io/docs/concepts/services-networking/service/#choosing-your-own-ip-address"
               },
               "loadBalancerIP": {
                 "type": "string",
+                "x-wizard": { "hiddenWhen": "headless", "narrow": true, "visibleWhen": { "type": ["LoadBalancer"] } },
                 "description": "Request a specific IP for LoadBalancer type services (cloud-provider dependent)"
               },
               "loadBalancerSourceRanges": {
                 "type": "array",
+                "x-wizard": { "hiddenWhen": "headless", "visibleWhen": { "type": ["LoadBalancer"] } },
                 "items": {
                   "type": "string"
                 },
@@ -1169,6 +1184,7 @@
               },
               "externalTrafficPolicy": {
                 "type": "string",
+                "x-wizard": { "hiddenWhen": "headless", "narrow": true, "visibleWhen": { "type": ["NodePort", "LoadBalancer"] } },
                 "enum": [
                   "Cluster",
                   "Local",
@@ -1178,25 +1194,31 @@
               },
               "trafficDistribution": {
                 "type": "string",
-                "description": "Traffic distribution: PreferSameNode or PreferSameZone (K8s 1.35+)"
+                "x-wizard": { "hiddenWhen": "headless", "narrow": true },
+                "enum": ["PreferClose", "PreferSameNode", "PreferSameZone"],
+                "description": "Traffic routing preference (K8s 1.35+). See https://kubernetes.io/docs/concepts/services-networking/service/#traffic-distribution"
               },
               "sessionAffinity": {
                 "type": "string",
-                "description": "Enable session affinity: None (default) or ClientIP. See https://kubernetes.io/docs/concepts/services-networking/service/#session-stickiness"
+                "x-wizard": { "narrow": true },
+                "enum": ["None", "ClientIP"],
+                "description": "Session affinity. See https://kubernetes.io/docs/concepts/services-networking/service/#session-stickiness"
               },
               "ipFamilyPolicy": {
                 "type": "string",
-                "description": "Dual-stack IP family policy: SingleStack, PreferDualStack, or RequireDualStack. See https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services"
+                "x-wizard": { "narrow": true },
+                "enum": ["SingleStack", "PreferDualStack", "RequireDualStack"],
+                "description": "Dual-stack IP family policy. See https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services"
               },
               "ipFamilies": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "IP families to use (e.g. ['IPv4'], ['IPv6'], or ['IPv4','IPv6'] for dual-stack)"
+                "type": "string",
+                "x-wizard": { "narrow": true },
+                "enum": ["IPv4", "IPv6", "IPv4+IPv6"],
+                "description": "IP family for the Service. See https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services"
               },
               "publishNotReadyAddresses": {
                 "type": "boolean",
+                "x-wizard": { "narrow": true },
                 "description": "If true, endpoints are published even when pods are not ready (useful for StatefulSet peer discovery)"
               },
               "selectorLabels": {
@@ -1341,21 +1363,15 @@
           "additionalProperties": {
             "type": "object",
             "properties": {
-              "oauth2Proxy": {
-                "type": "string",
-                "description": "Key from networking.oauth2Proxies map"
-              },
               "className": {
                 "type": "string",
+                "x-wizard": { "narrow": true },
                 "description": "IngressClass name (e.g. nginx, traefik). See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class"
               },
-              "annotations": {
-                "type": "object",
-                "description": "Annotations on the Ingress (often used for controller-specific config)"
-              },
-              "labels": {
-                "type": "object",
-                "description": "Extra labels on the Ingress resource"
+              "oauth2Proxy": {
+                "type": "string",
+                "x-wizard": { "narrow": true },
+                "description": "Key from networking.oauth2Proxies map if oauth2proxy should be used for authentication on this Ingress"
               },
               "hosts": {
                 "type": "array",
@@ -1380,10 +1396,12 @@
                         "properties": {
                           "path": {
                             "type": "string",
+                            "x-wizard": { "narrow": true },
                             "description": "URL path to match (e.g. / or /api)"
                           },
                           "pathType": {
                             "type": "string",
+                            "x-wizard": { "narrow": true },
                             "enum": [
                               "Prefix",
                               "Exact",
@@ -1394,10 +1412,12 @@
                           },
                           "serviceName": {
                             "type": "string",
+                            "x-wizard": { "narrow": true },
                             "description": "Backend Service name (defaults to the first Service in networking.services)"
                           },
                           "servicePort": {
                             "type": "integer",
+                            "x-wizard": { "narrow": true },
                             "description": "Backend Service port number"
                           }
                         },
@@ -1412,6 +1432,7 @@
               },
               "tls": {
                 "type": "array",
+                "x-wizard": { "advanced": true },
                 "items": {
                   "type": "object",
                   "properties": {
@@ -1431,8 +1452,19 @@
                 },
                 "description": "TLS configuration for HTTPS. See https://kubernetes.io/docs/concepts/services-networking/ingress/#tls"
               },
+              "annotations": {
+                "type": "object",
+                "x-wizard": { "advanced": true },
+                "description": "Annotations on the Ingress (often used for controller-specific config)"
+              },
+              "labels": {
+                "type": "object",
+                "x-wizard": { "advanced": true },
+                "description": "Extra labels on the Ingress resource"
+              },
               "defaultBackend": {
                 "type": "object",
+                "x-wizard": { "advanced": true },
                 "description": "Default backend for unmatched requests. See https://kubernetes.io/docs/concepts/services-networking/ingress/#default-backend"
               }
             },
@@ -1459,12 +1491,9 @@
               "additionalProperties": {
                 "type": "object",
                 "properties": {
-                  "oauth2Proxy": {
-                    "type": "string",
-                    "description": "Key from networking.oauth2Proxies map"
-                  },
                   "kind": {
                     "type": "string",
+                    "x-wizard": { "narrow": true },
                     "enum": [
                       "HTTPRoute",
                       "GRPCRoute",
@@ -1473,6 +1502,11 @@
                       "UDPRoute"
                     ],
                     "default": "HTTPRoute"
+                  },
+                  "oauth2Proxy": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "description": "Key from networking.oauth2Proxies map if oauth2proxy should be used for authentication on this Ingress"
                   },
                   "parentRefs": {
                     "type": "array",
@@ -1484,18 +1518,22 @@
                       "properties": {
                         "name": {
                           "type": "string",
+                          "x-wizard": { "narrow": true },
                           "description": "Gateway name"
                         },
                         "namespace": {
                           "type": "string",
+                          "x-wizard": { "narrow": true },
                           "description": "Gateway namespace (defaults to route's namespace)"
                         },
                         "sectionName": {
                           "type": "string",
+                          "x-wizard": { "narrow": true },
                           "description": "Specific listener name on the Gateway"
                         },
                         "port": {
                           "type": "integer",
+                          "x-wizard": { "narrow": true },
                           "description": "Specific listener port on the Gateway"
                         }
                       },
@@ -1515,10 +1553,11 @@
                     "items": {
                       "type": "object"
                     },
-                    "description": "Routing rules (matches, filters, backendRefs). See https://gateway-api.sigs.k8s.io/api-types/httproute/#httprouterule"
+                    "description": "Routing rules (matches, filters, backendRefs). See https://gateway-api.sigs.k8s.io/api-types/httproute/#rules"
                   },
                   "policies": {
                     "type": "object",
+                    "x-wizard": { "expanded": true },
                     "properties": {
                       "envoy": {
                         "type": "object",
@@ -1595,10 +1634,12 @@
                   },
                   "annotations": {
                     "type": "object",
+                    "x-wizard": { "advanced": true },
                     "description": "Annotations on the route resource"
                   },
                   "labels": {
                     "type": "object",
+                    "x-wizard": { "advanced": true },
                     "description": "Labels on the route resource"
                   }
                 },
