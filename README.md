@@ -12,6 +12,10 @@
   <img src="https://img.shields.io/badge/license-Apache%202.0-green" alt="License">
 </p>
 
+<p align="center">
+  <a href="https://cotzo.github.io/chartpack/wizard/"><img src="https://img.shields.io/badge/%F0%9F%A7%99%20Values%20Generator-Open%20Wizard-blueviolet?style=for-the-badge" alt="Values Generator"></a>
+</p>
+
 # Chartpack
 
 A single, opinionated Helm chart for deploying any Kubernetes application workload.

@@ -69,15 +69,30 @@ interface MountsEditorProps {
 
 export function MountsEditor({ label, value = [], onChange, helpText }: MountsEditorProps) {
   const [expandedIdx, setExpandedIdx] = useState<Set<number>>(new Set())
+  const [stableIds] = useState(() => new Map<number, string>())
   const allValues = useWizardValues()
   const navigateTo = useWizardNavigate()
 
+  // Ensure stable IDs for each mount
+  while (stableIds.size < value.length) {
+    stableIds.set(stableIds.size, crypto.randomUUID())
+  }
+
   const addMount = () => {
+    stableIds.set(value.length, crypto.randomUUID())
     onChange([...value, { path: '' }])
     setExpandedIdx(new Set([...expandedIdx, value.length]))
   }
 
   const removeMount = (idx: number) => {
+    const newIds = new Map<number, string>()
+    for (let i = 0; i < value.length; i++) {
+      if (i < idx) newIds.set(i, stableIds.get(i)!)
+      else if (i > idx) newIds.set(i - 1, stableIds.get(i)!)
+    }
+    stableIds.clear()
+    for (const [k, v] of newIds) stableIds.set(k, v)
+
     onChange(value.filter((_, i) => i !== idx))
     const next = new Set<number>()
     for (const i of expandedIdx) {
@@ -117,7 +132,7 @@ export function MountsEditor({ label, value = [], onChange, helpText }: MountsEd
         const summary = entry.path || '(no path)'
 
         return (
-          <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+          <div key={stableIds.get(idx) ?? idx} className="border border-gray-200 rounded-lg overflow-hidden">
             {/* Header row */}
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
               <button type="button" onClick={() => toggleExpand(idx)} className="text-gray-500">

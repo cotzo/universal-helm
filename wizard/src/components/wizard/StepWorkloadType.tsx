@@ -33,6 +33,7 @@ export function StepWorkloadType({ getValue, setValue }: StepProps) {
             <div
               key={wt.value}
               role="button"
+              aria-label={`Select ${wt.label}`}
               tabIndex={0}
               onClick={() => setValue('workloadType', wt.value)}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setValue('workloadType', wt.value) } }}
