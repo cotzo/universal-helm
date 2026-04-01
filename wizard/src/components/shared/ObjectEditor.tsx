@@ -46,7 +46,7 @@ export function ObjectEditor({ label, value = {}, onChange, helpText, rows = 6 }
         onChange={e => handleChange(e.target.value)}
         rows={rows}
         spellCheck={false}
-        className={`block w-full rounded-md border px-3 py-2 font-mono text-xs shadow-sm focus:outline-none focus:ring-2 ${
+        className={`block w-full rounded-md border bg-white px-3 py-2 font-mono text-xs shadow-sm focus:outline-none focus:ring-2 ${
           error ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
         }`}
       />

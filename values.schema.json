@@ -147,8 +147,62 @@
             }
           }
         },
+        "mounts": {
+          "type": "array",
+          "x-wizard-field": "mounts",
+          "description": "Volume mounts. Each entry maps a path to a source (configMap, secret, persistence key, or raw volume name).",
+          "items": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Mount path inside the container"
+              },
+              "configMap": {
+                "type": "string",
+                "description": "ConfigMap key from config.configMaps to mount"
+              },
+              "secret": {
+                "type": "string",
+                "description": "Secret key from config.secrets to mount"
+              },
+              "persistence": {
+                "type": "string",
+                "description": "Persistence key from persistence map to mount"
+              },
+              "volume": {
+                "type": "string",
+                "description": "Raw volume name from podSettings.volumes"
+              },
+              "external": {
+                "type": "boolean",
+                "description": "If true, references an externally-managed resource (not prefixed with release name)"
+              },
+              "readOnly": {
+                "type": "boolean",
+                "description": "Mount the volume as read-only"
+              },
+              "subPath": {
+                "type": "string",
+                "description": "Sub-path within the volume to mount"
+              },
+              "items": {
+                "type": "array",
+                "description": "Key-to-path mappings for selective file projection"
+              },
+              "defaultMode": {
+                "type": "integer",
+                "description": "File permission mode (octal, e.g. 0644)"
+              }
+            }
+          }
+        },
         "resources": {
           "type": "object",
+          "x-wizard": { "expanded": true },
           "description": "CPU/memory resource requests and limits. See https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
           "properties": {
             "requests": {
@@ -234,18 +288,22 @@
             },
             "runAsNonRoot": {
               "type": "boolean",
+              "x-wizard": { "narrow": true },
               "description": "Require the container to run as a non-root user"
             },
             "privileged": {
               "type": "boolean",
+              "x-wizard": { "narrow": true },
               "description": "Run container in privileged mode"
             },
             "allowPrivilegeEscalation": {
               "type": "boolean",
+              "x-wizard": { "narrow": true },
               "description": "Allow the process to gain more privileges than its parent"
             },
             "readOnlyRootFilesystem": {
               "type": "boolean",
+              "x-wizard": { "narrow": true },
               "description": "Mount the root filesystem as read-only"
             },
             "capabilities": {
@@ -513,58 +571,6 @@
           "type": "string",
           "x-wizard": { "advanced": true },
           "description": "Working directory inside the container. Defaults to the image's WORKDIR."
-        },
-        "mounts": {
-          "type": "array",
-          "description": "Volume mounts. Each entry maps a path to a source (configMap, secret, persistence key, or raw volume name).",
-          "items": {
-            "type": "object",
-            "required": [
-              "path"
-            ],
-            "properties": {
-              "path": {
-                "type": "string",
-                "description": "Mount path inside the container"
-              },
-              "configMap": {
-                "type": "string",
-                "description": "ConfigMap key from config.configMaps to mount"
-              },
-              "secret": {
-                "type": "string",
-                "description": "Secret key from config.secrets to mount"
-              },
-              "persistence": {
-                "type": "string",
-                "description": "Persistence key from persistence map to mount"
-              },
-              "volume": {
-                "type": "string",
-                "description": "Raw volume name from podSettings.volumes"
-              },
-              "external": {
-                "type": "boolean",
-                "description": "If true, references an externally-managed resource (not prefixed with release name)"
-              },
-              "readOnly": {
-                "type": "boolean",
-                "description": "Mount the volume as read-only"
-              },
-              "subPath": {
-                "type": "string",
-                "description": "Sub-path within the volume to mount"
-              },
-              "items": {
-                "type": "array",
-                "description": "Key-to-path mappings for selective file projection"
-              },
-              "defaultMode": {
-                "type": "integer",
-                "description": "File permission mode (octal, e.g. 0644)"
-              }
-            }
-          }
         }
       }
     },
@@ -772,6 +778,7 @@
       "properties": {
         "restrictions": {
           "type": "object",
+          "x-wizard": { "expanded": true },
           "description": "Pod placement restrictions using affinity/anti-affinity. See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity",
           "properties": {
             "type": {
@@ -862,6 +869,7 @@
         },
         "securityContext": {
           "type": "object",
+          "x-wizard": { "advanced": true },
           "description": "Pod-level security context (fsGroup, runAsUser, etc.). See https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context",
           "properties": {
             "runAsUser": {
@@ -876,13 +884,16 @@
             },
             "runAsNonRoot": {
               "type": "boolean",
+              "x-wizard": { "narrow": true },
               "description": "Require all containers to run as non-root"
             },
             "fsGroup": {
               "type": "integer",
+              "x-wizard": { "narrow": true },
               "description": "GID applied to all volumes mounted by the pod"
             },
             "fsGroupChangePolicy": {
+              "x-wizard": { "narrow": true },
               "type": "string",
               "enum": ["OnRootMismatch", "Always"],
               "description": "When to change ownership of mounted volumes"
@@ -966,16 +977,19 @@
             "properties": {
               "maxSkew": {
                 "type": "integer",
+                "x-wizard": { "narrow": true },
                 "minimum": 1,
                 "default": 1,
                 "description": "Maximum allowed difference in pod count between topology domains"
               },
               "topologyKey": {
                 "type": "string",
+                "x-wizard": { "narrow": true },
                 "description": "Node label key defining the topology domain (e.g. topology.kubernetes.io/zone)"
               },
               "whenUnsatisfiable": {
                 "type": "string",
+                "x-wizard": { "narrow": true },
                 "enum": [
                   "DoNotSchedule",
                   "ScheduleAnyway"
@@ -983,23 +997,14 @@
                 "default": "DoNotSchedule",
                 "description": "DoNotSchedule prevents scheduling; ScheduleAnyway schedules anyway with skew minimization"
               },
-              "labelSelector": {
-                "type": "object",
-                "description": "Override the pod label selector (defaults to chart's selectorLabels)"
-              },
-              "matchLabelKeys": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Pod label keys to use for spreading (K8s 1.27+)"
-              },
               "minDomains": {
                 "type": "integer",
+                "x-wizard": { "narrow": true },
                 "description": "Minimum number of eligible topology domains (K8s 1.30+)"
               },
               "nodeAffinityPolicy": {
                 "type": "string",
+                "x-wizard": { "narrow": true },
                 "enum": [
                   "Honor",
                   "Ignore"
@@ -1008,22 +1013,34 @@
               },
               "nodeTaintsPolicy": {
                 "type": "string",
+                "x-wizard": { "narrow": true },
                 "enum": [
                   "Honor",
                   "Ignore"
                 ],
                 "description": "Whether to honor node taints when calculating skew"
+              },
+              "matchLabelKeys": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Pod label keys to use for spreading (K8s 1.27+)"
+              },
+              "labelSelector": {
+                "type": "object",
+                "description": "Override the pod label selector (defaults to chart's selectorLabels)"
               }
             }
           }
         },
         "priorityClassName": {
           "type": "string",
-          "x-wizard": { "advanced": true },
+          "x-wizard": { "advanced": true, "narrow": true },
           "description": "PriorityClass name for pod scheduling priority. See https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/"
         },
         "terminationGracePeriodSeconds": {
-          "x-wizard": { "advanced": true },
+          "x-wizard": { "advanced": true, "narrow": true },
           "type": [
             "integer",
             "string"
@@ -1032,8 +1049,14 @@
         },
         "dnsPolicy": {
           "type": "string",
-          "x-wizard": { "advanced": true },
-          "description": "DNS policy: ClusterFirst, Default, ClusterFirstWithHostNet, None. See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy"
+          "x-wizard": { "advanced": true, "narrow": true },
+          "enum": [
+            "ClusterFirst",
+            "Default",
+            "ClusterFirstWithHostNet",
+            "None"
+          ],
+          "description": "DNS policy. See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy"
         },
         "dnsConfig": {
           "type": "object",
@@ -1042,11 +1065,11 @@
         },
         "hostNetwork": {
           "type": "boolean",
-          "x-wizard": { "advanced": true },
+          "x-wizard": { "advanced": true, "narrow": true },
           "description": "Use the host's network namespace. The pod will use the node's IP and ports directly."
         },
         "restartPolicy": {
-          "x-wizard": { "advanced": true },
+          "x-wizard": { "advanced": true, "narrow": true },
           "type": "string",
           "enum": [
             "Always",

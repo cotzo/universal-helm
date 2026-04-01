@@ -18,6 +18,7 @@ import { MapEditor } from '../shared/MapEditor'
 import { ArrayObjectEditor } from '../shared/ArrayObjectEditor'
 import { EnvEditor } from '../shared/EnvEditor'
 import { NodeTargetingField } from '../shared/NodeTargetingField'
+import { MountsEditor } from '../shared/MountsEditor'
 import { CollapsibleSection } from '../shared/CollapsibleSection'
 import { HelpText } from '../shared/HelpText'
 
@@ -48,6 +49,18 @@ export function SchemaField({ schema, rootSchema, value, onChange, label, requir
         label={label || ''}
         value={value as Record<string, unknown> | string[] | undefined}
         onChange={onChange}
+        helpText={desc}
+      />
+    )
+  }
+
+  // --- Mounts editor ---
+  if (wizardField === 'mounts') {
+    return (
+      <MountsEditor
+        label={label || ''}
+        value={(value ?? []) as never[]}
+        onChange={v => onChange(v.length > 0 ? v : undefined)}
         helpText={desc}
       />
     )
