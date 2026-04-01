@@ -110,7 +110,7 @@ export function WizardShell() {
       return <StepWorkloadType values={values} getValue={getValue} setValue={setValue} />
     }
     if (currentStepConfig.renderer === 'review') {
-      return <StepReview values={values} />
+      return <StepReview values={values} schema={schema} />
     }
 
     // Generic schema-driven step for everything else
