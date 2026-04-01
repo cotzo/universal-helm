@@ -47,6 +47,7 @@
       "properties": {
         "image": {
           "type": "object",
+          "x-wizard": { "expanded": true },
           "required": [
             "repository"
           ],
@@ -55,11 +56,11 @@
             "repository": {
               "type": "string",
               "minLength": 1,
-              "description": "Image repository (e.g. nginx, ghcr.io/org/app)"
+              "description": "Image repository (e.g. nginx, ghcr.io/org/app). See https://kubernetes.io/docs/concepts/containers/images/#image-names"
             },
             "tag": {
               "type": "string",
-              "description": "Image tag. Defaults to the chart's appVersion"
+              "description": "Image tag. Defaults to the chart's appVersion. See https://kubernetes.io/docs/concepts/containers/images/#image-names"
             },
             "pullPolicy": {
               "type": "string",
@@ -88,6 +89,32 @@
           },
           "description": "Arguments to the entrypoint (overrides the container image's CMD)"
         },
+        "env": {
+          "type": "object",
+          "x-wizard-field": "env",
+          "description": "Environment variables map. Use value for plain strings, valueFrom for field/resource/configMap/secret key refs, or configMapRef/secretRef for bulk injection. See https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string",
+                "description": "Plain string value"
+              },
+              "valueFrom": {
+                "type": "object",
+                "description": "Source for the value: fieldRef, resourceFieldRef, configMapKeyRef, or secretKeyRef"
+              },
+              "configMapRef": {
+                "type": "object",
+                "description": "Inject all keys from a ConfigMap as env vars (envFrom)"
+              },
+              "secretRef": {
+                "type": "object",
+                "description": "Inject all keys from a Secret as env vars (envFrom)"
+              }
+            }
+          }
+        },
         "ports": {
           "type": "object",
           "description": "Map of port name → port config. The key becomes the port name in the container spec.",
@@ -112,32 +139,6 @@
                 ],
                 "default": "TCP",
                 "description": "Protocol for the port"
-              }
-            }
-          }
-        },
-        "env": {
-          "type": "object",
-          "x-wizard-field": "env",
-          "description": "Environment variables map. Use value for plain strings, valueFrom for field/resource/configMap/secret key refs, or configMapRef/secretRef for bulk injection. See https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/",
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "value": {
-                "type": "string",
-                "description": "Plain string value"
-              },
-              "valueFrom": {
-                "type": "object",
-                "description": "Source for the value: fieldRef, resourceFieldRef, configMapKeyRef, or secretKeyRef"
-              },
-              "configMapRef": {
-                "type": "object",
-                "description": "Inject all keys from a ConfigMap as env vars (envFrom)"
-              },
-              "secretRef": {
-                "type": "object",
-                "description": "Inject all keys from a Secret as env vars (envFrom)"
               }
             }
           }
@@ -181,6 +182,7 @@
         },
         "resizePolicy": {
           "type": "array",
+          "x-wizard": { "advanced": true },
           "description": "In-place resource resize policy per resource (K8s 1.35+). See https://kubernetes.io/docs/concepts/workloads/autoscaling/#in-place-resizing",
           "items": {
             "type": "object",
@@ -207,6 +209,7 @@
         },
         "securityContext": {
           "type": "object",
+          "x-wizard": { "advanced": true },
           "description": "Container-level security context. See https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1",
           "properties": {
             "runAsUser": {
@@ -271,6 +274,7 @@
         },
         "healthChecks": {
           "type": "object",
+          "x-wizard": { "expanded": true },
           "description": "Container health probes. See https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/",
           "properties": {
             "liveness": {
@@ -419,6 +423,7 @@
         },
         "lifecycle": {
           "type": "object",
+          "x-wizard": { "advanced": true },
           "description": "Lifecycle hooks (postStart, preStop). See https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/",
           "properties": {
             "postStart": {
@@ -492,6 +497,7 @@
         },
         "workingDir": {
           "type": "string",
+          "x-wizard": { "advanced": true },
           "description": "Working directory inside the container. Defaults to the image's WORKDIR."
         },
         "mounts": {
@@ -905,6 +911,7 @@
         },
         "volumes": {
           "type": "array",
+          "x-wizard": { "advanced": true },
           "items": {
             "type": "object"
           },
@@ -926,9 +933,11 @@
         },
         "affinity": {
           "type": "object",
+          "x-wizard": { "advanced": true },
           "description": "Raw affinity rules (merged with nodeTargeting-generated rules). See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity"
         },
         "topologySpreadConstraints": {
+          "x-wizard": { "advanced": true },
           "type": "object",
           "description": "Topology spread constraints map. labelSelector defaults to chart's selectorLabels. See https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/",
           "additionalProperties": {
@@ -992,9 +1001,11 @@
         },
         "priorityClassName": {
           "type": "string",
+          "x-wizard": { "advanced": true },
           "description": "PriorityClass name for pod scheduling priority. See https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/"
         },
         "terminationGracePeriodSeconds": {
+          "x-wizard": { "advanced": true },
           "type": [
             "integer",
             "string"
@@ -1003,17 +1014,21 @@
         },
         "dnsPolicy": {
           "type": "string",
+          "x-wizard": { "advanced": true },
           "description": "DNS policy: ClusterFirst, Default, ClusterFirstWithHostNet, None. See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy"
         },
         "dnsConfig": {
           "type": "object",
+          "x-wizard": { "advanced": true },
           "description": "Custom DNS settings (nameservers, searches, options). See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config"
         },
         "hostNetwork": {
           "type": "boolean",
+          "x-wizard": { "advanced": true },
           "description": "Use the host's network namespace. The pod will use the node's IP and ports directly."
         },
         "restartPolicy": {
+          "x-wizard": { "advanced": true },
           "type": "string",
           "enum": [
             "Always",
@@ -1165,8 +1180,8 @@
           "type": "object",
           "description": "Map of oauth2 proxy name to proxy config",
           "x-wizard": {
-            "order": 10,
-            "group": "Networking",
+            "order": 19,
+            "group": "Security",
             "label": "OAuth2 Proxy",
             "icon": "Lock",
             "description": "Configure OAuth2 proxy for authentication (sidecar or separate deployment).",
@@ -2449,7 +2464,7 @@
       "type": "object",
       "x-wizard": {
         "order": 18,
-        "group": "Config & Storage",
+        "group": "Security",
         "label": "RBAC",
         "icon": "Users",
         "description": "Configure ServiceAccount, Roles, ClusterRoles, and their Bindings."
@@ -2905,16 +2920,18 @@
                 "integer",
                 "string"
               ],
+              "x-wizard": { "advanced": true },
               "default": 0,
-              "description": "Minimum seconds a pod must be ready before considered available"
+              "description": "Minimum seconds a pod must be ready before considered available. See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds"
             },
             "revisionHistoryLimit": {
               "type": [
                 "integer",
                 "string"
               ],
+              "x-wizard": { "advanced": true },
               "default": 10,
-              "description": "Number of old ReplicaSets to retain for rollback"
+              "description": "Number of old ReplicaSets to retain for rollback. See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#revision-history-limit"
             },
             "restartAt": {
               "type": "string",
@@ -2948,7 +2965,7 @@
                     "Recreate"
                   ],
                   "default": "RollingUpdate",
-                  "description": "RollingUpdate replaces pods gradually; Recreate kills all existing pods first"
+                  "description": "RollingUpdate replaces pods gradually; Recreate kills all existing pods first. See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy"
                 }
               }
             },
@@ -2957,16 +2974,18 @@
                 "integer",
                 "string"
               ],
+              "x-wizard": { "advanced": true },
               "default": 0,
-              "description": "Minimum seconds a pod must be ready before considered available"
+              "description": "Minimum seconds a pod must be ready before considered available. See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds"
             },
             "revisionHistoryLimit": {
               "type": [
                 "integer",
                 "string"
               ],
+              "x-wizard": { "advanced": true },
               "default": 10,
-              "description": "Number of old ReplicaSets to retain for rollback"
+              "description": "Number of old ReplicaSets to retain for rollback. See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#revision-history-limit"
             }
           },
           "additionalProperties": false
@@ -2987,10 +3006,12 @@
             },
             "publishNotReadyAddresses": {
               "type": "boolean",
+              "x-wizard": { "advanced": true },
               "description": "Publish DNS records for pods even when not ready"
             },
             "podManagementPolicy": {
               "type": "string",
+              "x-wizard": { "advanced": true },
               "enum": [
                 "OrderedReady",
                 "Parallel",
@@ -3010,7 +3031,7 @@
                     "OnDelete"
                   ],
                   "default": "RollingUpdate",
-                  "description": "RollingUpdate updates pods automatically; OnDelete waits for manual pod deletion"
+                  "description": "RollingUpdate updates pods automatically; OnDelete waits for manual pod deletion. See https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies"
                 }
               }
             },
@@ -3019,23 +3040,27 @@
                 "integer",
                 "string"
               ],
+              "x-wizard": { "advanced": true },
               "default": 0,
-              "description": "Minimum seconds a pod must be ready before considered available"
+              "description": "Minimum seconds a pod must be ready before considered available. See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds"
             },
             "revisionHistoryLimit": {
               "type": [
                 "integer",
                 "string"
               ],
+              "x-wizard": { "advanced": true },
               "default": 10,
-              "description": "Number of old revisions to retain for rollback"
+              "description": "Number of old revisions to retain for rollback. See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#revision-history-limit"
             },
             "ordinals": {
               "type": "object",
+              "x-wizard": { "advanced": true },
               "description": "Ordinal configuration (start index). See https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#start-ordinal"
             },
             "persistentVolumeClaimRetentionPolicy": {
               "type": "object",
+              "x-wizard": { "advanced": true },
               "description": "PVC retention policy on scale-down/deletion. See https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention"
             }
           },
@@ -3056,7 +3081,7 @@
                     "OnDelete"
                   ],
                   "default": "RollingUpdate",
-                  "description": "RollingUpdate updates pods automatically; OnDelete waits for manual pod deletion"
+                  "description": "RollingUpdate updates pods automatically; OnDelete waits for manual pod deletion. See https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/"
                 }
               }
             },
@@ -3065,16 +3090,18 @@
                 "integer",
                 "string"
               ],
+              "x-wizard": { "advanced": true },
               "default": 0,
-              "description": "Minimum seconds a pod must be ready before considered available"
+              "description": "Minimum seconds a pod must be ready before considered available. See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds"
             },
             "revisionHistoryLimit": {
               "type": [
                 "integer",
                 "string"
               ],
+              "x-wizard": { "advanced": true },
               "default": 10,
-              "description": "Number of old DaemonSet revisions to retain for rollback"
+              "description": "Number of old DaemonSet revisions to retain for rollback. See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#revision-history-limit"
             }
           },
           "additionalProperties": false

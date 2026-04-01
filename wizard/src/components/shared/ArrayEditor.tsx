@@ -27,7 +27,7 @@ export function ArrayEditor({ label, value = [], onChange, placeholder = 'Value'
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">{label}</label>
+        <label className="block text-sm font-medium text-gray-700">{label} <span className="text-gray-400">({value.length})</span></label>
         <button type="button" onClick={addItem} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
           <Plus className="h-3 w-3" /> Add
         </button>

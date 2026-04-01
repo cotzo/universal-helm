@@ -56,7 +56,7 @@ interface EnvEditorProps {
 }
 
 export function EnvEditor({ label, value = {}, onChange, helpText }: EnvEditorProps) {
-  const [newKeyName, setNewKeyName] = useState('')
+  const [counter, setCounter] = useState(Object.keys(value).length)
   const stableIdsRef = useRef<Map<string, string>>(new Map())
 
   const entries = Object.entries(value)
@@ -98,11 +98,15 @@ export function EnvEditor({ label, value = {}, onChange, helpText }: EnvEditorPr
   }
 
   const addEntry = (type: EnvType = 'value') => {
-    const name = newKeyName.trim() || `VAR_${entries.length + 1}`
-    if (value[name]) return
+    let name: string
+    let c = counter
+    do {
+      c++
+      name = `VAR_${c}`
+    } while (value[name])
+    setCounter(c)
     stableIds.set(name, crypto.randomUUID())
     onChange({ ...value, [name]: createEntry(type) })
-    setNewKeyName('')
   }
 
   // Split entries by category
@@ -118,7 +122,8 @@ export function EnvEditor({ label, value = {}, onChange, helpText }: EnvEditorPr
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">{label}</label>
+        <label className="block text-sm font-medium text-gray-700">{label} <span className="text-gray-400">({entries.length})</span></label>
+        <AddDropdown onAdd={addEntry} />
       </div>
       {helpText && <HelpText text={helpText} />}
 
@@ -159,17 +164,6 @@ export function EnvEditor({ label, value = {}, onChange, helpText }: EnvEditorPr
 
       {entries.length === 0 && <p className="text-xs text-gray-400 italic">No environment variables</p>}
 
-      {/* Add row */}
-      <div className="flex items-center gap-2">
-        <input
-          value={newKeyName}
-          onChange={e => setNewKeyName(e.target.value)}
-          placeholder="Variable name"
-          onKeyDown={e => e.key === 'Enter' && addEntry('value')}
-          className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
-        <AddDropdown onAdd={addEntry} />
-      </div>
     </div>
   )
 }
@@ -194,9 +188,9 @@ function AddDropdown({ onAdd }: { onAdd: (type: EnvType) => void }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-100"
+        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
       >
-        <Plus className="h-4 w-4" /> Add <ChevronDown className="h-3 w-3" />
+        <Plus className="h-3 w-3" /> Add <ChevronDown className="h-3 w-3" />
       </button>
       {open && (
         <div className="absolute right-0 z-10 mt-1 w-48 rounded-md border border-gray-200 bg-white shadow-lg">

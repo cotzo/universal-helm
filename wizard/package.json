@@ -4,9 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "presync": "cp ../values.schema.json public/values.schema.json",
-    "dev": "npm run presync && vite",
-    "build": "npm run presync && tsc -b && vite build",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

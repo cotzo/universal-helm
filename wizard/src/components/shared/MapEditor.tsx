@@ -12,12 +12,12 @@ interface MapEditorProps<T> {
   keyPlaceholder?: string
 }
 
-export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange, renderItem, createDefault, helpText, keyPlaceholder = 'Name' }: MapEditorProps<T>) {
+export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange, renderItem, createDefault, helpText }: MapEditorProps<T>) {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
-  const [newKeyName, setNewKeyName] = useState('')
   const stableIdsRef = useRef<Map<string, string>>(new Map())
 
   const entries = Object.entries(value)
+  const [counter, setCounter] = useState(entries.length)
 
   // Assign stable IDs to map keys so React doesn't remount on rename
   const stableIds = stableIdsRef.current
@@ -32,12 +32,16 @@ export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange,
   }
 
   const addEntry = () => {
-    const name = newKeyName.trim() || `item-${entries.length + 1}`
-    if (value[name]) return
+    let name: string
+    let c = counter
+    do {
+      c++
+      name = `item-${c}`
+    } while (value[name])
+    setCounter(c)
     stableIds.set(name, crypto.randomUUID())
     onChange({ ...value, [name]: createDefault() })
     setExpandedKeys(new Set([...expandedKeys, name]))
-    setNewKeyName('')
   }
 
   const removeEntry = (key: string) => {
@@ -85,7 +89,10 @@ export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange,
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">{label}</label>
+        <label className="block text-sm font-medium text-gray-700">{label} <span className="text-gray-400">({entries.length})</span></label>
+        <button type="button" onClick={addEntry} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+          <Plus className="h-3 w-3" /> Add
+        </button>
       </div>
       {helpText && <HelpText text={helpText} />}
 
@@ -112,22 +119,7 @@ export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange,
         </div>
       ))}
 
-      <div className="flex items-center gap-2">
-        <input
-          value={newKeyName}
-          onChange={e => setNewKeyName(e.target.value)}
-          placeholder={keyPlaceholder}
-          onKeyDown={e => e.key === 'Enter' && addEntry()}
-          className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
-        <button
-          type="button"
-          onClick={addEntry}
-          className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-100"
-        >
-          <Plus className="h-4 w-4" /> Add
-        </button>
-      </div>
+      {entries.length === 0 && <p className="text-xs text-gray-400 italic">No items</p>}
     </div>
   )
 }

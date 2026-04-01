@@ -8,6 +8,10 @@ export interface WizardMeta {
   renderer?: 'workloadType' | 'review'
   /** Render only the child property whose key matches this value path (lcFirst) */
   selectByValue?: string
+  /** If true, render this property inside an "Advanced" collapsible section */
+  advanced?: boolean
+  /** If true, the collapsible section is expanded by default */
+  expanded?: boolean
 }
 
 export interface JsonSchema {

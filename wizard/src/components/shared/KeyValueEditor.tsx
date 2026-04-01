@@ -38,7 +38,7 @@ export function KeyValueEditor({ label, value = {}, onChange, keyPlaceholder = '
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">{label}</label>
+        <label className="block text-sm font-medium text-gray-700">{label} <span className="text-gray-400">({entries.length})</span></label>
         <button type="button" onClick={addEntry} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
           <Plus className="h-3 w-3" /> Add
         </button>

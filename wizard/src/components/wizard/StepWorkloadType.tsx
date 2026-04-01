@@ -1,14 +1,14 @@
-import { Rocket, Database, Layers, Clock, Zap, GitMerge } from 'lucide-react'
+import { Rocket, Database, Layers, Clock, Zap, GitMerge, ExternalLink } from 'lucide-react'
 import type { StepProps } from './StepProps'
 import { TextInput } from '../shared/TextInput'
 
 const WORKLOAD_TYPES = [
-  { value: 'Deployment', label: 'Deployment', description: 'Stateless application with rolling updates', icon: 'Rocket' },
-  { value: 'StatefulSet', label: 'StatefulSet', description: 'Stateful application with stable identity', icon: 'Database' },
-  { value: 'DaemonSet', label: 'DaemonSet', description: 'Run a pod on every node', icon: 'Layers' },
-  { value: 'CronJob', label: 'CronJob', description: 'Scheduled recurring jobs', icon: 'Clock' },
-  { value: 'Job', label: 'Job', description: 'One-off batch processing', icon: 'Zap' },
-  { value: 'Rollout', label: 'Rollout', description: 'Argo Rollouts canary/blue-green', icon: 'GitMerge' },
+  { value: 'Deployment', label: 'Deployment', description: 'Stateless application with rolling updates', icon: 'Rocket', docsUrl: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/' },
+  { value: 'StatefulSet', label: 'StatefulSet', description: 'Stateful application with stable identity', icon: 'Database', docsUrl: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/' },
+  { value: 'DaemonSet', label: 'DaemonSet', description: 'Run a pod on every node', icon: 'Layers', docsUrl: 'https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/' },
+  { value: 'CronJob', label: 'CronJob', description: 'Scheduled recurring jobs', icon: 'Clock', docsUrl: 'https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/' },
+  { value: 'Job', label: 'Job', description: 'One-off batch processing or Scaled Job', icon: 'Zap', docsUrl: 'https://kubernetes.io/docs/concepts/workloads/controllers/job/' },
+  { value: 'Rollout', label: 'Rollout', description: 'Argo Rollouts canary/blue-green', icon: 'GitMerge', docsUrl: 'https://argo-rollouts.readthedocs.io/en/stable/' },
 ] as const
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -48,6 +48,15 @@ export function StepWorkloadType({ getValue, setValue }: StepProps) {
                   {wt.label}
                 </h3>
                 <p className="mt-1 text-xs text-gray-500">{wt.description}</p>
+                <a
+                  href={wt.docsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  className="mt-2 inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700"
+                >
+                  Docs <ExternalLink className="h-3 w-3" />
+                </a>
               </div>
             </button>
           )

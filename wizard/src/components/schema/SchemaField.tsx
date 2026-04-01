@@ -19,6 +19,7 @@ import { ArrayObjectEditor } from '../shared/ArrayObjectEditor'
 import { EnvEditor } from '../shared/EnvEditor'
 import { NodeTargetingField } from '../shared/NodeTargetingField'
 import { CollapsibleSection } from '../shared/CollapsibleSection'
+import { HelpText } from '../shared/HelpText'
 
 interface SchemaFieldProps {
   schema: JsonSchema
@@ -223,7 +224,8 @@ export function SchemaField({ schema, rootSchema, value, onChange, label, requir
   if (isStructuredObject(resolved)) {
     if (depth > 0) {
       return (
-        <CollapsibleSection title={label || ''} badge={desc ? undefined : undefined}>
+        <CollapsibleSection title={label || ''} defaultOpen={!!(schema['x-wizard']?.expanded ?? resolved['x-wizard']?.expanded)}>
+          {desc && <HelpText text={desc} />}
           <SchemaObjectFields
             schema={resolved}
             rootSchema={rootSchema}
@@ -301,20 +303,50 @@ export function SchemaObjectFields({
     [value, onChange]
   )
 
+  const normalFields: [string, JsonSchema][] = []
+  const advancedFields: [string, JsonSchema][] = []
+
+  for (const [key, propSchema] of Object.entries(properties)) {
+    if (propSchema['x-wizard']?.advanced) {
+      advancedFields.push([key, propSchema])
+    } else {
+      normalFields.push([key, propSchema])
+    }
+  }
+
+  const renderField = ([key, propSchema]: [string, JsonSchema]) => (
+    <SchemaField
+      key={key}
+      schema={propSchema}
+      rootSchema={rootSchema}
+      value={value?.[key]}
+      onChange={v => handleFieldChange(key, v)}
+      label={keyToLabel(key)}
+      required={requiredFields.has(key)}
+      depth={depth + 1}
+    />
+  )
+
   return (
-    <div className="space-y-4">
-      {Object.entries(properties).map(([key, propSchema]) => (
-        <SchemaField
-          key={key}
-          schema={propSchema}
-          rootSchema={rootSchema}
-          value={value?.[key]}
-          onChange={v => handleFieldChange(key, v)}
-          label={keyToLabel(key)}
-          required={requiredFields.has(key)}
-          depth={depth + 1}
-        />
+    <div className="divide-y divide-gray-300">
+      {normalFields.map(([key, propSchema]) => (
+        <div key={key} className="py-4 first:pt-0 last:pb-0">
+          {renderField([key, propSchema])}
+        </div>
       ))}
+      {advancedFields.length > 0 && (
+        <div className="pt-4">
+          <CollapsibleSection title="Advanced">
+            <div className="divide-y divide-gray-300">
+              {advancedFields.map(([key, propSchema]) => (
+                <div key={key} className="py-4 first:pt-0 last:pb-0">
+                  {renderField([key, propSchema])}
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+        </div>
+      )}
     </div>
   )
 }
