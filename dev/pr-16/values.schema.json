@@ -1155,7 +1155,7 @@
                     },
                     "containerPort": {
                       "type": "string",
-                      "x-wizard": { "narrow": true },
+                      "x-wizard": { "narrow": true, "optionsFrom": "containers.*.ports" },
                       "description": "Container port name, defaults to port key name"
                     },
                     "protocol": {
