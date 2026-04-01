@@ -79,7 +79,7 @@ tests:
       - hasDocuments:
           count: 0
 
-  - it: should set storageClass and accessModes on PVC
+  - it: should set storageClass and accessMode on PVC
     template: templates/persistence/pvc.yaml
     set:
       containers:
@@ -99,8 +99,7 @@ tests:
         data:
           size: 5Gi
           storageClass: fast-ssd
-          accessModes:
-            - ReadWriteMany
+          accessMode: ReadWriteMany
     asserts:
       - equal:
           path: spec.storageClassName

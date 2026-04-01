@@ -12,6 +12,10 @@
   <img src="https://img.shields.io/badge/license-Apache%202.0-green" alt="License">
 </p>
 
+<p align="center">
+  <a href="https://cotzo.github.io/chartpack/wizard/"><img src="https://img.shields.io/badge/%F0%9F%A7%99%20Values%20Generator-Open%20Wizard-blueviolet?style=for-the-badge" alt="Values Generator"></a>
+</p>
+
 # Chartpack
 
 A single, opinionated Helm chart for deploying any Kubernetes application workload.
@@ -128,7 +132,7 @@ The core chart (Deployment, Service, Ingress, ConfigMap, Secret, HPA, PDB, RBAC)
 | Gateway API | [Gateway API CRDs](https://gateway-api.sigs.k8s.io/) | `networking.gatewayApi.routes` | v1.2+ |
 | Envoy policies | [Envoy Gateway](https://gateway.envoyproxy.io/) | `networking.gatewayApi.routes.*.policies.envoy` | v1.0+ |
 | Istio mesh | [Istio](https://istio.io/) | `networking.istio.*` | v1.20+ |
-| TLS certificates | [cert-manager](https://cert-manager.io/) | `networking.certificates` | v1.12+ |
+| TLS certificates | [cert-manager](https://cert-manager.io/) | `config.certificates` | v1.12+ |
 | External Secrets | [ESO](https://external-secrets.io/) | `config.externalSecrets` / `config.secrets.*.generate` | v0.9+ |
 | Prometheus | [Prometheus Operator](https://prometheus-operator.dev/) | `monitors` / `alerting` (operator: prometheus) | v0.70+ |
 | VictoriaMetrics | [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) | `monitors` / `alerting` (operator: victoriametrics) | v0.44+ |

@@ -1,6 +1,6 @@
 suite: cert-manager Certificates
 templates:
-  - templates/networking/certificate.yaml
+  - templates/config/certificate.yaml
 set:
   containers:
     app:
@@ -23,7 +23,7 @@ tests:
 
   - it: should render Certificate with ClusterIssuer
     set:
-      networking:
+      config:
         certificates:
           app-tls:
             issuerRef:
@@ -47,7 +47,7 @@ tests:
 
   - it: should default secretName to fullname-key-tls
     set:
-      networking:
+      config:
         certificates:
           app-tls:
             issuerRef:
@@ -61,7 +61,7 @@ tests:
 
   - it: should use custom secretName
     set:
-      networking:
+      config:
         certificates:
           app-tls:
             issuerRef:
@@ -76,7 +76,7 @@ tests:
 
   - it: should render with Issuer kind
     set:
-      networking:
+      config:
         certificates:
           internal:
             issuerRef:
@@ -91,7 +91,7 @@ tests:
 
   - it: should render duration and renewBefore
     set:
-      networking:
+      config:
         certificates:
           app-tls:
             issuerRef:
@@ -110,7 +110,7 @@ tests:
 
   - it: should render privateKey settings
     set:
-      networking:
+      config:
         certificates:
           app-tls:
             issuerRef:
@@ -131,7 +131,7 @@ tests:
 
   - it: should render multiple certificates
     set:
-      networking:
+      config:
         certificates:
           public:
             issuerRef:

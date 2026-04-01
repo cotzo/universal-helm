@@ -129,8 +129,7 @@ config:
 persistence:
   cache:
     size: 1Gi
-    accessModes:
-      - ReadWriteOnce
+    accessMode: ReadWriteOnce
 workloads:
   deployment:
     replicaCount: 2

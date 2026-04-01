@@ -277,3 +277,51 @@ tests:
         documentSelector:
           path: metadata.name
           value: RELEASE-NAME-chartpack-headless
+
+  - it: should render dual-stack ipFamilies
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+            ipFamilies:
+              - IPv4
+              - IPv6
+    asserts:
+      - contains:
+          path: spec.ipFamilies
+          content: IPv4
+      - contains:
+          path: spec.ipFamilies
+          content: IPv6
+
+  - it: should render single ipFamily
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+            ipFamilies:
+              - IPv6
+    asserts:
+      - contains:
+          path: spec.ipFamilies
+          content: IPv6

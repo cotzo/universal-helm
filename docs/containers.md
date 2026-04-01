@@ -255,7 +255,7 @@ initContainers:
 
 [Init containers reference](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/)
 
-## Native Sidecar Containers (K8s 1.33+)
+## Native Sidecar Containers
 
 Init containers with `restartPolicy: Always` run as native sidecars -- they start before main containers, stay running throughout the pod lifecycle, and support probes.
 

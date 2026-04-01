@@ -20,7 +20,7 @@ User → Ingress/Route → oauth2-proxy → Your App
 
 ### Sidecar (default)
 
-The proxy runs as a [native sidecar](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/) in the app pod using `restartPolicy: Always` (K8s 1.33+). No separate Deployment or Service needed.
+The proxy runs as a [native sidecar](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/) in the app pod using `restartPolicy: Always`. No separate Deployment or Service needed.
 
 ```yaml
 networking:

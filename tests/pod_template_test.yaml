@@ -1260,7 +1260,7 @@ tests:
           path: spec.template.spec.topologySpreadConstraints
         template: templates/workloads/deployment.yaml
 
-  - it: should auto-mount certificate when mount.path is set
+  - it: should auto-mount certificate when mountPath is set
     set:
       workloadType: Deployment
       containers:
@@ -1276,14 +1276,14 @@ tests:
             ports:
               http:
                 port: 80
+      config:
         certificates:
           app-tls:
             issuerRef:
               name: letsencrypt-prod
             dnsNames:
               - app.example.com
-            mount:
-              path: /etc/tls
+            mountPath: /etc/tls
     asserts:
       - contains:
           path: spec.template.spec.volumes
@@ -1300,7 +1300,7 @@ tests:
             readOnly: true
         template: templates/workloads/deployment.yaml
 
-  - it: should not auto-mount certificate when mount is not set
+  - it: should not auto-mount certificate when mountPath is not set
     set:
       workloadType: Deployment
       containers:
@@ -1316,6 +1316,7 @@ tests:
             ports:
               http:
                 port: 80
+      config:
         certificates:
           app-tls:
             issuerRef:

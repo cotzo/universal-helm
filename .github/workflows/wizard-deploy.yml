@@ -1,0 +1,109 @@
+name: Deploy Wizard to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wizard/**'
+      - 'values.schema.json'
+  pull_request:
+    paths:
+      - 'wizard/**'
+      - 'values.schema.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: wizard/package-lock.json
+
+      - name: Set deploy path
+        id: path
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            echo "dest=dev/pr-${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "base=/chartpack/dev/pr-${PR_NUMBER}/" >> "$GITHUB_OUTPUT"
+          else
+            echo "dest=wizard" >> "$GITHUB_OUTPUT"
+            echo "base=/chartpack/wizard/" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build wizard
+        run: |
+          cd wizard
+          npm ci
+          VITE_BASE="${{ steps.path.outputs.base }}" npm run build
+        env:
+          VITE_BASE: ${{ steps.path.outputs.base }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wizard-dist
+          path: wizard/dist
+          retention-days: 1
+
+    outputs:
+      dest: ${{ steps.path.outputs.dest }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wizard-dist
+          path: dist
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
+          destination_dir: ${{ needs.build.outputs.dest }}
+          keep_files: true
+
+      - name: Comment PR with preview link
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const dest = '${{ needs.build.outputs.dest }}';
+            const url = `https://${{ github.repository_owner }}.github.io/chartpack/${dest}/`;
+            const body = `🧙 **Wizard Preview:** ${url}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('Wizard Preview:'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

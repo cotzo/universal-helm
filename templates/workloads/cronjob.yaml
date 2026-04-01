@@ -3,7 +3,7 @@ apiVersion: batch/v1
 kind: CronJob
 {{ include "chartpack.metadata" (dict "context" $ "workload" true "syncWaveDefault" "0") }}
 spec:
-  schedule: {{ .Values.workloads.cronJob.schedule | quote }}
+  schedule: {{ default "0 * * * *" .Values.workloads.cronJob.schedule | quote }}
   {{- with .Values.workloads.cronJob.timeZone }}
   timeZone: {{ . | quote }}
   {{- end }}
