@@ -720,6 +720,7 @@
       "properties": {
         "syncWaves": {
           "type": "object",
+          "x-wizard": { "expanded": true },
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -3323,7 +3324,57 @@
             "properties": {
               "instanceSelector": {
                 "type": "object",
-                "description": "Label selector to match target Grafana instances"
+                "x-wizard": { "expanded": true },
+                "description": "Label selector to match target Grafana instances. See https://grafana.github.io/grafana-operator/docs/dashboards/#instance-selector",
+                "properties": {
+                  "matchLabels": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" },
+                    "description": "Labels that must match the Grafana instance (e.g. dashboards: enabled)"
+                  }
+                }
+              },
+              "grafanaCom": {
+                "type": "object",
+                "description": "Import from grafana.com by dashboard ID. See https://grafana.com/grafana/dashboards/",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "x-wizard": { "narrow": true },
+                    "description": "Dashboard ID from grafana.com (e.g. 1860 for Node Exporter)"
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "x-wizard": { "narrow": true },
+                    "description": "Dashboard revision number"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "url": {
+                "type": "string",
+                "description": "URL to fetch dashboard JSON from. See https://grafana.github.io/grafana-operator/docs/dashboards/#from-url"
+              },
+              "json": {
+                "type": "string",
+                "description": "Inline dashboard JSON model. See https://grafana.github.io/grafana-operator/docs/dashboards/#from-json"
+              },
+              "configMapRef": {
+                "type": "object",
+                "description": "Load dashboard from a ConfigMap. See https://grafana.github.io/grafana-operator/docs/dashboards/#from-configmap",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "description": "ConfigMap name"
+                  },
+                  "key": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "description": "Key within the ConfigMap containing the dashboard JSON"
+                  }
+                },
+                "additionalProperties": false
               },
               "folder": {
                 "type": "string",
@@ -3340,57 +3391,67 @@
                 "x-wizard": { "narrow": true },
                 "description": "Reference to a GrafanaFolder resource name"
               },
-              "resyncPeriod": {
-                "type": "string",
-                "x-wizard": { "narrow": true },
-                "description": "How often to re-sync the dashboard (e.g. '5m')"
-              },
-              "allowCrossNamespaceImport": {
-                "type": "boolean",
-                "x-wizard": { "narrow": true },
-                "description": "Allow this dashboard to be imported by Grafana instances in other namespaces"
-              },
-              "suspend": {
-                "type": "boolean",
-                "x-wizard": { "narrow": true },
-                "description": "Suspend reconciliation of this dashboard"
-              },
               "uid": {
                 "type": "string",
                 "maxLength": 40,
                 "x-wizard": { "narrow": true },
                 "description": "Explicit dashboard UID (max 40 chars, auto-generated if omitted)"
               },
-              "json": {
+              "resyncPeriod": {
                 "type": "string",
-                "description": "Inline dashboard JSON model"
+                "x-wizard": { "narrow": true, "advanced": true },
+                "description": "How often to re-sync the dashboard (e.g. '5m')"
+              },
+              "allowCrossNamespaceImport": {
+                "type": "boolean",
+                "x-wizard": { "narrow": true, "advanced": true },
+                "description": "Allow import by Grafana instances in other namespaces"
+              },
+              "suspend": {
+                "type": "boolean",
+                "x-wizard": { "narrow": true, "advanced": true },
+                "description": "Suspend reconciliation of this dashboard"
               },
               "gzipJson": {
                 "type": "string",
+                "x-wizard": { "advanced": true },
                 "description": "Gzip-compressed and base64-encoded dashboard JSON"
-              },
-              "url": {
-                "type": "string",
-                "description": "URL to fetch dashboard JSON from"
               },
               "urlAuthorization": {
                 "type": "object",
                 "x-wizard": { "advanced": true },
-                "description": "Authorization config for fetching dashboard from URL"
-              },
-              "configMapRef": {
-                "type": "object",
-                "x-wizard": { "advanced": true },
-                "description": "Reference to a ConfigMap key containing dashboard JSON"
-              },
-              "grafanaCom": {
-                "type": "object",
-                "description": "Import from grafana.com by dashboard ID and revision. See https://grafana.com/grafana/dashboards/"
+                "description": "Authorization config for fetching dashboard from URL",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "enum": ["bearer", "basic"],
+                    "description": "Authorization type"
+                  },
+                  "credential": {
+                    "type": "object",
+                    "description": "Secret reference for the credential",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "x-wizard": { "narrow": true },
+                        "description": "Secret name"
+                      },
+                      "key": {
+                        "type": "string",
+                        "x-wizard": { "narrow": true },
+                        "description": "Key within the Secret"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
               },
               "jsonnet": {
                 "type": "string",
                 "x-wizard": { "advanced": true },
-                "description": "Jsonnet source for generating the dashboard"
+                "description": "Jsonnet source for generating the dashboard. See https://grafana.github.io/grafana-operator/docs/dashboards/#from-jsonnet"
               },
               "contentCacheDuration": {
                 "type": "string",
@@ -3399,11 +3460,43 @@
               },
               "datasources": {
                 "type": "array",
-                "items": {
-                  "type": "object"
-                },
                 "x-wizard": { "advanced": true },
-                "description": "Datasource variable substitutions"
+                "description": "Datasource variable substitutions. See https://grafana.github.io/grafana-operator/docs/dashboards/#datasources",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "inputName": {
+                      "type": "string",
+                      "x-wizard": { "narrow": true },
+                      "description": "Variable name in the dashboard JSON (e.g. DS_PROMETHEUS)"
+                    },
+                    "datasourceName": {
+                      "type": "string",
+                      "x-wizard": { "narrow": true },
+                      "description": "Grafana datasource name to substitute"
+                    }
+                  }
+                }
+              },
+              "plugins": {
+                "type": "array",
+                "x-wizard": { "advanced": true },
+                "description": "Required Grafana plugins. See https://grafana.github.io/grafana-operator/docs/dashboards/#plugins",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "x-wizard": { "narrow": true },
+                      "description": "Plugin ID (e.g. grafana-piechart-panel)"
+                    },
+                    "version": {
+                      "type": "string",
+                      "x-wizard": { "narrow": true },
+                      "description": "Plugin version"
+                    }
+                  }
+                }
               },
               "envs": {
                 "type": "array",
@@ -3420,14 +3513,6 @@
                 },
                 "x-wizard": { "advanced": true },
                 "description": "Environment variable sources (ConfigMap/Secret references)"
-              },
-              "plugins": {
-                "type": "array",
-                "items": {
-                  "type": "object"
-                },
-                "x-wizard": { "advanced": true },
-                "description": "Required Grafana plugins"
               },
               "annotations": {
                 "type": "object",
@@ -3815,11 +3900,13 @@
           },
           "weight": {
             "type": "string",
+            "x-wizard": { "narrow": true },
             "default": "0",
-            "description": "Execution order among hooks at the same event (lower runs first)"
+            "description": "Execution order among hooks at the same event (lower runs first). See https://helm.sh/docs/topics/charts_hooks/#hook-weights"
           },
           "deletePolicy": {
             "type": "string",
+            "x-wizard": { "narrow": true },
             "enum": [
               "before-hook-creation",
               "hook-succeeded",
@@ -3830,10 +3917,11 @@
           },
           "containers": {
             "type": "object",
-            "description": "Hook Job containers (same format as main containers)"
+            "description": "Hook Job containers (same format as main containers). See https://helm.sh/docs/topics/charts_hooks/"
           },
           "initContainers": {
             "type": "object",
+            "x-wizard": { "advanced": true },
             "description": "Init containers for the hook Job"
           },
           "backoffLimit": {
@@ -3841,42 +3929,49 @@
               "integer",
               "string"
             ],
-            "description": "Number of retries before marking the hook Job as failed"
+            "x-wizard": { "narrow": true },
+            "description": "Number of retries before marking the hook Job as failed. See https://kubernetes.io/docs/concepts/workloads/controllers/job/#pod-backoff-failure-policy"
           },
           "activeDeadlineSeconds": {
             "type": [
               "integer",
               "string"
             ],
-            "description": "Maximum duration before the hook Job is terminated"
+            "x-wizard": { "narrow": true },
+            "description": "Maximum duration (seconds) before the hook Job is terminated. See https://kubernetes.io/docs/concepts/workloads/controllers/job/#job-termination-and-cleanup"
           },
           "ttlSecondsAfterFinished": {
             "type": [
               "integer",
               "string"
             ],
-            "description": "Seconds to keep the hook Job after completion"
+            "x-wizard": { "narrow": true, "advanced": true },
+            "description": "Seconds to keep the hook Job after completion. See https://kubernetes.io/docs/concepts/workloads/controllers/job/#ttl-mechanism-for-finished-jobs"
           },
           "completions": {
             "type": [
               "integer",
               "string"
             ],
-            "description": "Number of successful completions required"
+            "x-wizard": { "narrow": true, "advanced": true },
+            "description": "Number of successful completions required. See https://kubernetes.io/docs/concepts/workloads/controllers/job/#parallel-jobs"
           },
           "parallelism": {
             "type": [
               "integer",
               "string"
             ],
-            "description": "Maximum number of pods running in parallel"
+            "x-wizard": { "narrow": true, "advanced": true },
+            "description": "Maximum number of pods running in parallel. See https://kubernetes.io/docs/concepts/workloads/controllers/job/#parallel-jobs"
           },
           "annotations": {
             "type": "object",
+            "x-wizard": { "advanced": true },
             "description": "Extra annotations on the hook Job"
           },
           "labels": {
             "type": "object",
+            "x-wizard": { "advanced": true },
             "description": "Extra labels on the hook Job"
           }
         },
