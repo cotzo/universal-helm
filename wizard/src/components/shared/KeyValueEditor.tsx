@@ -15,7 +15,13 @@ export function KeyValueEditor({ label, value = {}, onChange, keyPlaceholder = '
   const entries = Object.entries(value)
 
   const addEntry = () => {
-    onChange({ ...value, '': '' })
+    let n = entries.length + 1
+    let key = `key-${n}`
+    while (Object.prototype.hasOwnProperty.call(value, key)) {
+      n++
+      key = `key-${n}`
+    }
+    onChange({ ...value, [key]: '' })
   }
 
   const removeEntry = (key: string) => {

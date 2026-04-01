@@ -135,7 +135,7 @@ export function MountsEditor({ label, value = [], onChange, helpText }: MountsEd
           <div key={stableIds.get(idx) ?? idx} className="border border-gray-200 rounded-lg overflow-hidden">
             {/* Header row */}
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
-              <button type="button" onClick={() => toggleExpand(idx)} className="text-gray-500">
+              <button type="button" aria-label={isExpanded ? 'Collapse mount' : 'Expand mount'} aria-expanded={isExpanded} onClick={() => toggleExpand(idx)} className="text-gray-500">
                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </button>
               <span className="flex-1 text-sm font-medium text-gray-800 truncate">{summary}</span>

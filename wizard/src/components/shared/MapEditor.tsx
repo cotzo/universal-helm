@@ -95,7 +95,7 @@ export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange,
       {entries.map(([key, item]) => (
         <div key={stableIds.get(key) ?? key} className="border border-gray-200 rounded-lg overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
-            <button type="button" onClick={() => toggleExpand(key)} className="text-gray-500">
+            <button type="button" aria-label={expandedKeys.has(key) ? 'Collapse entry' : 'Expand entry'} aria-expanded={expandedKeys.has(key)} onClick={() => toggleExpand(key)} className="text-gray-500">
               {expandedKeys.has(key) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </button>
             <DraftKeyInput
