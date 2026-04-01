@@ -1667,15 +1667,9 @@
                 "description": "Select which pods this policy applies to (defaults to chart's selectorLabels)"
               },
               "policyTypes": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "enum": [
-                    "Ingress",
-                    "Egress"
-                  ]
-                },
-                "description": "Policy types to enforce: Ingress, Egress, or both"
+                "type": "string",
+                "enum": ["Ingress", "Egress", "Ingress+Egress"],
+                "description": "Policy types to enforce. See https://kubernetes.io/docs/concepts/services-networking/network-policies/"
               },
               "ingress": {
                 "type": "array",
@@ -1926,14 +1920,17 @@
               },
               "reloaderEnabled": {
                 "type": "boolean",
+                "x-wizard": { "advanced": true },
                 "description": "Include this ConfigMap in Stakater Reloader annotations for auto pod restarts on changes. See https://github.com/stakater/Reloader"
               },
               "annotations": {
                 "type": "object",
+                "x-wizard": { "advanced": true },
                 "description": "Annotations on the ConfigMap resource"
               },
               "labels": {
                 "type": "object",
+                "x-wizard": { "advanced": true },
                 "description": "Labels on the ConfigMap resource"
               }
             },
@@ -1955,7 +1952,15 @@
               "type": {
                 "type": "string",
                 "default": "Opaque",
-                "description": "Secret type (e.g. Opaque, kubernetes.io/tls, kubernetes.io/dockerconfigjson). See https://kubernetes.io/docs/concepts/configuration/secret/#secret-types"
+                "enum": [
+                  "Opaque",
+                  "kubernetes.io/tls",
+                  "kubernetes.io/dockerconfigjson",
+                  "kubernetes.io/basic-auth",
+                  "kubernetes.io/ssh-auth",
+                  "kubernetes.io/service-account-token"
+                ],
+                "description": "Secret type. See https://kubernetes.io/docs/concepts/configuration/secret/#secret-types"
               },
               "data": {
                 "type": "object",
@@ -1977,30 +1982,37 @@
                     "length": {
                       "type": "integer",
                       "default": 32,
+                      "x-wizard": { "narrow": true },
                       "description": "Generated password length"
                     },
                     "digits": {
                       "type": "integer",
+                      "x-wizard": { "narrow": true },
                       "description": "Minimum number of digits"
                     },
                     "symbols": {
                       "type": "integer",
+                      "x-wizard": { "narrow": true },
                       "description": "Minimum number of symbol characters"
                     },
                     "symbolCharacters": {
                       "type": "string",
+                      "x-wizard": { "narrow": true },
                       "description": "Allowed symbol characters (defaults to provider default)"
                     },
                     "noUpper": {
                       "type": "boolean",
+                      "x-wizard": { "narrow": true },
                       "description": "Exclude uppercase letters"
                     },
                     "allowRepeat": {
                       "type": "boolean",
+                      "x-wizard": { "narrow": true },
                       "description": "Allow repeated characters"
                     },
                     "encoding": {
                       "type": "string",
+                      "x-wizard": { "narrow": true },
                       "enum": [
                         "raw",
                         "base64",
@@ -2021,14 +2033,17 @@
               },
               "reloaderEnabled": {
                 "type": "boolean",
+                "x-wizard": { "advanced": true },
                 "description": "Include in Stakater Reloader annotations for auto pod restarts. See https://github.com/stakater/Reloader"
               },
               "annotations": {
                 "type": "object",
+                "x-wizard": { "advanced": true },
                 "description": "Annotations on the Secret resource"
               },
               "labels": {
                 "type": "object",
+                "x-wizard": { "advanced": true },
                 "description": "Labels on the Secret resource"
               }
             },
@@ -2049,20 +2064,23 @@
             "properties": {
               "refreshInterval": {
                 "type": "string",
-                "description": "How often to sync the secret from the external store (e.g. '1h', '5m')"
+                "description": "How often to sync the secret from the external store (e.g. '1h', '5m'). See https://external-secrets.io/latest/api/externalsecret/"
               },
               "secretStoreRef": {
                 "type": "object",
+                "x-wizard": { "expanded": true },
                 "required": [
                   "name"
                 ],
                 "properties": {
                   "name": {
                     "type": "string",
+                    "x-wizard": { "narrow": true },
                     "description": "SecretStore resource name"
                   },
                   "kind": {
                     "type": "string",
+                    "x-wizard": { "narrow": true },
                     "enum": [
                       "SecretStore",
                       "ClusterSecretStore"
@@ -2075,22 +2093,76 @@
               },
               "target": {
                 "type": "object",
-                "description": "Target Secret configuration (name, template, creation policy)"
+                "description": "Target Secret configuration. See https://external-secrets.io/latest/api/externalsecret/#target",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Target Secret name (defaults to <fullname>-<key>)"
+                  },
+                  "creationPolicy": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "enum": ["Owner", "Orphan", "Merge", "None"],
+                    "description": "How the Secret is created. See https://external-secrets.io/latest/api/externalsecret/#target"
+                  },
+                  "deletionPolicy": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "enum": ["Delete", "Merge", "Retain"],
+                    "description": "What happens when the ExternalSecret is deleted. See https://external-secrets.io/latest/api/externalsecret/#target"
+                  },
+                  "template": {
+                    "type": "object",
+                    "x-wizard": { "advanced": true },
+                    "description": "Template for the generated Secret (type, metadata, data). See https://external-secrets.io/latest/guides/templating/"
+                  }
+                },
+                "additionalProperties": false
               },
               "data": {
                 "type": "array",
-                "description": "Individual key mappings from the external store"
+                "description": "Individual key mappings from the external store. See https://external-secrets.io/latest/api/externalsecret/#data",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "secretKey": {
+                      "type": "string",
+                      "x-wizard": { "narrow": true },
+                      "description": "Key name in the target Kubernetes Secret"
+                    },
+                    "remoteRef": {
+                      "type": "object",
+                      "description": "Reference to the key in the external store",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "description": "Key/path in the external store (e.g. my-secret, /path/to/secret)"
+                        },
+                        "property": {
+                          "type": "string",
+                          "description": "Property within the secret (for JSON secrets)"
+                        },
+                        "version": {
+                          "type": "string",
+                          "description": "Version or stage of the secret"
+                        }
+                      }
+                    }
+                  }
+                }
               },
               "dataFrom": {
                 "type": "array",
-                "description": "Bulk data extraction from the external store"
+                "description": "Bulk data extraction from the external store. See https://external-secrets.io/latest/api/externalsecret/#datafrom"
               },
               "annotations": {
                 "type": "object",
+                "x-wizard": { "advanced": true },
                 "description": "Annotations on the ExternalSecret resource"
               },
               "labels": {
                 "type": "object",
+                "x-wizard": { "advanced": true },
                 "description": "Labels on the ExternalSecret resource"
               }
             },

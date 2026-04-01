@@ -16,7 +16,13 @@ spec:
   {{- end }}
   {{- with $np.policyTypes }}
   policyTypes:
+    {{- if kindIs "string" . }}
+    {{- range (splitList "+" .) }}
+    - {{ . }}
+    {{- end }}
+    {{- else }}
     {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- end }}
   {{- with $np.ingress }}
   ingress:
