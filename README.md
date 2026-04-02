@@ -57,6 +57,8 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 
 **Event-driven autoscaling** -- HPA v2, VPA, and KEDA (ScaledObject + ScaledJob) with any trigger.
 
+**Managed dependencies** -- CloudNativePG PostgreSQL clusters with auto-wired credentials, S3/Azure/GCS backups, and ESO password generation. Infra team provides backup credentials, developers just enable features.
+
 **Secrets management** -- ConfigMaps, Secrets, External Secrets, and auto-generated passwords via ESO (ArgoCD-safe). Stakater Reloader annotations auto-generated per resource.
 
 **Lifecycle hooks** -- Pre-install/pre-upgrade Jobs for DB migrations, schema setup, etc. Auto-generates both Helm and Argo CD hook annotations. Hooks share the main workload's pod settings (SA, volumes, secrets).
@@ -102,6 +104,13 @@ This produces a Deployment with 1 replica, a ClusterIP Service, and a ServiceAcc
 | [Monitoring](docs/monitoring.md) | ServiceMonitor, PodMonitor, VMServiceScrape, VMPodScrape |
 | [Alerting](docs/alerting.md) | PrometheusRule, VMRule (alerting + recording rules) |
 | [Dashboards](docs/dashboards.md) | GrafanaDashboard (inline JSON, grafana.com, URL, ConfigMap, Jsonnet) |
+
+### Dependencies
+
+| Guide | Description |
+|-------|-------------|
+| [Dependencies](docs/dependencies.md) | Overview of managed infrastructure dependencies |
+| [CloudNativePG](docs/cloudnativepg.md) | PostgreSQL clusters, backups (S3/Azure/GCS), credential injection, PITR |
 
 ### GitOps & Deployment
 

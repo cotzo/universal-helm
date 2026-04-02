@@ -74,6 +74,15 @@ Usage: {{ include "chartpack.reloaderAnnotations" . }}
   {{- end -}}
 {{- end -}}
 {{- end -}}
+{{- /* Add dependency secrets to reloader */ -}}
+{{- $pg := default (dict) .Values.dependencies.postgres -}}
+{{- $pgInject := default (dict) $pg.inject -}}
+{{- $pgInjectEnabled := true -}}
+{{- if not (kindIs "invalid" $pgInject.enabled) }}{{ $pgInjectEnabled = $pgInject.enabled }}{{ end -}}
+{{- if and $pg.enabled $pgInjectEnabled -}}
+{{- $pgSecretName := include "chartpack.dependencies.postgres.appSecretName" . -}}
+{{- $reloadSecrets = append $reloadSecrets $pgSecretName -}}
+{{- end -}}
 {{- $result := dict -}}
 {{- if $reloadCMs -}}
 {{- $_ := set $result "configmap.reloader.stakater.com/reload" ($reloadCMs | join ",") -}}

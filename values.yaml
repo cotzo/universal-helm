@@ -31,6 +31,53 @@ global:
 #     arch: kubernetes.io/arch
 #     nodeType: node.kubernetes.io/instance-type
 
+  # -- Backup infrastructure settings (provisioned by infra/devops team).
+  # Provides shared credentials for backup destinations used by dependencies.
+  backups:
+    s3:
+      # -- S3 bucket name
+      bucket: ""
+      # -- Path prefix within bucket
+      path: ""
+      # -- S3 region
+      region: ""
+      # -- S3 endpoint URL (for S3-compatible stores like MinIO)
+      endpoint: ""
+      # -- Credentials reference
+      credentials:
+        # -- Name of pre-existing Kubernetes secret containing S3 credentials
+        secretName: ""
+        # -- Key in the secret for access key ID
+        accessKeyId: ACCESS_KEY_ID
+        # -- Key in the secret for secret access key
+        secretAccessKey: ACCESS_SECRET_KEY
+    azure:
+      # -- Azure storage account name
+      storageAccount: ""
+      # -- Path prefix
+      path: ""
+      # -- Credentials reference
+      credentials:
+        # -- Name of pre-existing Kubernetes secret containing Azure credentials
+        secretName: ""
+        # -- Key in the secret for connection string
+        connectionString: AZURE_CONNECTION_STRING
+        # -- Key in the secret for storage account name
+        storageAccount: AZURE_STORAGE_ACCOUNT
+        # -- Key in the secret for storage key
+        storageKey: AZURE_STORAGE_KEY
+    gcs:
+      # -- GCS bucket name
+      bucket: ""
+      # -- Path prefix within bucket
+      path: ""
+      # -- Credentials reference
+      credentials:
+        # -- Name of pre-existing Kubernetes secret containing GCS credentials
+        secretName: ""
+        # -- Key in the secret for application credentials JSON
+        applicationCredentials: gcsCredentials
+
 # =============================================================================
 # Argo CD
 # =============================================================================
@@ -750,6 +797,116 @@ config:
   #         key: /prod/app/password
   #   annotations: {}
   #   labels: {}
+
+# =============================================================================
+# Dependencies (managed infrastructure)
+# =============================================================================
+
+# -- Managed infrastructure dependencies. The chart creates the operator CRDs
+# and auto-wires connection secrets into your containers.
+dependencies:
+  postgres:
+    # -- Enable CNPG Cluster creation
+    enabled: false
+    # -- Operator type (extensible for future operators)
+    type: cloudnativepg
+    # -- PostgreSQL major version (used to build default imageName)
+    version: "16"
+    # -- Custom image override (e.g. ghcr.io/cloudnative-pg/postgresql:16.2-1)
+    imageName: ""
+    # -- Number of PostgreSQL instances
+    instances: 3
+    # -- Database name created on bootstrap
+    database: app
+    # -- Database owner user
+    owner: app
+
+    # -- Storage configuration
+    storage:
+      # -- Storage size for each instance
+      size: 10Gi
+      # -- Storage class (empty = cluster default)
+      storageClass: ""
+
+    # -- Password management
+    password:
+      # -- Mode: cnpg (let CNPG auto-generate) | eso (generate via ESO Password generator)
+      mode: cnpg
+      # -- ESO Password generator configuration (only when mode: eso)
+      generate:
+        length: 32
+        # digits: 8
+        # symbols: 0
+        # symbolCharacters: ""
+        # noUpper: false
+        # allowRepeat: false
+        # encoding: raw
+
+    # -- Backup configuration (uses infraSettings.backups credentials)
+    backup:
+      # -- Enable backups
+      enabled: false
+      # -- Backup destination type: s3 | azure | gcs
+      type: s3
+      # -- Explicit destination path override (default: auto-built from infraSettings)
+      destinationPath: ""
+      # -- WAL compression algorithm
+      walCompression: gzip
+      # -- Retention policy
+      retentionPolicy: "30d"
+      # -- Scheduled backup cron expression
+      schedule: "0 0 * * *"
+
+    # -- Point-in-time recovery. When enabled, bootstrap switches from initdb to recovery.
+    # Uses infraSettings.backups credentials (same as backup section).
+    recovery:
+      # -- Enable recovery mode (one-time operation — disable after successful recovery)
+      enabled: false
+      # -- Backup source type: s3 | azure | gcs (defaults to backup.type if not set)
+      type: ""
+      # -- Explicit source path override (default: auto-built from infraSettings, same as backup)
+      destinationPath: ""
+      # -- Recovery target (at least one field required)
+      target:
+        # -- Restore to a specific timestamp (e.g. "2026-03-30T10:00:00Z")
+        targetTime: ""
+        # -- Restore to a specific Log Sequence Number
+        # targetLSN: ""
+        # -- Restore to a specific transaction ID
+        # targetXID: ""
+        # -- Restore to a named restore point
+        # targetName: ""
+        # -- Restore to end of base backup
+        # targetImmediate: false
+        # -- Stop just before the target instead of including it
+        # exclusive: false
+
+    # -- Auto-wiring: inject CNPG app secret into containers
+    inject:
+      # -- Enable env injection
+      enabled: true
+      # -- Inject into these containers (REQUIRED — explicit list)
+      containers: []
+      # -- Injection method: envFrom (bulk) | env (individual mapped vars)
+      method: envFrom
+      # -- Custom env var mapping (only when method: env).
+      # Maps env var names to CNPG secret keys: dbname, host, port, user, password, uri, jdbc-uri
+      envMapping: {}
+      # PGHOST: host
+      # PGPORT: port
+      # PGDATABASE: dbname
+      # PGUSER: user
+      # PGPASSWORD: password
+      # DATABASE_URL: uri
+
+    # -- Additional CNPG Cluster spec fields (merged into spec as-is)
+    extraSpec: {}
+    # -- Argo CD sync wave override (omit to use default wave -2 when syncWaves enabled)
+    # syncWave:
+    # -- Extra annotations on the CNPG resources
+    annotations: {}
+    # -- Extra labels on the CNPG resources
+    labels: {}
 
 # =============================================================================
 # Persistence

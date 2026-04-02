@@ -1,0 +1,45 @@
+workloadType: Deployment
+
+containers:
+  app:
+    image:
+      repository: my-app
+      tag: latest
+    ports:
+      http:
+        port: 8080
+
+networking:
+  services:
+    http:
+      ports:
+        http:
+          port: 8080
+
+infraSettings:
+  backups:
+    s3:
+      bucket: my-backups
+      path: databases
+      region: us-east-1
+      credentials:
+        secretName: s3-backup-creds
+
+dependencies:
+  postgres:
+    enabled: true
+    version: "16"
+    instances: 3
+    database: myapp
+    owner: myapp
+    storage:
+      size: 20Gi
+    backup:
+      enabled: true
+      type: s3
+      retentionPolicy: "30d"
+      schedule: "0 0 * * *"
+    inject:
+      enabled: true
+      containers: [app]
+      method: envFrom

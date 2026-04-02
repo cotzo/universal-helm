@@ -11,4 +11,5 @@ Called once from the workload template.
 {{- include "chartpack.validation.rbac" . }}
 {{- include "chartpack.validation.monitoring" . }}
 {{- include "chartpack.validation.hooks" . }}
+{{- include "chartpack.validation.dependencies" . }}
 {{- end }}

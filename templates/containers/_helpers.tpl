@@ -67,6 +67,23 @@ Usage: {{ include "chartpack.containers.renderContainer" (dict "name" "app" "con
   {{- $envFrom = append $envFrom $entry -}}
   {{- end -}}
   {{- end -}}
+  {{- /* Auto-wire dependencies.postgres secret */ -}}
+  {{- $pg := default (dict) $ctx.Values.dependencies.postgres -}}
+  {{- $pgInject := default (dict) $pg.inject -}}
+  {{- $pgInjectEnabled := true -}}
+  {{- if not (kindIs "invalid" $pgInject.enabled) }}{{ $pgInjectEnabled = $pgInject.enabled }}{{ end -}}
+  {{- if and $pg.enabled $pgInjectEnabled -}}
+  {{- if has $name (default (list) $pgInject.containers) -}}
+  {{- $pgSecretName := include "chartpack.dependencies.postgres.appSecretName" $ctx -}}
+  {{- if eq (default "envFrom" $pgInject.method) "envFrom" -}}
+  {{- $envFrom = append $envFrom (dict "secretRef" (dict "name" $pgSecretName)) -}}
+  {{- else -}}
+  {{- range $envVar, $secretKey := $pgInject.envMapping -}}
+  {{- $envList = append $envList (dict "name" $envVar "valueFrom" (dict "secretKeyRef" (dict "name" $pgSecretName "key" $secretKey))) -}}
+  {{- end -}}
+  {{- end -}}
+  {{- end -}}
+  {{- end -}}
   {{- if $envList }}
   env:
     {{- toYaml $envList | nindent 4 }}
