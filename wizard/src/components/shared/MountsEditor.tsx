@@ -4,7 +4,7 @@ import { HelpText } from './HelpText'
 import { useWizardValues, useWizardNavigate } from '../../lib/use-wizard'
 import { getKeysAtPath, getStepForPath } from '../../lib/values-utils'
 
-type SourceType = 'configMap' | 'secret' | 'persistence' | 'volume'
+type SourceType = 'configMap' | 'secret' | 'extConfigMap' | 'extSecret' | 'persistence' | 'volume'
 
 interface MountEntry {
   path: string
@@ -22,6 +22,8 @@ interface MountEntry {
 const SOURCE_LABELS: Record<SourceType, string> = {
   configMap: 'ConfigMap',
   secret: 'Secret',
+  extConfigMap: 'Existing ConfigMap',
+  extSecret: 'Existing Secret',
   persistence: 'Persistence',
   volume: 'Volume',
 }
@@ -29,11 +31,15 @@ const SOURCE_LABELS: Record<SourceType, string> = {
 const SOURCE_OPTIONS_PATH: Record<SourceType, string | null> = {
   configMap: 'config.configMaps',
   secret: 'config.secrets',
+  extConfigMap: null,
+  extSecret: null,
   persistence: 'persistence',
-  volume: null, // podSettings.volumes is an array, not a map
+  volume: null,
 }
 
 function detectSource(entry: MountEntry): SourceType {
+  if ('configMap' in entry && entry.external) return 'extConfigMap'
+  if ('secret' in entry && entry.external) return 'extSecret'
   if ('configMap' in entry) return 'configMap'
   if ('secret' in entry) return 'secret'
   if ('persistence' in entry) return 'persistence'
@@ -41,16 +47,23 @@ function detectSource(entry: MountEntry): SourceType {
   return 'configMap'
 }
 
+/** Map UI source type to the actual MountEntry field key */
+function sourceField(type: SourceType): 'configMap' | 'secret' | 'persistence' | 'volume' {
+  if (type === 'extConfigMap') return 'configMap'
+  if (type === 'extSecret') return 'secret'
+  return type
+}
+
 function getSourceValue(entry: MountEntry, type: SourceType): string {
-  return (entry[type] as string) ?? ''
+  return (entry[sourceField(type)] as string) ?? ''
 }
 
 function setSource(entry: MountEntry, type: SourceType, value: string): MountEntry {
+  const field = sourceField(type)
+  const isExt = type === 'extConfigMap' || type === 'extSecret'
   const next: MountEntry = { path: entry.path, readOnly: entry.readOnly, subPath: entry.subPath, items: entry.items, defaultMode: entry.defaultMode }
-  next[type] = value
-  if ((type === 'configMap' || type === 'secret') && entry.external) {
-    next.external = true
-  }
+  next[field] = value
+  if (isExt) next.external = true
   // Clean undefined fields
   if (!next.readOnly) delete next.readOnly
   if (!next.subPath) delete next.subPath
@@ -147,15 +160,30 @@ export function MountsEditor({ label, value = [], onChange, helpText }: MountsEd
 
             {isExpanded && (
               <div className="px-4 py-4 space-y-3 border-t border-gray-200">
-                {/* Path */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-600">Mount Path <span className="text-red-500">*</span></label>
-                  <input
-                    value={entry.path}
-                    onChange={e => updateMount(idx, { ...entry, path: e.target.value })}
-                    placeholder="/mnt/data"
-                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm"
-                  />
+                {/* Path + Read Only */}
+                <div className="flex items-end gap-3">
+                  <div className="flex-1 space-y-1">
+                    <label className="block text-xs font-medium text-gray-600">Mount Path <span className="text-red-500">*</span></label>
+                    <input
+                      value={entry.path}
+                      onChange={e => updateMount(idx, { ...entry, path: e.target.value })}
+                      placeholder="/mnt/data"
+                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pb-0.5">
+                    <label className="text-xs font-medium text-gray-600">Read Only</label>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-label="Toggle read-only"
+                      aria-checked={!!entry.readOnly}
+                      onClick={() => updateMount(idx, { ...entry, readOnly: !entry.readOnly || undefined })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${entry.readOnly ? 'bg-blue-600' : 'bg-gray-200'}`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${entry.readOnly ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Source type + name */}
@@ -167,13 +195,20 @@ export function MountsEditor({ label, value = [], onChange, helpText }: MountsEd
                         value={sourceType}
                         onChange={e => {
                           const newType = e.target.value as SourceType
-                          updateMount(idx, setSource(entry, newType, sourceValue))
+                          const optPath = SOURCE_OPTIONS_PATH[newType]
+                          let name = sourceValue
+                          if (optPath) {
+                            const options = getKeysAtPath(allValues, optPath)
+                            if (!options.includes(name)) name = ''
+                          }
+                          updateMount(idx, setSource(entry, newType, name))
                         }}
                         className="block w-full appearance-none rounded-md border border-gray-300 bg-white pl-3 pr-8 py-1.5 text-sm"
                       >
                         {(Object.keys(SOURCE_LABELS) as SourceType[]).map(t => (
                           <option key={t} value={t}>{SOURCE_LABELS[t]}</option>
                         ))}
+
                       </select>
                       <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                     </div>
@@ -236,43 +271,6 @@ export function MountsEditor({ label, value = [], onChange, helpText }: MountsEd
                   />
                 </div>
 
-                {/* Options */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-medium text-gray-700">Read Only</span>
-                      <p className="text-xs text-gray-500">Mount as read-only</p>
-                    </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-label="Toggle read-only"
-                      aria-checked={!!entry.readOnly}
-                      onClick={() => updateMount(idx, { ...entry, readOnly: !entry.readOnly || undefined })}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${entry.readOnly ? 'bg-blue-600' : 'bg-gray-200'}`}
-                    >
-                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${entry.readOnly ? 'translate-x-5' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-                  {(sourceType === 'configMap' || sourceType === 'secret') && (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">External</span>
-                        <p className="text-xs text-gray-500">Not prefixed with release name</p>
-                      </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-label="Toggle external"
-                        aria-checked={!!entry.external}
-                        onClick={() => updateMount(idx, { ...entry, external: !entry.external || undefined })}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${entry.external ? 'bg-blue-600' : 'bg-gray-200'}`}
-                      >
-                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${entry.external ? 'translate-x-5' : 'translate-x-0'}`} />
-                      </button>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
           </div>
