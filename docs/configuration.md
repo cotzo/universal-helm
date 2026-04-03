@@ -52,7 +52,7 @@ Checksum annotations are automatically added for `stringData`-based secrets.
 
 ## External Secrets (Push & Pull)
 
-The recommended way to integrate with [External Secrets Operator](https://external-secrets.io/). Define your secret stores once in `infraSettings`, then add `push` or `pull` to any secret.
+The recommended way to integrate with [External Secrets Operator](https://external-secrets.io/). Define your secret stores once in `integrations.eso`, then add `push` or `pull` to any secret.
 
 ### 1. Define stores
 

@@ -436,7 +436,7 @@ tests:
           count: 0
 
   # ---------------------------------------------------------------------------
-  # Secret pull (via infraSettings stores)
+  # Secret pull (via integrations.eso stores)
   # ---------------------------------------------------------------------------
   - it: should render ExternalSecret from secret with pull config
     template: templates/config/secret-pull.yaml

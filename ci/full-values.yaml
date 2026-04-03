@@ -762,7 +762,7 @@ config:
           noUpper: true
           allowRepeat: true
 
-    # Push/pull via infraSettings stores
+    # Push/pull via integrations.eso stores
     pushed-to-vault:
       stringData:
         db-password: supersecret
