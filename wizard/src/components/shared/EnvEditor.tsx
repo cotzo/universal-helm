@@ -4,36 +4,49 @@ import { HelpText } from './HelpText'
 import { useWizardValues, useWizardNavigate } from '../../lib/use-wizard'
 import { getKeysAtPath, getStepForPath } from '../../lib/values-utils'
 
-type EnvType = 'value' | 'secretKeyRef' | 'configMapKeyRef' | 'fieldRef' | 'resourceFieldRef' | 'configMapRef' | 'secretRef'
+type EnvType = 'value' | 'secretKeyRef' | 'configMapKeyRef' | 'extSecretKeyRef' | 'extConfigMapKeyRef' | 'fieldRef' | 'resourceFieldRef' | 'configMapRef' | 'secretRef' | 'extConfigMapRef' | 'extSecretRef'
 
 interface EnvEntry {
   value?: string
   valueFrom?: {
-    secretKeyRef?: { name: string; key: string }
-    configMapKeyRef?: { name: string; key: string }
+    secretKeyRef?: { name: string; key: string; external?: boolean }
+    configMapKeyRef?: { name: string; key: string; external?: boolean }
     fieldRef?: { fieldPath: string }
     resourceFieldRef?: { resource: string; containerName?: string }
   }
-  configMapRef?: { name: string }
-  secretRef?: { name: string }
+  configMapRef?: { name: string; external?: boolean }
+  secretRef?: { name: string; external?: boolean }
 }
 
 const TYPE_LABELS: Record<EnvType, string> = {
   value: 'Plain Value',
   secretKeyRef: 'Secret Key',
   configMapKeyRef: 'ConfigMap Key',
+  extSecretKeyRef: 'Existing Secret Key',
+  extConfigMapKeyRef: 'Existing ConfigMap Key',
   fieldRef: 'Field Ref',
   resourceFieldRef: 'Resource Field',
   configMapRef: 'Bulk ConfigMap',
   secretRef: 'Bulk Secret',
+  extConfigMapRef: 'Bulk Existing ConfigMap',
+  extSecretRef: 'Bulk Existing Secret',
 }
 
+/** Types that are individual env vars (not bulk) */
+const INDIVIDUAL_TYPES: EnvType[] = ['value', 'secretKeyRef', 'configMapKeyRef', 'extSecretKeyRef', 'extConfigMapKeyRef', 'fieldRef', 'resourceFieldRef']
+/** Types that are bulk (envFrom) */
+const BULK_TYPES: EnvType[] = ['configMapRef', 'secretRef', 'extConfigMapRef', 'extSecretRef']
+
 function detectType(entry: EnvEntry): EnvType {
+  if (entry.valueFrom?.secretKeyRef?.external) return 'extSecretKeyRef'
   if (entry.valueFrom?.secretKeyRef) return 'secretKeyRef'
+  if (entry.valueFrom?.configMapKeyRef?.external) return 'extConfigMapKeyRef'
   if (entry.valueFrom?.configMapKeyRef) return 'configMapKeyRef'
   if (entry.valueFrom?.fieldRef) return 'fieldRef'
   if (entry.valueFrom?.resourceFieldRef) return 'resourceFieldRef'
+  if (entry.configMapRef?.external) return 'extConfigMapRef'
   if (entry.configMapRef) return 'configMapRef'
+  if (entry.secretRef?.external) return 'extSecretRef'
   if (entry.secretRef) return 'secretRef'
   return 'value'
 }
@@ -43,10 +56,14 @@ function createEntry(type: EnvType): EnvEntry {
     case 'value': return { value: '' }
     case 'secretKeyRef': return { valueFrom: { secretKeyRef: { name: '', key: '' } } }
     case 'configMapKeyRef': return { valueFrom: { configMapKeyRef: { name: '', key: '' } } }
+    case 'extSecretKeyRef': return { valueFrom: { secretKeyRef: { name: '', key: '', external: true } } }
+    case 'extConfigMapKeyRef': return { valueFrom: { configMapKeyRef: { name: '', key: '', external: true } } }
     case 'fieldRef': return { valueFrom: { fieldRef: { fieldPath: '' } } }
     case 'resourceFieldRef': return { valueFrom: { resourceFieldRef: { resource: '' } } }
     case 'configMapRef': return { configMapRef: { name: '' } }
     case 'secretRef': return { secretRef: { name: '' } }
+    case 'extConfigMapRef': return { configMapRef: { name: '', external: true } }
+    case 'extSecretRef': return { secretRef: { name: '', external: true } }
   }
 }
 
@@ -110,110 +127,63 @@ export function EnvEditor({ label, value = {}, onChange, helpText }: EnvEditorPr
     onChange({ ...value, [name]: createEntry(type) })
   }
 
-  // Split entries by category
-  const perVarEntries = entries.filter(([, e]) => {
-    const t = detectType(e)
-    return t !== 'configMapRef' && t !== 'secretRef'
-  })
-  const bulkEntries = entries.filter(([, e]) => {
-    const t = detectType(e)
-    return t === 'configMapRef' || t === 'secretRef'
-  })
+  const perVarEntries = entries.filter(([, e]) => !BULK_TYPES.includes(detectType(e)))
+  const bulkEntries = entries.filter(([, e]) => BULK_TYPES.includes(detectType(e)))
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">{label} <span className="text-gray-400">({entries.length})</span></label>
-        <AddDropdown onAdd={addEntry} />
+      {/* Per-variable env vars */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-gray-700">{label} <span className="text-gray-400">({perVarEntries.length})</span></label>
+          <button type="button" onClick={() => addEntry()} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+            <Plus className="h-3 w-3" /> Add
+          </button>
+        </div>
+        {helpText && <HelpText text={helpText} />}
+        {perVarEntries.map(([key, entry]) => (
+          <EnvRow
+            key={stableIds.get(key) ?? key}
+            name={key}
+            entry={entry}
+            onRename={(newName) => renameEntry(key, newName)}
+            onUpdate={(e) => updateEntry(key, e)}
+            onRemove={() => removeEntry(key)}
+            onChangeType={(t) => changeType(key, t)}
+          />
+        ))}
+        {perVarEntries.length === 0 && <p className="text-xs text-gray-400 italic">No environment variables</p>}
       </div>
-      {helpText && <HelpText text={helpText} />}
 
-      {/* Per-variable entries */}
-      {perVarEntries.length > 0 && (
-        <div className="space-y-2">
-          {perVarEntries.map(([key, entry]) => (
-            <EnvRow
-              key={stableIds.get(key) ?? key}
-              name={key}
-              entry={entry}
-              onRename={(newName) => renameEntry(key, newName)}
-              onUpdate={(e) => updateEntry(key, e)}
-              onRemove={() => removeEntry(key)}
-              onChangeType={(t) => changeType(key, t)}
-            />
-          ))}
+      {/* Bulk sources (envFrom) */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-gray-700">Env Sources <span className="text-gray-400">({bulkEntries.length})</span></label>
+          <button type="button" onClick={() => addEntry('configMapRef')} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+            <Plus className="h-3 w-3" /> Add
+          </button>
         </div>
-      )}
-
-      {/* Bulk sources */}
-      {bulkEntries.length > 0 && (
-        <div className="space-y-2">
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Bulk Sources</label>
-          {bulkEntries.map(([key, entry]) => (
-            <BulkRow
-              key={stableIds.get(key) ?? key}
-              name={key}
-              entry={entry}
-              onRename={(newName) => renameEntry(key, newName)}
-              onUpdate={(e) => updateEntry(key, e)}
-              onRemove={() => removeEntry(key)}
-              onChangeType={(t) => changeType(key, t)}
-            />
-          ))}
-        </div>
-      )}
-
-      {entries.length === 0 && <p className="text-xs text-gray-400 italic">No environment variables</p>}
-
-    </div>
-  )
-}
-
-/* --- Add button with dropdown --- */
-
-function AddDropdown({ onAdd }: { onAdd: (type: EnvType) => void }) {
-  const [open, setOpen] = useState(false)
-
-  const options: { type: EnvType; label: string }[] = [
-    { type: 'value', label: 'Plain Value' },
-    { type: 'secretKeyRef', label: 'From Secret Key' },
-    { type: 'configMapKeyRef', label: 'From ConfigMap Key' },
-    { type: 'fieldRef', label: 'From Field Ref' },
-    { type: 'resourceFieldRef', label: 'From Resource Field' },
-    { type: 'configMapRef', label: 'Bulk ConfigMap' },
-    { type: 'secretRef', label: 'Bulk Secret' },
-  ]
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-      >
-        <Plus className="h-3 w-3" /> Add <ChevronDown className="h-3 w-3" />
-      </button>
-      {open && (
-        <div className="absolute right-0 z-10 mt-1 w-48 rounded-md border border-gray-200 bg-white shadow-lg">
-          {options.map(({ type, label }) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => { onAdd(type); setOpen(false) }}
-              className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+        <HelpText text="Inject all keys from a ConfigMap or Secret as environment variables." />
+        {bulkEntries.map(([key, entry]) => (
+          <BulkRow
+            key={stableIds.get(key) ?? key}
+            name={key}
+            entry={entry}
+            onRename={(newName) => renameEntry(key, newName)}
+            onUpdate={(e) => updateEntry(key, e)}
+            onRemove={() => removeEntry(key)}
+            onChangeType={(t) => changeType(key, t)}
+          />
+        ))}
+        {bulkEntries.length === 0 && <p className="text-xs text-gray-400 italic">No env sources</p>}
+      </div>
     </div>
   )
 }
 
 /* --- Per-variable row --- */
 
-const PER_VAR_TYPES: EnvType[] = ['value', 'secretKeyRef', 'configMapKeyRef', 'fieldRef', 'resourceFieldRef']
+const PER_VAR_TYPES: EnvType[] = INDIVIDUAL_TYPES
 
 function EnvRow({ name, entry, onRename, onUpdate, onRemove, onChangeType }: {
   name: string
@@ -226,37 +196,39 @@ function EnvRow({ name, entry, onRename, onUpdate, onRemove, onChangeType }: {
   const type = detectType(entry)
 
   return (
-    <div className="flex items-start gap-2 rounded-md border border-gray-200 p-2">
-      {/* Name */}
-      <input
-        value={name}
-        onChange={e => onRename(e.target.value)}
-        className="w-36 shrink-0 rounded border border-gray-300 bg-gray-50 px-2 py-1.5 text-sm font-mono"
-        placeholder="VAR_NAME"
-      />
+    <div className="rounded-md border border-gray-200 p-2 space-y-2">
+      <div className="flex items-center gap-2">
+        {/* Name */}
+        <input
+          value={name}
+          onChange={e => onRename(e.target.value)}
+          className="flex-1 rounded border border-gray-300 bg-gray-50 px-2 py-1.5 text-sm font-mono"
+          placeholder="VAR_NAME"
+        />
 
-      {/* Type selector */}
-      <div className="relative shrink-0">
-        <select
-          value={type}
-          onChange={e => onChangeType(e.target.value as EnvType)}
-          className="appearance-none rounded border border-gray-300 bg-white pl-2 pr-7 py-1.5 text-sm"
-        >
-          {PER_VAR_TYPES.map(t => (
-            <option key={t} value={t}>{TYPE_LABELS[t]}</option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-1.5 top-2 h-3.5 w-3.5 text-gray-400" />
+        {/* Type selector */}
+        <div className="relative shrink-0">
+          <select
+            value={type}
+            onChange={e => onChangeType(e.target.value as EnvType)}
+            className="appearance-none rounded border border-gray-300 bg-white pl-2 pr-7 py-1.5 text-sm"
+          >
+            {PER_VAR_TYPES.map(t => (
+              <option key={t} value={t}>{TYPE_LABELS[t]}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-1.5 top-2 h-3.5 w-3.5 text-gray-400" />
+        </div>
+
+        <button type="button" aria-label="Remove variable" onClick={onRemove} className="shrink-0 text-gray-400 hover:text-red-600">
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Value fields */}
-      <div className="flex flex-1 items-center gap-2">
+      <div className="flex items-center gap-2">
         <EnvValueFields entry={entry} type={type} onUpdate={onUpdate} />
       </div>
-
-      <button type="button" aria-label="Remove variable" onClick={onRemove} className="shrink-0 mt-1 text-gray-400 hover:text-red-600">
-        <Trash2 className="h-4 w-4" />
-      </button>
     </div>
   )
 }
@@ -352,6 +324,40 @@ function EnvValueFields({ entry, type, onUpdate }: {
           />
         </>
       )
+    case 'extSecretKeyRef':
+      return (
+        <>
+          <input
+            value={entry.valueFrom?.secretKeyRef?.name ?? ''}
+            onChange={e => onUpdate({ valueFrom: { secretKeyRef: { name: e.target.value, key: entry.valueFrom?.secretKeyRef?.key ?? '', external: true } } })}
+            placeholder="secret name"
+            className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
+          />
+          <input
+            value={entry.valueFrom?.secretKeyRef?.key ?? ''}
+            onChange={e => onUpdate({ valueFrom: { secretKeyRef: { name: entry.valueFrom?.secretKeyRef?.name ?? '', key: e.target.value, external: true } } })}
+            placeholder="key"
+            className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
+          />
+        </>
+      )
+    case 'extConfigMapKeyRef':
+      return (
+        <>
+          <input
+            value={entry.valueFrom?.configMapKeyRef?.name ?? ''}
+            onChange={e => onUpdate({ valueFrom: { configMapKeyRef: { name: e.target.value, key: entry.valueFrom?.configMapKeyRef?.key ?? '', external: true } } })}
+            placeholder="configmap name"
+            className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
+          />
+          <input
+            value={entry.valueFrom?.configMapKeyRef?.key ?? ''}
+            onChange={e => onUpdate({ valueFrom: { configMapKeyRef: { name: entry.valueFrom?.configMapKeyRef?.name ?? '', key: e.target.value, external: true } } })}
+            placeholder="key"
+            className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
+          />
+        </>
+      )
     case 'fieldRef':
       return (
         <input
@@ -378,12 +384,48 @@ function EnvValueFields({ entry, type, onUpdate }: {
           />
         </>
       )
+    case 'configMapRef':
+      return (
+        <RefSelect
+          value={entry.configMapRef?.name ?? ''}
+          onChange={v => onUpdate({ configMapRef: { name: v } })}
+          optionsPath="config.configMaps"
+          placeholder="configmap name"
+        />
+      )
+    case 'secretRef':
+      return (
+        <RefSelect
+          value={entry.secretRef?.name ?? ''}
+          onChange={v => onUpdate({ secretRef: { name: v } })}
+          optionsPath="config.secrets"
+          placeholder="secret name"
+        />
+      )
+    case 'extConfigMapRef':
+      return (
+        <input
+          value={entry.configMapRef?.name ?? ''}
+          onChange={e => onUpdate({ configMapRef: { name: e.target.value, external: true } })}
+          placeholder="configmap name"
+          className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
+        />
+      )
+    case 'extSecretRef':
+      return (
+        <input
+          value={entry.secretRef?.name ?? ''}
+          onChange={e => onUpdate({ secretRef: { name: e.target.value, external: true } })}
+          placeholder="secret name"
+          className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
+        />
+      )
     default:
       return null
   }
 }
 
-/* --- Bulk row --- */
+/* --- Bulk row (envFrom) --- */
 
 function BulkRow({ name, entry, onRename, onUpdate, onRemove, onChangeType }: {
   name: string
@@ -394,43 +436,21 @@ function BulkRow({ name, entry, onRename, onUpdate, onRemove, onChangeType }: {
   onChangeType: (type: EnvType) => void
 }) {
   const type = detectType(entry)
-  const refName = type === 'configMapRef' ? entry.configMapRef?.name ?? '' : entry.secretRef?.name ?? ''
-
-  const updateRefName = (newName: string) => {
-    if (type === 'configMapRef') {
-      onUpdate({ configMapRef: { name: newName } })
-    } else {
-      onUpdate({ secretRef: { name: newName } })
-    }
-  }
 
   return (
     <div className="flex items-center gap-2 rounded-md border border-dashed border-gray-300 bg-gray-50 p-2">
-      <input
-        value={name}
-        onChange={e => onRename(e.target.value)}
-        className="w-36 shrink-0 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm font-mono"
-        placeholder="alias"
-      />
-
       <div className="relative shrink-0">
         <select
           value={type}
           onChange={e => onChangeType(e.target.value as EnvType)}
           className="appearance-none rounded border border-gray-300 bg-white pl-2 pr-7 py-1.5 text-sm"
         >
-          <option value="configMapRef">ConfigMap</option>
-          <option value="secretRef">Secret</option>
+          {BULK_TYPES.map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
         </select>
         <ChevronDown className="pointer-events-none absolute right-1.5 top-2 h-3.5 w-3.5 text-gray-400" />
       </div>
 
-      <RefSelect
-        value={refName}
-        onChange={updateRefName}
-        optionsPath={type === 'configMapRef' ? 'config.configMaps' : 'config.secrets'}
-        placeholder="resource name"
-      />
+      <EnvValueFields entry={entry} type={type} onUpdate={onUpdate} />
 
       <button type="button" aria-label="Remove source" onClick={onRemove} className="shrink-0 text-gray-400 hover:text-red-600">
         <Trash2 className="h-4 w-4" />
@@ -438,3 +458,4 @@ function BulkRow({ name, entry, onRename, onUpdate, onRemove, onChangeType }: {
     </div>
   )
 }
+
