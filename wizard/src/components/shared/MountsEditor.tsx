@@ -195,7 +195,13 @@ export function MountsEditor({ label, value = [], onChange, helpText }: MountsEd
                         value={sourceType}
                         onChange={e => {
                           const newType = e.target.value as SourceType
-                          updateMount(idx, setSource(entry, newType, sourceValue))
+                          const optPath = SOURCE_OPTIONS_PATH[newType]
+                          let name = sourceValue
+                          if (optPath) {
+                            const options = getKeysAtPath(allValues, optPath)
+                            if (!options.includes(name)) name = ''
+                          }
+                          updateMount(idx, setSource(entry, newType, name))
                         }}
                         className="block w-full appearance-none rounded-md border border-gray-300 bg-white pl-3 pr-8 py-1.5 text-sm"
                       >

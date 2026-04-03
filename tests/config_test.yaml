@@ -426,6 +426,12 @@ tests:
             ports:
               http:
                 port: 80
+      integrations:
+        eso:
+          enabled: true
+          stores:
+            vault:
+              name: vault-backend
       config:
         secrets:
           plain-secret:
@@ -630,6 +636,12 @@ tests:
             ports:
               http:
                 port: 80
+      integrations:
+        eso:
+          enabled: true
+          stores:
+            vault:
+              name: vault-backend
       config:
         secrets:
           plain-secret:

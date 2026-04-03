@@ -2228,6 +2228,7 @@
                       "properties": {
                         "match": {
                           "type": "object",
+                          "required": ["secretKey", "remoteRef"],
                           "properties": {
                             "secretKey": {
                               "type": "string",
@@ -2236,6 +2237,7 @@
                             },
                             "remoteRef": {
                               "type": "object",
+                              "required": ["remoteKey"],
                               "description": "Reference to the key in the external store",
                               "properties": {
                                 "remoteKey": {
@@ -2276,6 +2278,7 @@
                     "description": "Individual key mappings from the external store. See https://external-secrets.io/latest/api/externalsecret/",
                     "items": {
                       "type": "object",
+                      "required": ["secretKey", "remoteRef"],
                       "properties": {
                         "secretKey": {
                           "type": "string",
@@ -2284,6 +2287,7 @@
                         },
                         "remoteRef": {
                           "type": "object",
+                          "required": ["key"],
                           "description": "Reference to the key in the external store",
                           "properties": {
                             "key": {
