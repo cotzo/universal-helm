@@ -50,7 +50,7 @@ export function MapEditor<T>({ label, value = {} as Record<string, T>, onChange,
   }
 
   const updateEntry = (key: string, item: T) => {
-    onChange({ ...value, [key]: item })
+    onChange({ ...value, [key]: item ?? ({} as T) })
   }
 
   const toggleExpand = (key: string) => {
