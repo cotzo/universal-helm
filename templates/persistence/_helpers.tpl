@@ -25,10 +25,9 @@ and init container mounts. Deduplicates by volume name.
 {{- /* ConfigMap volumes */ -}}
 {{- if .configMap }}
 {{- $volName := printf "configmap-%s" .configMap }}
-{{- if .external }}{{ $volName = printf "configmap-ext-%s" .configMap }}{{ end }}
 {{- if not (hasKey $seen $volName) }}
 {{- $_ := set $seen $volName true }}
-{{- $resolvedName := include "chartpack.resolveResourceName" (dict "name" .configMap "fullName" $fullName "external" .external) }}
+{{- $resolvedName := include "chartpack.resolveConfigMapName" (dict "name" .configMap "fullName" $fullName "configMaps" (default (dict) (default (dict) $.Values.config).configMaps)) }}
 {{- $vol := dict "name" $volName "configMap" (dict "name" $resolvedName) }}
 {{- if .items }}{{ $_ := set (index $vol "configMap") "items" .items }}{{ end }}
 {{- if .defaultMode }}{{ $_ := set (index $vol "configMap") "defaultMode" .defaultMode }}{{ end }}
@@ -39,10 +38,9 @@ and init container mounts. Deduplicates by volume name.
 {{- /* Secret volumes */ -}}
 {{- if .secret }}
 {{- $volName := printf "secret-%s" .secret }}
-{{- if .external }}{{ $volName = printf "secret-ext-%s" .secret }}{{ end }}
 {{- if not (hasKey $seen $volName) }}
 {{- $_ := set $seen $volName true }}
-{{- $resolvedName := include "chartpack.resolveResourceName" (dict "name" .secret "fullName" $fullName "external" .external) }}
+{{- $resolvedName := include "chartpack.resolveSecretName" (dict "name" .secret "fullName" $fullName "secrets" (default (dict) (default (dict) $.Values.config).secrets)) }}
 {{- $vol := dict "name" $volName "secret" (dict "secretName" $resolvedName) }}
 {{- if .items }}{{ $_ := set (index $vol "secret") "items" .items }}{{ end }}
 {{- if .defaultMode }}{{ $_ := set (index $vol "secret") "defaultMode" .defaultMode }}{{ end }}

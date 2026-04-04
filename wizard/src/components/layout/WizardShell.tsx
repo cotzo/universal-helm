@@ -6,6 +6,7 @@ import { type JsonSchema, loadSchema } from '../../lib/schema-utils'
 import { GenericStep } from '../schema/GenericStep'
 import { StepWorkloadType } from '../wizard/StepWorkloadType'
 import { StepReview } from '../wizard/StepReview'
+import { StepIntegrations } from '../wizard/StepIntegrations'
 import { ImportModal } from '../shared/ImportModal'
 import { generateYaml, parseYaml } from '../../lib/yaml-generator'
 import { ValuesProvider } from '../../lib/values-context'
@@ -28,7 +29,7 @@ export function WizardShell() {
   )
 
   const workloadType = (values.workloadType as string) || 'Deployment'
-  const visibleSteps = getVisibleSteps(allSteps, workloadType)
+  const visibleSteps = getVisibleSteps(allSteps, workloadType, values)
   let currentIndex = visibleSteps.findIndex(s => s.id === currentStep)
 
   // Re-anchor if the current step is no longer visible (workload type change, import)
@@ -109,6 +110,9 @@ export function WizardShell() {
     // Special renderers for steps that need custom UI
     if (currentStepConfig.renderer === 'workloadType') {
       return <StepWorkloadType values={values} getValue={getValue} setValue={setValue} />
+    }
+    if (currentStepConfig.renderer === 'integrations') {
+      return <StepIntegrations values={values} getValue={getValue} setValue={setValue} />
     }
     if (currentStepConfig.renderer === 'review') {
       return <StepReview values={values} schema={schema} />

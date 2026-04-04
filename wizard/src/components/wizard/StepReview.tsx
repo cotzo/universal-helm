@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { Copy, Download, Check, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import Ajv from 'ajv/dist/2020'
 import { generateYaml } from '../../lib/yaml-generator'
-import type { JsonSchema } from '../../lib/schema-utils'
+import { type JsonSchema, resolveSchema } from '../../lib/schema-utils'
 import { getAtPath } from '../../lib/values-utils'
 
 interface StepReviewProps {
@@ -77,12 +77,12 @@ function validateCrossReferences(values: Record<string, unknown>): ValidationErr
           if (!envVal || typeof envVal !== 'object') continue
           const eCtx = `${ctx}.env.${envName}`
           const vf = envVal.valueFrom as Record<string, Record<string, string>> | undefined
-          if (vf?.configMapKeyRef?.name && !envVal.external) checkRef(vf.configMapKeyRef.name, configMaps, 'configMap', eCtx)
-          if (vf?.secretKeyRef?.name && !envVal.external) checkRef(vf.secretKeyRef.name, secrets, 'secret', eCtx)
+          if (vf?.configMapKeyRef?.name) checkRef(vf.configMapKeyRef.name, configMaps, 'configMap', eCtx)
+          if (vf?.secretKeyRef?.name) checkRef(vf.secretKeyRef.name, secrets, 'secret', eCtx)
           const cmRef = envVal.configMapRef as Record<string, string> | undefined
-          if (cmRef?.name && !envVal.external) checkRef(cmRef.name, configMaps, 'configMap', eCtx)
+          if (cmRef?.name) checkRef(cmRef.name, configMaps, 'configMap', eCtx)
           const sRef = envVal.secretRef as Record<string, string> | undefined
-          if (sRef?.name && !envVal.external) checkRef(sRef.name, secrets, 'secret', eCtx)
+          if (sRef?.name) checkRef(sRef.name, secrets, 'secret', eCtx)
         }
       }
 
@@ -93,8 +93,8 @@ function validateCrossReferences(values: Record<string, unknown>): ValidationErr
           if (!m || typeof m !== 'object') return
           const mount = m as Record<string, unknown>
           const mCtx = `${ctx}.mounts[${i}]`
-          if (mount.configMap && !mount.external) checkRef(mount.configMap as string, configMaps, 'configMap', mCtx)
-          if (mount.secret && !mount.external) checkRef(mount.secret as string, secrets, 'secret', mCtx)
+          if (mount.configMap) checkRef(mount.configMap as string, configMaps, 'configMap', mCtx)
+          if (mount.secret) checkRef(mount.secret as string, secrets, 'secret', mCtx)
           if (mount.persistence) checkRef(mount.persistence as string, persistenceKeys, 'persistence', mCtx)
         })
       }
@@ -145,10 +145,39 @@ function validateCrossReferences(values: Record<string, unknown>): ValidationErr
   return errors
 }
 
+/** Strip properties marked with x-wizard.ui from the output values */
+function stripUiFields(values: Record<string, unknown>, schema: JsonSchema | null): Record<string, unknown> {
+  if (!schema) return values
+  const result = structuredClone(values)
+
+  function walk(obj: Record<string, unknown>, node: JsonSchema) {
+    const resolved = resolveSchema(node, schema!)
+    if (!resolved.properties || !obj) return
+    for (const [key, propSchema] of Object.entries(resolved.properties)) {
+      if ((propSchema as JsonSchema)['x-wizard']?.ui) {
+        delete obj[key]
+      } else if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+        walk(obj[key] as Record<string, unknown>, propSchema as JsonSchema)
+      }
+    }
+    // If additionalProperties is a schema, walk each entry
+    if (resolved.additionalProperties && typeof resolved.additionalProperties === 'object') {
+      for (const val of Object.values(obj)) {
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+          walk(val as Record<string, unknown>, resolved.additionalProperties as JsonSchema)
+        }
+      }
+    }
+  }
+
+  walk(result, schema)
+  return result
+}
+
 export function StepReview({ values, schema }: StepReviewProps) {
   const [copied, setCopied] = useState(false)
 
-  const yamlOutput = useMemo(() => generateYaml(values), [values])
+  const yamlOutput = useMemo(() => generateYaml(stripUiFields(values, schema)), [values, schema])
   const schemaErrors = useMemo(() => validateValues(values, schema), [values, schema])
   const refErrors = useMemo(() => validateCrossReferences(values), [values])
   const errors = useMemo(() => [...schemaErrors, ...refErrors], [schemaErrors, refErrors])

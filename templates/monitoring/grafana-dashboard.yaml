@@ -1,21 +1,33 @@
+{{- if (dig "grafana" "enabled" false (default (dict) .Values.integrations)) -}}
 {{- $fullName := include "chartpack.fullname" . -}}
+{{- $instances := default (dict) (dig "grafana" "instances" (dict) .Values.integrations) -}}
 {{- range $name, $dashboard := .Values.dashboards.grafana }}
 {{- if $dashboard }}
+{{- if not $dashboard.instances }}{{ fail (printf "Dashboard '%s' requires instances array" $name) }}{{ end }}
+{{- range $instName := $dashboard.instances }}
+{{- $inst := index $instances $instName }}
+{{- if not $inst }}{{ fail (printf "Dashboard '%s' references unknown instance '%s' — check integrations.grafana.instances" $name $instName) }}{{ end }}
 ---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDashboard
-{{ include "chartpack.metadata" (dict "name" (printf "%s-%s" $fullName $name) "context" $ "extraAnnotations" $dashboard.annotations "extraLabels" $dashboard.labels "syncWaveDefault" "5" "syncWave" $dashboard.syncWave) }}
+{{ include "chartpack.metadata" (dict "name" (printf "%s-%s-%s" $fullName $name $instName) "context" $ "extraAnnotations" $dashboard.annotations "extraLabels" $dashboard.labels "syncWaveDefault" "5" "syncWave" $dashboard.syncWave) }}
 spec:
   instanceSelector:
-    {{- toYaml $dashboard.instanceSelector | nindent 4 }}
-  {{- with $dashboard.folder }}
+    matchLabels:
+      {{- toYaml $inst.matchLabels | nindent 6 }}
+  {{- with $dashboard.destination }}
+  {{- with .folder }}
   folder: {{ . }}
   {{- end }}
-  {{- with $dashboard.folderUID }}
+  {{- with .folderUID }}
   folderUID: {{ . }}
   {{- end }}
-  {{- with $dashboard.folderRef }}
+  {{- with .folderRef }}
   folderRef: {{ . }}
+  {{- end }}
+  {{- with .uid }}
+  uid: {{ . }}
+  {{- end }}
   {{- end }}
   {{- with $dashboard.resyncPeriod }}
   resyncPeriod: {{ . }}
@@ -26,35 +38,32 @@ spec:
   {{- if not (kindIs "invalid" $dashboard.suspend) }}
   suspend: {{ $dashboard.suspend }}
   {{- end }}
-  {{- with $dashboard.uid }}
-  uid: {{ . }}
-  {{- end }}
-  {{- with $dashboard.json }}
+  {{- with $dashboard.source }}
+  {{- with .json }}
   json: {{ . | quote }}
   {{- end }}
-  {{- with $dashboard.gzipJson }}
+  {{- with .gzipJson }}
   gzipJson: {{ . }}
   {{- end }}
-  {{- with $dashboard.url }}
+  {{- with .url }}
   url: {{ . }}
   {{- end }}
-  {{- with $dashboard.urlAuthorization }}
+  {{- with .urlAuthorization }}
   urlAuthorization:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- with $dashboard.configMapRef }}
+  {{- if and .configMap .key }}
   configMapRef:
-    {{- toYaml . | nindent 4 }}
+    name: {{ include "chartpack.resolveConfigMapName" (dict "name" .configMap "fullName" $fullName "configMaps" $.Values.config.configMaps) }}
+    key: {{ .key }}
   {{- end }}
-  {{- with $dashboard.grafanaCom }}
+  {{- with .grafanaCom }}
   grafanaCom:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- with $dashboard.jsonnet }}
-  jsonnet: {{ . | quote }}
-  {{- end }}
-  {{- with $dashboard.contentCacheDuration }}
+  {{- with .contentCacheDuration }}
   contentCacheDuration: {{ . }}
+  {{- end }}
   {{- end }}
   {{- with $dashboard.datasources }}
   datasources:
@@ -72,5 +81,7 @@ spec:
   plugins:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}

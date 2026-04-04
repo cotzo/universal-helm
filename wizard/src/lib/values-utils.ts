@@ -42,6 +42,7 @@ const PATH_TO_STEP: Record<string, { stepId: string; label: string }> = {
   'rbac.clusterRoles': { stepId: 'rbac', label: 'RBAC' },
   'containers.*.ports': { stepId: 'containers', label: 'Containers' },
   'integrations.eso.stores': { stepId: 'integrations-eso', label: 'External Secrets (ESO)' },
+  'integrations.grafana.instances': { stepId: 'integrations-grafana', label: 'Grafana Operator' },
 }
 
 export function getStepForPath(path: string): { stepId: string; label: string } | undefined {

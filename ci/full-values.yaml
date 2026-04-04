@@ -16,6 +16,12 @@ integrations:
       aws:
         name: aws-secrets-manager
         kind: ClusterSecretStore
+  grafana:
+    enabled: true
+    instances:
+      primary:
+        matchLabels:
+          dashboards: grafana
 
 nodeTargeting:
   os:
@@ -92,7 +98,6 @@ containers:
           secretKeyRef:
             name: external-db-secret
             key: url
-            external: true
       # Bulk inject all keys from chart-managed configMap
       bulk-env-config:
         configMapRef:
@@ -105,7 +110,6 @@ containers:
       bulk-external-config:
         configMapRef:
           name: external-shared-config
-          external: true
     resources:
       requests:
         cpu: 250m
@@ -174,7 +178,6 @@ containers:
       # External configMap (not managed by chart)
       - path: /etc/external
         configMap: external-nginx-config
-        external: true
         readOnly: true
 
   log-shipper:
@@ -211,7 +214,6 @@ initContainers:
           secretKeyRef:
             name: external-db-secret
             key: host
-            external: true
 
   01-log-collector:
     image:
@@ -237,7 +239,6 @@ initContainers:
           secretKeyRef:
             name: external-db-secret
             key: url
-            external: true
     mounts:
       - path: /etc/config
         configMap: app-config
@@ -340,19 +341,16 @@ networking:
             secretKeyRef:
               name: oauth2-corp-secret
               key: client-id
-              external: true
         CLIENT_SECRET:
           valueFrom:
             secretKeyRef:
               name: oauth2-corp-secret
               key: client-secret
-              external: true
         COOKIE_SECRET:
           valueFrom:
             secretKeyRef:
               name: oauth2-corp-secret
               key: cookie-secret
-              external: true
       resources:
         requests:
           cpu: 50m
@@ -708,6 +706,12 @@ config:
         FEATURE_FLAG_NEW_UI: "true"
         CACHE_TTL: "300"
         MAX_CONNECTIONS: "100"
+    # Pre-existing ConfigMaps (not created by the chart)
+    external-shared-config:
+      existing: external-shared-config
+    external-nginx-config:
+      existing: external-nginx-config
+
     fluent-bit-config:
       data:
         fluent-bit.conf: |
@@ -729,6 +733,12 @@ config:
   # =============================================================================
 
   secrets:
+    # Pre-existing Secrets (not created by the chart)
+    external-db-secret:
+      existing: external-db-secret
+    oauth2-corp-secret:
+      existing: oauth2-corp-secret
+
     app-credentials:
       stringData:
         api-key: "my-api-key-value"
@@ -1056,18 +1066,19 @@ alerting:
 dashboards:
   grafana:
     app-overview:
-      instanceSelector:
-        matchLabels:
-          dashboards: grafana
-      folder: My App
-      json: '{"title": "App Overview", "uid": "app-overview", "panels": []}'
+      instances: [primary]
+      source:
+        type: json
+        json: '{"title": "App Overview", "uid": "app-overview", "panels": []}'
+      destination:
+        folder: My App
     node-exporter:
-      instanceSelector:
-        matchLabels:
-          dashboards: grafana
-      grafanaCom:
-        id: 1860
-        revision: 37
+      instances: [primary]
+      source:
+        type: grafanaCom
+        grafanaCom:
+          id: 1860
+          revision: 37
 
 # =============================================================================
 # NOTE: Hooks are not included here because tier 1 tests use --wait=hookOnly

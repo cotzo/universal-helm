@@ -177,10 +177,6 @@
                 "type": "string",
                 "description": "Raw volume name from podSettings.volumes"
               },
-              "external": {
-                "type": "boolean",
-                "description": "If true, references an externally-managed resource (not prefixed with release name)"
-              },
               "readOnly": {
                 "type": "boolean",
                 "description": "Mount the volume as read-only"
@@ -644,7 +640,7 @@
       },
       "additionalProperties": false,
       "x-wizard": {
-        "order": 27,
+        "order": 29,
         "group": "Operations",
         "label": "Global Settings",
         "icon": "Globe",
@@ -707,7 +703,7 @@
         }
       },
       "x-wizard": {
-        "order": 28,
+        "order": 30,
         "group": "Operations",
         "label": "Infrastructure Settings",
         "icon": "Settings",
@@ -717,14 +713,23 @@
     },
     "integrations": {
       "type": "object",
+      "x-wizard": {
+        "order": 3,
+        "group": "Workload",
+        "label": "Integrations",
+        "icon": "Puzzle",
+        "description": "Enable third-party operator integrations for your workload.",
+        "renderer": "integrations"
+      },
       "properties": {
         "eso": {
           "type": "object",
           "x-wizard": {
-            "order": 24,
-            "group": "Integrations",
+            "order": 4,
+            "group": "Integration Settings",
             "label": "External Secrets (ESO)",
             "icon": "FileKey",
+            "visibleIf": "integrations.eso.enabled",
             "description": "Configure External Secrets Operator stores for push/pull on secrets."
           },
           "description": "External Secrets Operator configuration. Define named secret stores referenced by push/pull on secrets.",
@@ -732,6 +737,7 @@
             "enabled": {
               "type": "boolean",
               "default": false,
+              "x-wizard": { "hidden": true, "ui": true },
               "description": "Enable ESO integration. When false, push, pull, and secret generators are disabled."
             },
             "stores": {
@@ -757,6 +763,121 @@
               }
             }
           }
+        },
+        "grafana": {
+          "type": "object",
+          "x-wizard": {
+            "order": 4,
+            "group": "Integration Settings",
+            "label": "Grafana Operator",
+            "icon": "Activity",
+            "visibleIf": "integrations.grafana.enabled",
+            "description": "Configure Grafana Operator instances for dashboard deployment."
+          },
+          "description": "Grafana Operator configuration. Define named Grafana instances referenced by dashboards.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "x-wizard": { "hidden": true, "ui": true },
+              "description": "Enable Grafana Operator integration. When false, Grafana dashboards are not rendered."
+            },
+            "instances": {
+              "type": "object",
+              "description": "Named Grafana instances. Keys are friendly names used in dashboards.grafana.*.instances.",
+              "additionalProperties": {
+                "type": "object",
+                "required": ["matchLabels"],
+                "properties": {
+                  "matchLabels": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" },
+                    "description": "Label selector to match target Grafana instance"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "certManager": {
+          "type": "object",
+          "x-wizard": { "ui": true },
+          "description": "cert-manager integration.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false, "description": "Enable cert-manager integration for TLS certificates." }
+          }
+        },
+        "prometheus": {
+          "type": "object",
+          "x-wizard": { "ui": true },
+          "description": "Prometheus Operator integration.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false, "description": "Enable Prometheus integration for ServiceMonitor and PrometheusRule." }
+          }
+        },
+        "victoriaMetrics": {
+          "type": "object",
+          "x-wizard": { "ui": true },
+          "description": "VictoriaMetrics Operator integration.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false, "description": "Enable VictoriaMetrics integration for VMServiceScrape and VMRule." }
+          }
+        },
+        "envoyGateway": {
+          "type": "object",
+          "x-wizard": { "ui": true },
+          "description": "Envoy Gateway integration.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false, "description": "Enable Envoy Gateway integration for traffic policies." }
+          }
+        },
+        "istio": {
+          "type": "object",
+          "x-wizard": { "ui": true },
+          "description": "Istio service mesh integration.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false, "description": "Enable Istio integration for VirtualService, DestinationRule, and mTLS." }
+          }
+        },
+        "keda": {
+          "type": "object",
+          "x-wizard": { "ui": true },
+          "description": "KEDA integration.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false, "description": "Enable KEDA integration for event-driven autoscaling." }
+          }
+        },
+        "vpa": {
+          "type": "object",
+          "x-wizard": { "ui": true },
+          "description": "Vertical Pod Autoscaler integration.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false, "description": "Enable VPA integration for automatic resource right-sizing." }
+          }
+        },
+        "cloudnativepg": {
+          "type": "object",
+          "x-wizard": { "ui": true },
+          "description": "CloudNativePG integration.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false, "description": "Enable CloudNativePG integration for PostgreSQL management." }
+          }
+        },
+        "rook": {
+          "type": "object",
+          "x-wizard": { "ui": true },
+          "description": "Rook Ceph integration.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false, "description": "Enable Rook Ceph integration for cloud-native storage." }
+          }
+        },
+        "reloader": {
+          "type": "object",
+          "x-wizard": { "ui": true },
+          "description": "Stakater Reloader integration.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false, "description": "Enable Stakater Reloader annotations for automatic pod restarts on ConfigMap/Secret changes." }
+          }
         }
       },
       "description": "Third-party operator integrations. Configure stores, providers, and other operator-specific settings."
@@ -764,7 +885,7 @@
     "argocd": {
       "type": "object",
       "x-wizard": {
-        "order": 26,
+        "order": 28,
         "group": "Operations",
         "label": "Argo CD",
         "icon": "GitBranch",
@@ -799,8 +920,8 @@
       },
       "description": "Map of container name to container spec",
       "x-wizard": {
-        "order": 3,
-        "group": "Workload",
+        "order": 12,
+        "group": "Containers",
         "label": "Containers",
         "icon": "Container",
         "description": "Define the main application containers. At least one container with an image is required."
@@ -813,8 +934,8 @@
       },
       "description": "Map of init container name to container spec (processed in alphabetical key order)",
       "x-wizard": {
-        "order": 4,
-        "group": "Workload",
+        "order": 13,
+        "group": "Containers",
         "label": "Init Containers",
         "icon": "PlayCircle",
         "description": "Init containers run before the main containers start. Keys are sorted alphabetically - use numeric prefixes (01-, 02-) to control order."
@@ -900,7 +1021,7 @@
       "x-wizard": {
         "order": 5,
         "group": "Pod",
-        "label": "Pod Settings",
+        "label": "Settings",
         "icon": "Cpu",
         "description": "Pod-level settings that apply to all containers: security context, scheduling, tolerations, volumes."
       },
@@ -1143,7 +1264,7 @@
           "type": "object",
           "description": "Map of service name to service config",
           "x-wizard": {
-            "order": 7,
+            "order": 14,
             "group": "Networking",
             "label": "Services",
             "icon": "Network",
@@ -1300,7 +1421,7 @@
           "type": "object",
           "description": "Map of oauth2 proxy name to proxy config",
           "x-wizard": {
-            "order": 19,
+            "order": 20,
             "group": "Security",
             "label": "OAuth2 Proxy",
             "icon": "Lock",
@@ -1481,7 +1602,7 @@
           "type": "object",
           "description": "Map of ingress name to ingress config",
           "x-wizard": {
-            "order": 8,
+            "order": 15,
             "group": "Networking",
             "label": "Ingresses",
             "icon": "Globe",
@@ -1605,7 +1726,7 @@
         "gatewayApi": {
           "type": "object",
           "x-wizard": {
-            "order": 9,
+            "order": 16,
             "group": "Networking",
             "label": "Gateway API",
             "icon": "Network",
@@ -1692,6 +1813,7 @@
                     "properties": {
                       "envoy": {
                         "type": "object",
+                        "x-wizard": { "visibleIf": "integrations.envoyGateway.enabled" },
                         "description": "Envoy Gateway BackendTrafficPolicy. See https://gateway.envoyproxy.io/docs/api/extension_types/#backendtrafficpolicy",
                         "properties": {
                           "loadBalancer": {
@@ -1784,7 +1906,7 @@
           "type": "object",
           "description": "Map of NetworkPolicy name to config",
           "x-wizard": {
-            "order": 12,
+            "order": 17,
             "group": "Networking",
             "label": "Network Policies",
             "icon": "ShieldCheck",
@@ -1834,9 +1956,10 @@
         "istio": {
           "type": "object",
           "x-wizard": {
-            "order": 13,
+            "order": 18,
             "group": "Networking",
             "label": "Istio",
+            "visibleIf": "integrations.istio.enabled",
             "icon": "Shield",
             "description": "Configure Istio service mesh resources: VirtualServices, DestinationRules, PeerAuthentication, AuthorizationPolicies.",
             "hiddenFor": [
@@ -2032,7 +2155,7 @@
         "configMaps": {
           "type": "object",
           "x-wizard": {
-            "order": 14,
+            "order": 8,
             "group": "Config & Storage",
             "label": "ConfigMaps",
             "icon": "FileText",
@@ -2041,8 +2164,13 @@
           "additionalProperties": {
             "type": "object",
             "properties": {
+              "existing": {
+                "type": "string",
+                "description": "Name of a pre-existing ConfigMap in the cluster. When set, no ConfigMap resource is created — references resolve to this name."
+              },
               "data": {
                 "type": "object",
+                "x-wizard": { "hiddenWhen": "existing" },
                 "additionalProperties": {
                   "type": "string"
                 },
@@ -2050,21 +2178,22 @@
               },
               "binaryData": {
                 "type": "object",
+                "x-wizard": { "hiddenWhen": "existing" },
                 "description": "Binary data stored in the ConfigMap (base64-encoded values)"
               },
               "reloaderEnabled": {
                 "type": "boolean",
-                "x-wizard": { "advanced": true },
+                "x-wizard": { "advanced": true, "hiddenWhen": "existing" },
                 "description": "Include this ConfigMap in Stakater Reloader annotations for auto pod restarts on changes. See https://github.com/stakater/Reloader"
               },
               "annotations": {
                 "type": "object",
-                "x-wizard": { "advanced": true },
+                "x-wizard": { "advanced": true, "hiddenWhen": "existing" },
                 "description": "Annotations on the ConfigMap resource"
               },
               "labels": {
                 "type": "object",
-                "x-wizard": { "advanced": true },
+                "x-wizard": { "advanced": true, "hiddenWhen": "existing" },
                 "description": "Labels on the ConfigMap resource"
               }
             },
@@ -2074,18 +2203,22 @@
         "secrets": {
           "type": "object",
           "x-wizard": {
-            "order": 15,
+            "order": 9,
             "group": "Config & Storage",
             "label": "Secrets",
             "icon": "Lock",
-            "description": "Manage Secrets with optional push/pull and auto-generation via ESO. Configure stores in @step:integrations-eso[External Secrets (ESO)]."
+            "description": "Manage Secrets with optional push/pull and auto-generation via ESO"
           },
           "additionalProperties": {
             "type": "object",
             "properties": {
+              "existing": {
+                "type": "string",
+                "description": "Name of a pre-existing Secret in the cluster. When set, no Secret resource is created — references resolve to this name."
+              },
               "type": {
                 "type": "string",
-                "x-wizard": { "narrow": true },
+                "x-wizard": { "narrow": true, "hiddenWhen": "existing" },
                 "default": "Opaque",
                 "enum": [
                   "Opaque",
@@ -2099,15 +2232,17 @@
               },
               "retain": {
                 "type": "boolean",
-                "x-wizard": { "narrow": true },
+                "x-wizard": { "narrow": true, "hiddenWhen": "existing" },
                 "description": "Retain this secret on helm uninstall/delete"
               },
               "data": {
                 "type": "object",
+                "x-wizard": { "hiddenWhen": "existing" },
                 "description": "Base64-encoded key-value pairs"
               },
               "stringData": {
                 "type": "object",
+                "x-wizard": { "hiddenWhen": "existing" },
                 "additionalProperties": {
                   "type": "string"
                 },
@@ -2115,7 +2250,7 @@
               },
               "generate": {
                 "type": "object",
-                "x-wizard": { "visibleIf": "integrations.eso.enabled" },
+                "x-wizard": { "visibleIf": "integrations.eso.enabled", "hiddenWhen": "existing" },
                 "description": "Auto-generate random values via External Secrets Operator Password generator. See https://external-secrets.io/latest/provider/generator-password/",
                 "additionalProperties": {
                   "type": "object",
@@ -2170,27 +2305,27 @@
               "generateRefreshInterval": {
                 "type": "string",
                 "default": "0",
-                "x-wizard": { "visibleIf": "integrations.eso.enabled" },
+                "x-wizard": { "visibleIf": "integrations.eso.enabled", "hiddenWhen": "existing" },
                 "description": "How often ESO regenerates the secret. '0' = generate once and never rotate."
               },
               "reloaderEnabled": {
                 "type": "boolean",
-                "x-wizard": { "advanced": true },
+                "x-wizard": { "advanced": true, "hiddenWhen": "existing" },
                 "description": "Include in Stakater Reloader annotations for auto pod restarts. See https://github.com/stakater/Reloader"
               },
               "annotations": {
                 "type": "object",
-                "x-wizard": { "advanced": true },
+                "x-wizard": { "advanced": true, "hiddenWhen": "existing" },
                 "description": "Annotations on the Secret resource"
               },
               "labels": {
                 "type": "object",
-                "x-wizard": { "advanced": true },
+                "x-wizard": { "advanced": true, "hiddenWhen": "existing" },
                 "description": "Labels on the Secret resource"
               },
               "push": {
                 "type": "object",
-                "x-wizard": { "visibleIf": "integrations.eso.enabled", "hiddenWhen": "pull" },
+                "x-wizard": { "visibleIf": "integrations.eso.enabled", "hiddenWhen": ["existing", "pull"] },
                 "required": ["stores"],
                 "description": "Push this secret to external stores via PushSecret. Requires integrations.eso.stores.",
                 "properties": {
@@ -2259,7 +2394,7 @@
               },
               "pull": {
                 "type": "object",
-                "x-wizard": { "visibleIf": "integrations.eso.enabled", "hiddenWhen": "push" },
+                "x-wizard": { "visibleIf": "integrations.eso.enabled", "hiddenWhen": ["existing", "push"] },
                 "required": ["store"],
                 "description": "Pull this secret from an external store via ExternalSecret. Requires integrations.eso.stores.",
                 "properties": {
@@ -2332,10 +2467,11 @@
           "type": "object",
           "description": "Map of cert-manager Certificate name to config",
           "x-wizard": {
-            "order": 18,
+            "order": 10,
             "group": "Config & Storage",
             "label": "Certificates",
             "icon": "FileKey",
+            "visibleIf": "integrations.certManager.enabled",
             "description": "Configure cert-manager Certificate resources for TLS. Certificates auto-mount when a mount path is set."
           },
           "additionalProperties": {
@@ -2473,7 +2609,7 @@
     "persistence": {
       "type": "object",
       "x-wizard": {
-        "order": 18,
+        "order": 11,
         "group": "Config & Storage",
         "label": "Persistence",
         "icon": "HardDrive",
@@ -2531,21 +2667,17 @@
     },
     "autoscaling": {
       "type": "object",
-      "x-wizard": {
-        "order": 19,
-        "group": "Scaling",
-        "label": "Autoscaling",
-        "icon": "TrendingUp",
-        "description": "Configure HPA, VPA, and KEDA autoscaling. Note: HPA and KEDA are mutually exclusive.",
-        "hiddenFor": [
-          "Job",
-          "CronJob",
-          "DaemonSet"
-        ]
-      },
       "properties": {
         "hpa": {
           "type": "object",
+          "x-wizard": {
+            "order": 21,
+            "group": "Scaling",
+            "label": "HPA",
+            "icon": "TrendingUp",
+            "description": "Horizontal Pod Autoscaler — scale replicas based on CPU, memory, or custom metrics.",
+            "hiddenFor": ["Job", "CronJob", "DaemonSet"]
+          },
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -2553,20 +2685,21 @@
             },
             "minReplicas": {
               "type": "integer",
-              "x-wizard": { "narrow": true },
+              "x-wizard": { "narrow": true, "visibleWhen": { "enabled": ["true"] } },
               "minimum": 1,
               "default": 1,
               "description": "Minimum number of replicas"
             },
             "maxReplicas": {
               "type": "integer",
-              "x-wizard": { "narrow": true },
+              "x-wizard": { "narrow": true, "visibleWhen": { "enabled": ["true"] } },
               "minimum": 1,
               "default": 10,
               "description": "Maximum number of replicas"
             },
             "metrics": {
               "type": "array",
+              "x-wizard": { "visibleWhen": { "enabled": ["true"] } },
               "items": {
                 "type": "object"
               },
@@ -2574,16 +2707,17 @@
             },
             "behavior": {
               "type": "object",
+              "x-wizard": { "visibleWhen": { "enabled": ["true"] } },
               "description": "Scale-up and scale-down behavior policies. See https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#configurable-scaling-behavior"
             },
             "annotations": {
               "type": "object",
-              "x-wizard": { "advanced": true },
+              "x-wizard": { "advanced": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "Annotations on the HPA resource"
             },
             "labels": {
               "type": "object",
-              "x-wizard": { "advanced": true },
+              "x-wizard": { "advanced": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "Labels on the HPA resource"
             }
           },
@@ -2592,6 +2726,15 @@
         },
         "vpa": {
           "type": "object",
+          "x-wizard": {
+            "order": 22,
+            "group": "Scaling",
+            "label": "VPA",
+            "icon": "TrendingUp",
+            "description": "Vertical Pod Autoscaler — automatic CPU and memory right-sizing.",
+            "visibleIf": "integrations.vpa.enabled",
+            "hiddenFor": ["Job", "CronJob", "DaemonSet"]
+          },
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -2599,6 +2742,7 @@
             },
             "updatePolicy": {
               "type": "object",
+              "x-wizard": { "visibleWhen": { "enabled": ["true"] } },
               "description": "How VPA applies recommendations. See https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler#quick-start",
               "properties": {
                 "updateMode": {
@@ -2612,7 +2756,7 @@
             },
             "resourcePolicy": {
               "type": "object",
-              "x-wizard": { "advanced": true },
+              "x-wizard": { "advanced": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "Per-container resource policies. See https://github.com/kubernetes/autoscaler/blob/master/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1/types.go",
               "properties": {
                 "containerPolicies": {
@@ -2662,7 +2806,7 @@
             },
             "recommenders": {
               "type": "array",
-              "x-wizard": { "advanced": true },
+              "x-wizard": { "advanced": true, "visibleWhen": { "enabled": ["true"] } },
               "items": {
                 "type": "object",
                 "properties": {
@@ -2676,12 +2820,12 @@
             },
             "annotations": {
               "type": "object",
-              "x-wizard": { "advanced": true },
+              "x-wizard": { "advanced": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "Annotations on the VPA resource"
             },
             "labels": {
               "type": "object",
-              "x-wizard": { "advanced": true },
+              "x-wizard": { "advanced": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "Labels on the VPA resource"
             }
           },
@@ -2690,6 +2834,15 @@
         },
         "keda": {
           "type": "object",
+          "x-wizard": {
+            "order": 23,
+            "group": "Scaling",
+            "label": "KEDA",
+            "icon": "TrendingUp",
+            "description": "Event-driven autoscaling with ScaledObject and ScaledJob.",
+            "visibleIf": "integrations.keda.enabled",
+            "hiddenFor": ["DaemonSet"]
+          },
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -2697,14 +2850,14 @@
             },
             "minReplicaCount": {
               "type": "integer",
-              "x-wizard": { "narrow": true },
+              "x-wizard": { "narrow": true, "visibleWhen": { "enabled": ["true"] } },
               "minimum": 0,
               "default": 1,
               "description": "Minimum number of replicas (0 = scale to zero)"
             },
             "maxReplicaCount": {
               "type": "integer",
-              "x-wizard": { "narrow": true },
+              "x-wizard": { "narrow": true, "visibleWhen": { "enabled": ["true"] } },
               "minimum": 1,
               "default": 10,
               "description": "Maximum number of replicas"
@@ -2714,6 +2867,7 @@
                 "integer",
                 "string"
               ],
+              "x-wizard": { "visibleWhen": { "enabled": ["true"] } },
               "description": "How often KEDA checks triggers (seconds, default: 30)"
             },
             "cooldownPeriod": {
@@ -2721,7 +2875,7 @@
                 "integer",
                 "string"
               ],
-              "x-wizard": { "narrow": true },
+              "x-wizard": { "narrow": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "Wait period after last trigger before scaling down (seconds, default: 300)"
             },
             "idleReplicaCount": {
@@ -2729,19 +2883,22 @@
                 "integer",
                 "string"
               ],
-              "x-wizard": { "narrow": true },
+              "x-wizard": { "narrow": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "Replica count when idle (below minReplicaCount). See https://keda.sh/docs/latest/concepts/scaling-deployments/#idlereplicacount"
             },
             "fallback": {
               "type": "object",
+              "x-wizard": { "visibleWhen": { "enabled": ["true"] } },
               "description": "Fallback replicas when trigger metrics are unavailable. See https://keda.sh/docs/latest/concepts/scaling-deployments/#fallback"
             },
             "advanced": {
               "type": "object",
+              "x-wizard": { "visibleWhen": { "enabled": ["true"] } },
               "description": "Advanced KEDA config (restoreToOriginalReplicaCount, horizontalPodAutoscalerConfig)"
             },
             "triggers": {
               "type": "array",
+              "x-wizard": { "visibleWhen": { "enabled": ["true"] } },
               "items": {
                 "type": "object",
                 "required": [
@@ -2779,7 +2936,7 @@
                 "integer",
                 "string"
               ],
-              "x-wizard": { "narrow": true },
+              "x-wizard": { "narrow": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "ScaledJob: how many successful jobs to keep (default: 100)"
             },
             "failedJobsHistoryLimit": {
@@ -2787,21 +2944,22 @@
                 "integer",
                 "string"
               ],
-              "x-wizard": { "narrow": true },
+              "x-wizard": { "narrow": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "ScaledJob: how many failed jobs to keep (default: 100)"
             },
             "scalingStrategy": {
               "type": "object",
+              "x-wizard": { "visibleWhen": { "enabled": ["true"] } },
               "description": "ScaledJob: scaling strategy (default, custom, accurate). See https://keda.sh/docs/latest/concepts/scaling-jobs/"
             },
             "annotations": {
               "type": "object",
-              "x-wizard": { "advanced": true },
+              "x-wizard": { "advanced": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "Annotations on the KEDA ScaledObject/ScaledJob resource"
             },
             "labels": {
               "type": "object",
-              "x-wizard": { "advanced": true },
+              "x-wizard": { "advanced": true, "visibleWhen": { "enabled": ["true"] } },
               "description": "Labels on the KEDA ScaledObject/ScaledJob resource"
             }
           },
@@ -2814,9 +2972,9 @@
     "pdb": {
       "type": "object",
       "x-wizard": {
-        "order": 20,
-        "group": "Scaling",
-        "label": "Pod Disruption Budget",
+        "order": 7,
+        "group": "Pod",
+        "label": "Disruption Budget",
         "icon": "ShieldCheck",
         "description": "Configure Pod Disruption Budget to ensure availability during voluntary disruptions.",
         "hiddenFor": [
@@ -2870,7 +3028,7 @@
     "rbac": {
       "type": "object",
       "x-wizard": {
-        "order": 18,
+        "order": 19,
         "group": "Security",
         "label": "RBAC",
         "icon": "Users",
@@ -3137,9 +3295,10 @@
       "type": "object",
       "description": "Map of monitor name to monitor config",
       "x-wizard": {
-        "order": 21,
+        "order": 24,
         "group": "Observability",
         "label": "Monitors",
+        "visibleIf": ["integrations.prometheus.enabled", "integrations.victoriaMetrics.enabled"],
         "icon": "Activity",
         "description": "Configure ServiceMonitor/PodMonitor for Prometheus or VictoriaMetrics."
       },
@@ -3327,9 +3486,10 @@
       "type": "object",
       "description": "Map of alerting rule name to config (PrometheusRule or VMRule)",
       "x-wizard": {
-        "order": 22,
+        "order": 25,
         "group": "Observability",
         "label": "Alerting Rules",
+        "visibleIf": ["integrations.prometheus.enabled", "integrations.victoriaMetrics.enabled"],
         "icon": "Activity",
         "description": "Configure PrometheusRule or VMRule alerting and recording rules."
       },
@@ -3404,11 +3564,12 @@
     "dashboards": {
       "type": "object",
       "x-wizard": {
-        "order": 23,
+        "order": 26,
         "group": "Observability",
-        "label": "Dashboards",
+        "label": "Grafana Dashboards",
         "icon": "Activity",
-        "description": "Configure Grafana dashboards via the Grafana Operator. See https://grafana.com/docs/grafana/latest/as-code/infrastructure-as-code/grafana-operator/operator-dashboards-folders-datasources/#add-a-dashboard-to-a-folder"
+        "visibleIf": "integrations.grafana.enabled",
+        "description": "Configure Grafana dashboards via the Grafana Operator. Configure instances in @step:integrations-grafana[Grafana Operator]."
       },
       "properties": {
         "grafana": {
@@ -3417,144 +3578,134 @@
           "additionalProperties": {
             "type": "object",
             "required": [
-              "instanceSelector"
+              "instances"
             ],
             "properties": {
-              "instanceSelector": {
+              "instances": {
+                "type": "array",
+                "uniqueItems": true,
+                "minItems": 1,
+                "items": { "type": "string", "x-wizard": { "optionsFrom": "integrations.grafana.instances" } },
+                "description": "Grafana instances to deploy this dashboard to (from integrations.grafana.instances)"
+              },
+              "source": {
                 "type": "object",
                 "x-wizard": { "expanded": true },
-                "description": "Label selector to match target Grafana instances. See https://grafana.github.io/grafana-operator/docs/dashboards/#instance-selector",
-                "properties": {
-                  "matchLabels": {
-                    "type": "object",
-                    "additionalProperties": { "type": "string" },
-                    "description": "Labels that must match the Grafana instance (e.g. dashboards: enabled)"
-                  }
-                }
-              },
-              "grafanaCom": {
-                "type": "object",
-                "description": "Import from grafana.com by dashboard ID. See https://grafana.com/grafana/dashboards/",
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "x-wizard": { "narrow": true },
-                    "description": "Dashboard ID from grafana.com (e.g. 1860 for Node Exporter)"
-                  },
-                  "revision": {
-                    "type": "integer",
-                    "x-wizard": { "narrow": true },
-                    "description": "Dashboard revision number"
-                  }
-                },
-                "additionalProperties": false
-              },
-              "url": {
-                "type": "string",
-                "description": "URL to fetch dashboard JSON from. See https://grafana.github.io/grafana-operator/docs/dashboards/#from-url"
-              },
-              "json": {
-                "type": "string",
-                "description": "Inline dashboard JSON model. See https://grafana.github.io/grafana-operator/docs/dashboards/#from-json"
-              },
-              "configMapRef": {
-                "type": "object",
-                "description": "Load dashboard from a ConfigMap. See https://grafana.github.io/grafana-operator/docs/dashboards/#from-configmap",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "x-wizard": { "narrow": true },
-                    "description": "ConfigMap name"
-                  },
-                  "key": {
-                    "type": "string",
-                    "x-wizard": { "narrow": true },
-                    "description": "Key within the ConfigMap containing the dashboard JSON"
-                  }
-                },
-                "additionalProperties": false
-              },
-              "folder": {
-                "type": "string",
-                "x-wizard": { "narrow": true },
-                "description": "Grafana folder name"
-              },
-              "folderUID": {
-                "type": "string",
-                "x-wizard": { "narrow": true },
-                "description": "Grafana folder UID (takes precedence over folder name)"
-              },
-              "folderRef": {
-                "type": "string",
-                "x-wizard": { "narrow": true },
-                "description": "Reference to a GrafanaFolder resource name"
-              },
-              "uid": {
-                "type": "string",
-                "maxLength": 40,
-                "x-wizard": { "narrow": true },
-                "description": "Explicit dashboard UID (max 40 chars, auto-generated if omitted)"
-              },
-              "resyncPeriod": {
-                "type": "string",
-                "x-wizard": { "narrow": true, "advanced": true },
-                "description": "How often to re-sync the dashboard (e.g. '5m')"
-              },
-              "allowCrossNamespaceImport": {
-                "type": "boolean",
-                "x-wizard": { "narrow": true, "advanced": true },
-                "description": "Allow import by Grafana instances in other namespaces"
-              },
-              "suspend": {
-                "type": "boolean",
-                "x-wizard": { "narrow": true, "advanced": true },
-                "description": "Suspend reconciliation of this dashboard"
-              },
-              "gzipJson": {
-                "type": "string",
-                "x-wizard": { "advanced": true },
-                "description": "Gzip-compressed and base64-encoded dashboard JSON"
-              },
-              "urlAuthorization": {
-                "type": "object",
-                "x-wizard": { "advanced": true },
-                "description": "Authorization config for fetching dashboard from URL",
+                "required": ["type"],
+                "description": "Dashboard content source",
                 "properties": {
                   "type": {
                     "type": "string",
-                    "x-wizard": { "narrow": true },
-                    "enum": ["bearer", "basic"],
-                    "description": "Authorization type"
+                    "enum": ["url", "grafanaCom", "json", "gzipJson", "configMap"],
+                    "description": "Source type for the dashboard content"
                   },
-                  "credential": {
+                  "url": {
+                    "type": "string",
+                    "x-wizard": { "visibleWhen": { "type": ["url"] } },
+                    "description": "URL to fetch dashboard JSON from"
+                  },
+                  "urlAuthorization": {
                     "type": "object",
-                    "description": "Secret reference for the credential",
+                    "x-wizard": { "visibleWhen": { "type": ["url"] } },
+                    "description": "Authorization config for fetching dashboard from URL",
                     "properties": {
-                      "name": {
+                      "type": {
                         "type": "string",
                         "x-wizard": { "narrow": true },
-                        "description": "Secret name"
+                        "enum": ["bearer", "basic"],
+                        "description": "Authorization type"
                       },
-                      "key": {
-                        "type": "string",
-                        "x-wizard": { "narrow": true },
-                        "description": "Key within the Secret"
+                      "credential": {
+                        "type": "object",
+                        "description": "Secret reference for the credential",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "x-wizard": { "narrow": true },
+                            "description": "Secret name"
+                          },
+                          "key": {
+                            "type": "string",
+                            "x-wizard": { "narrow": true },
+                            "description": "Key within the Secret"
+                          }
+                        },
+                        "additionalProperties": false
                       }
                     },
                     "additionalProperties": false
+                  },
+                  "contentCacheDuration": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true, "visibleWhen": { "type": ["url"] } },
+                    "description": "How long to cache fetched dashboard content"
+                  },
+                  "grafanaCom": {
+                    "type": "object",
+                    "x-wizard": { "visibleWhen": { "type": ["grafanaCom"] } },
+                    "description": "Import from grafana.com by dashboard ID",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "x-wizard": { "narrow": true },
+                        "description": "Dashboard ID from grafana.com (e.g. 1860 for Node Exporter)"
+                      },
+                      "revision": {
+                        "type": "integer",
+                        "x-wizard": { "narrow": true },
+                        "description": "Dashboard revision number"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "json": {
+                    "type": "string",
+                    "x-wizard": { "visibleWhen": { "type": ["json"] } },
+                    "description": "Inline dashboard JSON model"
+                  },
+                  "gzipJson": {
+                    "type": "string",
+                    "x-wizard": { "visibleWhen": { "type": ["gzipJson"] } },
+                    "description": "Gzip-compressed and base64-encoded dashboard JSON"
+                  },
+                  "configMap": {
+                    "type": "string",
+                    "x-wizard": { "visibleWhen": { "type": ["configMap"] }, "optionsFrom": "config.configMaps" },
+                    "description": "ConfigMap name containing the dashboard JSON"
+                  },
+                  "key": {
+                    "type": "string",
+                    "x-wizard": { "visibleWhen": { "type": ["configMap"] } },
+                    "description": "Key within the ConfigMap containing the dashboard JSON"
                   }
-                },
-                "additionalProperties": false
+                }
               },
-              "jsonnet": {
-                "type": "string",
-                "x-wizard": { "advanced": true },
-                "description": "Jsonnet source for generating the dashboard. See https://grafana.github.io/grafana-operator/docs/dashboards/#from-jsonnet"
-              },
-              "contentCacheDuration": {
-                "type": "string",
-                "x-wizard": { "advanced": true },
-                "description": "How long to cache fetched dashboard content"
+              "destination": {
+                "type": "object",
+                "description": "Dashboard destination in Grafana",
+                "properties": {
+                  "folder": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "description": "Grafana folder name"
+                  },
+                  "folderUID": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "description": "Grafana folder UID (takes precedence over folder name)"
+                  },
+                  "folderRef": {
+                    "type": "string",
+                    "x-wizard": { "narrow": true },
+                    "description": "Reference to a GrafanaFolder resource name"
+                  },
+                  "uid": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "x-wizard": { "narrow": true },
+                    "description": "Explicit dashboard UID (max 40 chars, auto-generated if omitted)"
+                  }
+                }
               },
               "datasources": {
                 "type": "array",
@@ -3579,7 +3730,7 @@
               "plugins": {
                 "type": "array",
                 "x-wizard": { "advanced": true },
-                "description": "Required Grafana plugins. See https://grafana.github.io/grafana-operator/docs/dashboards/#plugins",
+                "description": "Required Grafana plugins",
                 "items": {
                   "type": "object",
                   "properties": {
@@ -3598,19 +3749,30 @@
               },
               "envs": {
                 "type": "array",
-                "items": {
-                  "type": "object"
-                },
+                "items": { "type": "object" },
                 "x-wizard": { "advanced": true },
                 "description": "Environment variable substitutions in the dashboard JSON"
               },
               "envFrom": {
                 "type": "array",
-                "items": {
-                  "type": "object"
-                },
+                "items": { "type": "object" },
                 "x-wizard": { "advanced": true },
                 "description": "Environment variable sources (ConfigMap/Secret references)"
+              },
+              "resyncPeriod": {
+                "type": "string",
+                "x-wizard": { "narrow": true, "advanced": true },
+                "description": "How often to re-sync the dashboard (e.g. '5m')"
+              },
+              "allowCrossNamespaceImport": {
+                "type": "boolean",
+                "x-wizard": { "narrow": true, "advanced": true },
+                "description": "Allow import by Grafana instances in other namespaces"
+              },
+              "suspend": {
+                "type": "boolean",
+                "x-wizard": { "narrow": true, "advanced": true },
+                "description": "Suspend reconciliation of this dashboard"
               },
               "annotations": {
                 "type": "object",
@@ -3967,7 +4129,7 @@
       "type": "object",
       "description": "Map of hook name to hook Job config. Runs at Helm lifecycle events.",
       "x-wizard": {
-        "order": 25,
+        "order": 27,
         "group": "Operations",
         "label": "Hooks",
         "icon": "Anchor",
@@ -4083,7 +4245,7 @@
         "type": "object"
       },
       "x-wizard": {
-        "order": 29,
+        "order": 31,
         "group": "Operations",
         "label": "Extra Resources",
         "icon": "Plus",

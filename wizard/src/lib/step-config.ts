@@ -1,4 +1,5 @@
 import { type JsonSchema, type WizardMeta } from './schema-utils'
+import { getAtPath } from './values-utils'
 
 export interface StepConfig {
   id: string
@@ -13,9 +14,11 @@ export interface StepConfig {
   /** Workload types for which this step is hidden */
   hiddenFor?: string[]
   /** Use a special renderer instead of the generic schema renderer */
-  renderer?: 'workloadType' | 'review'
+  renderer?: 'workloadType' | 'review' | 'integrations'
   /** Render only the child property matching this value path (lcFirst) */
   selectByValue?: string
+  /** Show this step only when the boolean at this dot-separated path is true. Array = OR (any path truthy). */
+  visibleIf?: string | string[]
 }
 
 export interface StepGroup {
@@ -44,7 +47,7 @@ function collectWizardSteps(
     const wizard: WizardMeta | undefined = prop['x-wizard']
     const path = parentPath ? `${parentPath}.${key}` : key
 
-    if (wizard) {
+    if (wizard && wizard.label) {
       steps.push({
         id: path.replace(/\./g, '-'),
         label: wizard.label,
@@ -55,7 +58,12 @@ function collectWizardSteps(
         hiddenFor: wizard.hiddenFor,
         renderer: wizard.renderer,
         selectByValue: wizard.selectByValue,
+        visibleIf: wizard.visibleIf,
       })
+      // Also recurse into children that may have their own x-wizard steps
+      if (prop.type === 'object' && prop.properties) {
+        steps.push(...collectWizardSteps(prop, path))
+      }
     } else if (prop.type === 'object' && prop.properties) {
       // Recurse into objects without their own x-wizard (e.g., networking, config)
       steps.push(...collectWizardSteps(prop, path))
@@ -87,8 +95,15 @@ function getNestedWizard(schema: JsonSchema, path: string): WizardMeta | undefin
   return current['x-wizard']
 }
 
-export function getVisibleSteps(steps: StepConfig[], workloadType: string): StepConfig[] {
-  return steps.filter(step => !step.hiddenFor?.includes(workloadType))
+export function getVisibleSteps(steps: StepConfig[], workloadType: string, values: Record<string, unknown>): StepConfig[] {
+  return steps.filter(step => {
+    if (step.hiddenFor?.includes(workloadType)) return false
+    if (step.visibleIf) {
+      const paths = Array.isArray(step.visibleIf) ? step.visibleIf : [step.visibleIf]
+      if (!paths.some(p => getAtPath(values, p))) return false
+    }
+    return true
+  })
 }
 
 /** Group visible steps by their group label, preserving order */

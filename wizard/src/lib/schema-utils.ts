@@ -5,7 +5,7 @@ export interface WizardMeta {
   icon: string
   description: string
   hiddenFor?: string[]
-  renderer?: 'workloadType' | 'review'
+  renderer?: 'workloadType' | 'review' | 'integrations'
   /** Render only the child property whose key matches this value path (lcFirst) */
   selectByValue?: string
   /** If true, render this property inside an "Advanced" collapsible section */
@@ -14,14 +14,18 @@ export interface WizardMeta {
   expanded?: boolean
   /** If true, render this field as narrow (half-width) to allow side-by-side layout */
   narrow?: boolean
-  /** Hide this field when a sibling boolean field is true (e.g. "headless") */
-  hiddenWhen?: string
+  /** UI-only field — not included in generated YAML output, stripped from published schema */
+  ui?: boolean
+  /** Always hide this field from the wizard UI */
+  hidden?: boolean
+  /** Hide this field when a sibling field is truthy. String or array (hidden if ANY is truthy). */
+  hiddenWhen?: string | string[]
   /** Populate a dropdown with keys from the map at this dot-separated path in the wizard values */
   optionsFrom?: string
   /** Show this field only when a sibling field matches one of the listed values (e.g. { "type": ["LoadBalancer"] }) */
   visibleWhen?: Record<string, string[]>
-  /** Show this field only when a boolean value at the given dot-separated path is true (e.g. "integrations.eso.enabled") */
-  visibleIf?: string
+  /** Show this field only when a boolean value at the given dot-separated path is true. Array = OR (any path truthy). */
+  visibleIf?: string | string[]
 }
 
 export interface JsonSchema {

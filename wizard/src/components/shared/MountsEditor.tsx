@@ -4,7 +4,7 @@ import { HelpText } from './HelpText'
 import { useWizardValues, useWizardNavigate } from '../../lib/use-wizard'
 import { getKeysAtPath, getStepForPath } from '../../lib/values-utils'
 
-type SourceType = 'configMap' | 'secret' | 'extConfigMap' | 'extSecret' | 'persistence' | 'volume'
+type SourceType = 'configMap' | 'secret' | 'persistence' | 'volume'
 
 interface MountEntry {
   path: string
@@ -12,7 +12,6 @@ interface MountEntry {
   secret?: string
   persistence?: string
   volume?: string
-  external?: boolean
   readOnly?: boolean
   subPath?: string
   items?: unknown[]
@@ -22,8 +21,6 @@ interface MountEntry {
 const SOURCE_LABELS: Record<SourceType, string> = {
   configMap: 'ConfigMap',
   secret: 'Secret',
-  extConfigMap: 'Existing ConfigMap',
-  extSecret: 'Existing Secret',
   persistence: 'Persistence',
   volume: 'Volume',
 }
@@ -31,15 +28,11 @@ const SOURCE_LABELS: Record<SourceType, string> = {
 const SOURCE_OPTIONS_PATH: Record<SourceType, string | null> = {
   configMap: 'config.configMaps',
   secret: 'config.secrets',
-  extConfigMap: null,
-  extSecret: null,
   persistence: 'persistence',
   volume: null,
 }
 
 function detectSource(entry: MountEntry): SourceType {
-  if ('configMap' in entry && entry.external) return 'extConfigMap'
-  if ('secret' in entry && entry.external) return 'extSecret'
   if ('configMap' in entry) return 'configMap'
   if ('secret' in entry) return 'secret'
   if ('persistence' in entry) return 'persistence'
@@ -47,29 +40,18 @@ function detectSource(entry: MountEntry): SourceType {
   return 'configMap'
 }
 
-/** Map UI source type to the actual MountEntry field key */
-function sourceField(type: SourceType): 'configMap' | 'secret' | 'persistence' | 'volume' {
-  if (type === 'extConfigMap') return 'configMap'
-  if (type === 'extSecret') return 'secret'
-  return type
-}
-
 function getSourceValue(entry: MountEntry, type: SourceType): string {
-  return (entry[sourceField(type)] as string) ?? ''
+  return (entry[type] as string) ?? ''
 }
 
 function setSource(entry: MountEntry, type: SourceType, value: string): MountEntry {
-  const field = sourceField(type)
-  const isExt = type === 'extConfigMap' || type === 'extSecret'
   const next: MountEntry = { path: entry.path, readOnly: entry.readOnly, subPath: entry.subPath, items: entry.items, defaultMode: entry.defaultMode }
-  next[field] = value
-  if (isExt) next.external = true
+  next[type] = value
   // Clean undefined fields
   if (!next.readOnly) delete next.readOnly
   if (!next.subPath) delete next.subPath
   if (!next.items || (Array.isArray(next.items) && next.items.length === 0)) delete next.items
   if (next.defaultMode === undefined) delete next.defaultMode
-  if (!next.external) delete next.external
   return next
 }
 

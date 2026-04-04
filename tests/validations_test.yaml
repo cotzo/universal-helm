@@ -91,7 +91,7 @@ tests:
               configMap: missing
     asserts:
       - failedTemplate:
-          errorMessage: 'containers.app.mounts: configMap "missing" not found in configMaps map'
+          errorMessage: 'containers.app.mounts: configMap "missing" not found in config.configMaps (add it with existing: <name> for pre-existing resources)'
 
   - it: should fail when mount references missing secret
     set:
@@ -104,7 +104,7 @@ tests:
               secret: missing
     asserts:
       - failedTemplate:
-          errorMessage: 'containers.app.mounts: secret "missing" not found in secrets map'
+          errorMessage: 'containers.app.mounts: secret "missing" not found in config.secrets (add it with existing: <name> for pre-existing resources)'
 
   - it: should fail when mount references missing persistence
     set:
@@ -133,7 +133,7 @@ tests:
                   key: some-key
     asserts:
       - failedTemplate:
-          errorMessage: 'containers.app.env.MY_VAR: configMapKeyRef name "missing" not found in configMaps map (add external: true for external resources)'
+          errorMessage: 'containers.app.env.MY_VAR: configMapKeyRef name "missing" not found in config.configMaps (add it with existing: <name> for pre-existing resources)'
 
   - it: should fail when env secretKeyRef references missing secret
     set:
@@ -149,7 +149,7 @@ tests:
                   key: some-key
     asserts:
       - failedTemplate:
-          errorMessage: 'containers.app.env.MY_VAR: secretKeyRef name "missing" not found in secrets map (add external: true for external resources)'
+          errorMessage: 'containers.app.env.MY_VAR: secretKeyRef name "missing" not found in config.secrets (add it with existing: <name> for pre-existing resources)'
 
   - it: should fail when env configMapRef references missing configMap
     set:
@@ -163,7 +163,7 @@ tests:
                 name: missing
     asserts:
       - failedTemplate:
-          errorMessage: 'containers.app.env.MY_VAR: configMapRef name "missing" not found in configMaps map (add external: true for external resources)'
+          errorMessage: 'containers.app.env.MY_VAR: configMapRef name "missing" not found in config.configMaps (add it with existing: <name> for pre-existing resources)'
 
   - it: should fail when env secretRef references missing secret
     set:
@@ -177,7 +177,7 @@ tests:
                 name: missing
     asserts:
       - failedTemplate:
-          errorMessage: 'containers.app.env.MY_VAR: secretRef name "missing" not found in secrets map (add external: true for external resources)'
+          errorMessage: 'containers.app.env.MY_VAR: secretRef name "missing" not found in config.secrets (add it with existing: <name> for pre-existing resources)'
 
   - it: should fail when restartPolicy set on containers
     set:

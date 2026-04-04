@@ -136,7 +136,7 @@ The core chart (Deployment, Service, Ingress, ConfigMap, Secret, HPA, PDB, RBAC)
 | External Secrets | [ESO](https://external-secrets.io/) | `config.secrets.*.pull` / `config.secrets.*.push` / `config.secrets.*.generate` | v0.9+ |
 | Prometheus | [Prometheus Operator](https://prometheus-operator.dev/) | `monitors` / `alerting` (operator: prometheus) | v0.70+ |
 | VictoriaMetrics | [VictoriaMetrics Operator](https://docs.victoriametrics.com/operator/) | `monitors` / `alerting` (operator: victoriametrics) | v0.44+ |
-| Grafana dashboards | [Grafana Operator](https://grafana-operator.github.io/grafana-operator/) | `dashboards.grafana` | v5.22+ |
+| Grafana dashboards | [Grafana Operator](https://grafana-operator.github.io/grafana-operator/) | `integrations.grafana` / `dashboards.grafana` | v5.22+ |
 
 ## Examples
 

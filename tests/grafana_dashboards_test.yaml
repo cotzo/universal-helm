@@ -2,26 +2,7 @@ suite: Grafana dashboards
 templates:
   - templates/monitoring/grafana-dashboard.yaml
 tests:
-  - it: should not render when no dashboards defined
-    set:
-      containers:
-        app:
-          image:
-            repository: nginx
-          ports:
-            http:
-              port: 80
-      networking:
-        services:
-          http:
-            ports:
-              http:
-                port: 80
-    asserts:
-      - hasDocuments:
-          count: 0
-
-  - it: should render GrafanaDashboard with inline JSON
+  - it: should not render when Grafana integration is disabled
     set:
       containers:
         app:
@@ -39,11 +20,71 @@ tests:
       dashboards:
         grafana:
           app-overview:
-            instanceSelector:
+            instances: [primary]
+            source:
+              type: json
+              json: '{"title": "Test"}'
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not render when no dashboards defined
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      integrations:
+        grafana:
+          enabled: true
+          instances:
+            primary:
               matchLabels:
                 dashboards: grafana
-            folder: My App
-            json: '{"title": "App Overview", "panels": []}'
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render GrafanaDashboard with inline JSON source
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      integrations:
+        grafana:
+          enabled: true
+          instances:
+            primary:
+              matchLabels:
+                dashboards: grafana
+      dashboards:
+        grafana:
+          app-overview:
+            instances: [primary]
+            source:
+              type: json
+              json: '{"title": "App Overview", "panels": []}'
+            destination:
+              folder: My App
     asserts:
       - isKind:
           of: GrafanaDashboard
@@ -59,7 +100,7 @@ tests:
           path: spec.json
           value: '{"title": "App Overview", "panels": []}'
 
-  - it: should render GrafanaDashboard with grafana.com reference
+  - it: should render GrafanaDashboard with grafana.com source
     set:
       containers:
         app:
@@ -74,15 +115,22 @@ tests:
             ports:
               http:
                 port: 80
+      integrations:
+        grafana:
+          enabled: true
+          instances:
+            primary:
+              matchLabels:
+                dashboards: grafana
       dashboards:
         grafana:
           node-exporter:
-            instanceSelector:
-              matchLabels:
-                dashboards: grafana
-            grafanaCom:
-              id: 1860
-              revision: 37
+            instances: [primary]
+            source:
+              type: grafanaCom
+              grafanaCom:
+                id: 1860
+                revision: 37
     asserts:
       - isKind:
           of: GrafanaDashboard
@@ -108,14 +156,21 @@ tests:
             ports:
               http:
                 port: 80
+      integrations:
+        grafana:
+          enabled: true
+          instances:
+            primary:
+              matchLabels:
+                dashboards: grafana
       dashboards:
         grafana:
           from-url:
-            instanceSelector:
-              matchLabels:
-                dashboards: grafana
-            url: https://example.com/dashboard.json
-            contentCacheDuration: 1h
+            instances: [primary]
+            source:
+              type: url
+              url: https://example.com/dashboard.json
+              contentCacheDuration: 1h
     asserts:
       - isKind:
           of: GrafanaDashboard
@@ -125,6 +180,46 @@ tests:
       - equal:
           path: spec.contentCacheDuration
           value: 1h
+
+  - it: should render GrafanaDashboard with configMap source
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      integrations:
+        grafana:
+          enabled: true
+          instances:
+            primary:
+              matchLabels:
+                dashboards: grafana
+      dashboards:
+        grafana:
+          from-cm:
+            instances: [primary]
+            source:
+              type: configMap
+              configMap: my-dashboards
+              key: app.json
+    asserts:
+      - isKind:
+          of: GrafanaDashboard
+      - equal:
+          path: spec.configMapRef.name
+          value: RELEASE-NAME-chartpack-my-dashboards
+      - equal:
+          path: spec.configMapRef.key
+          value: app.json
 
   - it: should render multiple dashboards
     set:
@@ -141,23 +236,30 @@ tests:
             ports:
               http:
                 port: 80
+      integrations:
+        grafana:
+          enabled: true
+          instances:
+            primary:
+              matchLabels:
+                dashboards: grafana
       dashboards:
         grafana:
           first:
-            instanceSelector:
-              matchLabels:
-                dashboards: grafana
-            json: '{"title": "First"}'
+            instances: [primary]
+            source:
+              type: json
+              json: '{"title": "First"}'
           second:
-            instanceSelector:
-              matchLabels:
-                dashboards: grafana
-            json: '{"title": "Second"}'
+            instances: [primary]
+            source:
+              type: json
+              json: '{"title": "Second"}'
     asserts:
       - hasDocuments:
           count: 2
 
-  - it: should set folder, folderUID, and datasources
+  - it: should render one dashboard per instance for multi-instance
     set:
       containers:
         app:
@@ -172,14 +274,58 @@ tests:
             ports:
               http:
                 port: 80
+      integrations:
+        grafana:
+          enabled: true
+          instances:
+            primary:
+              matchLabels:
+                dashboards: grafana
+            staging:
+              matchLabels:
+                dashboards: grafana-staging
+      dashboards:
+        grafana:
+          app-overview:
+            instances: [primary, staging]
+            source:
+              type: json
+              json: '{"title": "App Overview"}'
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: should set destination fields and datasources
+    set:
+      containers:
+        app:
+          image:
+            repository: nginx
+          ports:
+            http:
+              port: 80
+      networking:
+        services:
+          http:
+            ports:
+              http:
+                port: 80
+      integrations:
+        grafana:
+          enabled: true
+          instances:
+            primary:
+              matchLabels:
+                dashboards: grafana
       dashboards:
         grafana:
           with-datasource:
-            instanceSelector:
-              matchLabels:
-                dashboards: grafana
-            folderUID: abc123
-            json: '{"title": "Test"}'
+            instances: [primary]
+            source:
+              type: json
+              json: '{"title": "Test"}'
+            destination:
+              folderUID: abc123
             datasources:
               - inputName: DS_PROMETHEUS
                 datasourceName: Prometheus

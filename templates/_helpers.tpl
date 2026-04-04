@@ -54,12 +54,28 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Resolve a resource name: prefix with fullName unless external.
-Usage: {{ include "chartpack.resolveResourceName" (dict "name" $name "fullName" $fullName "external" $external) }}
+Resolve a ConfigMap name from the registry.
+If the entry has `existing`, use that value as-is. Otherwise prefix with fullName.
+Usage: {{ include "chartpack.resolveConfigMapName" (dict "name" $key "fullName" $fullName "configMaps" $.Values.config.configMaps) }}
 */}}
-{{- define "chartpack.resolveResourceName" -}}
-{{- if .external -}}
-{{- .name -}}
+{{- define "chartpack.resolveConfigMapName" -}}
+{{- $entry := index (default (dict) .configMaps) .name -}}
+{{- if and $entry $entry.existing -}}
+{{- $entry.existing -}}
+{{- else -}}
+{{- printf "%s-%s" .fullName .name -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Resolve a Secret name from the registry.
+If the entry has `existing`, use that value as-is. Otherwise prefix with fullName.
+Usage: {{ include "chartpack.resolveSecretName" (dict "name" $key "fullName" $fullName "secrets" $.Values.config.secrets) }}
+*/}}
+{{- define "chartpack.resolveSecretName" -}}
+{{- $entry := index (default (dict) .secrets) .name -}}
+{{- if and $entry $entry.existing -}}
+{{- $entry.existing -}}
 {{- else -}}
 {{- printf "%s-%s" .fullName .name -}}
 {{- end -}}

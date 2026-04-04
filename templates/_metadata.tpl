@@ -53,7 +53,7 @@ Usage: {{ include "chartpack.reloaderAnnotations" . }}
 {{- $reloadCMs := list -}}
 {{- $reloadSecrets := list -}}
 {{- range $cmName, $cm := .Values.config.configMaps -}}
-{{- if $cm -}}
+{{- if and $cm (not $cm.existing) -}}
   {{- if not (kindIs "invalid" $cm.reloaderEnabled) -}}
     {{- if $cm.reloaderEnabled -}}
       {{- $reloadCMs = append $reloadCMs (printf "%s-%s" $fullName $cmName) -}}
@@ -64,7 +64,7 @@ Usage: {{ include "chartpack.reloaderAnnotations" . }}
 {{- end -}}
 {{- end -}}
 {{- range $sName, $s := .Values.config.secrets -}}
-{{- if $s -}}
+{{- if and $s (not $s.existing) -}}
   {{- if not (kindIs "invalid" $s.reloaderEnabled) -}}
     {{- if $s.reloaderEnabled -}}
       {{- $reloadSecrets = append $reloadSecrets (printf "%s-%s" $fullName $sName) -}}

@@ -1,5 +1,5 @@
 {{- range $name, $config := .Values.config.configMaps }}
-{{- if $config }}
+{{- if and $config (not $config.existing) }}
 ---
 apiVersion: v1
 kind: ConfigMap

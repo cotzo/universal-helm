@@ -46,7 +46,7 @@ Returns "true" or "".
 
 {{/*
 Render the oauth2-proxy container spec (shared between deployment and sidecar modes).
-Usage: {{ include "chartpack.networking.oauth2Proxy.containerSpec" (dict "proxy" $proxy "upstream" $upstream "port" $port "fullName" $fullName) }}
+Usage: {{ include "chartpack.networking.oauth2Proxy.containerSpec" (dict "proxy" $proxy "upstream" $upstream "port" $port "fullName" $fullName "configMaps" (default (dict) (default (dict) $.Values.config).configMaps) "secrets" (default (dict) (default (dict) $.Values.config).secrets)) }}
 */}}
 {{- define "chartpack.networking.oauth2Proxy.containerSpec" -}}
 {{- $proxy := .proxy -}}
@@ -86,11 +86,11 @@ ports:
 {{- $vf := dict -}}
 {{- if $envCfg.valueFrom.secretKeyRef }}
 {{- $ref := $envCfg.valueFrom.secretKeyRef -}}
-{{- $resolvedName := include "chartpack.resolveResourceName" (dict "name" $ref.name "fullName" $fullName "external" $ref.external) -}}
+{{- $resolvedName := include "chartpack.resolveSecretName" (dict "name" $ref.name "fullName" $fullName "secrets" $.secrets) -}}
 {{- $_ := set $vf "secretKeyRef" (dict "name" $resolvedName "key" $ref.key) -}}
 {{- else if $envCfg.valueFrom.configMapKeyRef }}
 {{- $ref := $envCfg.valueFrom.configMapKeyRef -}}
-{{- $resolvedName := include "chartpack.resolveResourceName" (dict "name" $ref.name "fullName" $fullName "external" $ref.external) -}}
+{{- $resolvedName := include "chartpack.resolveConfigMapName" (dict "name" $ref.name "fullName" $fullName "configMaps" $.configMaps) -}}
 {{- $_ := set $vf "configMapKeyRef" (dict "name" $resolvedName "key" $ref.key) -}}
 {{- end }}
 {{- $envList = append $envList (dict "name" $envName "valueFrom" $vf) -}}
@@ -156,7 +156,7 @@ Usage: {{ include "chartpack.networking.oauth2Proxy.sidecars" . }}
 {{- $upstream := default $defaultSidecarUpstream $proxy.upstream }}
 - name: oauth2-{{ $name }}
   restartPolicy: Always
-  {{- include "chartpack.networking.oauth2Proxy.containerSpec" (dict "proxy" $proxy "upstream" $upstream "port" $port "fullName" $fullName) | nindent 2 }}
+  {{- include "chartpack.networking.oauth2Proxy.containerSpec" (dict "proxy" $proxy "upstream" $upstream "port" $port "fullName" $fullName "configMaps" (default (dict) (default (dict) $.Values.config).configMaps) "secrets" (default (dict) (default (dict) $.Values.config).secrets)) | nindent 2 }}
 {{- end -}}
 {{- end -}}
 {{- end -}}

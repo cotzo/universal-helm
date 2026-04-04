@@ -7,6 +7,8 @@ Usage: {{ include "chartpack.containers.renderContainer" (dict "name" "app" "con
 {{- $config := .config -}}
 {{- $ctx := .context -}}
 {{- $fullName := include "chartpack.fullname" $ctx -}}
+{{- $cfgMap := default (dict) (default (dict) $ctx.Values.config).configMaps -}}
+{{- $cfgSec := default (dict) (default (dict) $ctx.Values.config).secrets -}}
 - name: {{ $name }}
   image: "{{ $config.image.repository }}:{{ $config.image.tag | default $ctx.Chart.AppVersion }}"
   imagePullPolicy: {{ default "IfNotPresent" $config.image.pullPolicy }}
@@ -42,11 +44,11 @@ Usage: {{ include "chartpack.containers.renderContainer" (dict "name" "app" "con
   {{- $_ := set $vf "resourceFieldRef" $envCfg.valueFrom.resourceFieldRef -}}
   {{- else if $envCfg.valueFrom.configMapKeyRef }}
   {{- $ref := $envCfg.valueFrom.configMapKeyRef -}}
-  {{- $resolvedName := include "chartpack.resolveResourceName" (dict "name" $ref.name "fullName" $fullName "external" $ref.external) -}}
+  {{- $resolvedName := include "chartpack.resolveConfigMapName" (dict "name" $ref.name "fullName" $fullName "configMaps" $cfgMap) -}}
   {{- $_ := set $vf "configMapKeyRef" (dict "name" $resolvedName "key" $ref.key) -}}
   {{- else if $envCfg.valueFrom.secretKeyRef }}
   {{- $ref := $envCfg.valueFrom.secretKeyRef -}}
-  {{- $resolvedName := include "chartpack.resolveResourceName" (dict "name" $ref.name "fullName" $fullName "external" $ref.external) -}}
+  {{- $resolvedName := include "chartpack.resolveSecretName" (dict "name" $ref.name "fullName" $fullName "secrets" $cfgSec) -}}
   {{- $_ := set $vf "secretKeyRef" (dict "name" $resolvedName "key" $ref.key) -}}
   {{- end }}
   {{- $envList = append $envList (dict "name" $envName "valueFrom" $vf) -}}
@@ -54,14 +56,14 @@ Usage: {{ include "chartpack.containers.renderContainer" (dict "name" "app" "con
   {{- else if $envCfg.configMapRef -}}
   {{- /* Bulk envFrom — configMapRef */ -}}
   {{- $ref := $envCfg.configMapRef -}}
-  {{- $resolvedName := include "chartpack.resolveResourceName" (dict "name" $ref.name "fullName" $fullName "external" $ref.external) -}}
+  {{- $resolvedName := include "chartpack.resolveConfigMapName" (dict "name" $ref.name "fullName" $fullName "configMaps" $cfgMap) -}}
   {{- $entry := dict "configMapRef" (dict "name" $resolvedName) -}}
   {{- if $ref.optional }}{{ $_ := set (index $entry "configMapRef") "optional" $ref.optional }}{{ end -}}
   {{- $envFrom = append $envFrom $entry -}}
   {{- else if $envCfg.secretRef -}}
   {{- /* Bulk envFrom — secretRef */ -}}
   {{- $ref := $envCfg.secretRef -}}
-  {{- $resolvedName := include "chartpack.resolveResourceName" (dict "name" $ref.name "fullName" $fullName "external" $ref.external) -}}
+  {{- $resolvedName := include "chartpack.resolveSecretName" (dict "name" $ref.name "fullName" $fullName "secrets" $cfgSec) -}}
   {{- $entry := dict "secretRef" (dict "name" $resolvedName) -}}
   {{- if $ref.optional }}{{ $_ := set (index $entry "secretRef") "optional" $ref.optional }}{{ end -}}
   {{- $envFrom = append $envFrom $entry -}}
@@ -93,13 +95,9 @@ Usage: {{ include "chartpack.containers.renderContainer" (dict "name" "app" "con
   {{- if .readOnly }}{{ $_ := set $mount "readOnly" true }}{{ end -}}
   {{- if .subPath }}{{ $_ := set $mount "subPath" .subPath }}{{ end -}}
   {{- if .configMap -}}
-  {{- $volName := printf "configmap-%s" .configMap -}}
-  {{- if .external }}{{ $volName = printf "configmap-ext-%s" .configMap }}{{ end -}}
-  {{- $_ := set $mount "name" $volName -}}
+  {{- $_ := set $mount "name" (printf "configmap-%s" .configMap) -}}
   {{- else if .secret -}}
-  {{- $volName := printf "secret-%s" .secret -}}
-  {{- if .external }}{{ $volName = printf "secret-ext-%s" .secret }}{{ end -}}
-  {{- $_ := set $mount "name" $volName -}}
+  {{- $_ := set $mount "name" (printf "secret-%s" .secret) -}}
   {{- else if .persistence -}}
   {{- $_ := set $mount "name" (printf "persistence-%s" .persistence) -}}
   {{- else if .volume -}}

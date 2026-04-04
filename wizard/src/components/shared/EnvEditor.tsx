@@ -4,49 +4,41 @@ import { HelpText } from './HelpText'
 import { useWizardValues, useWizardNavigate } from '../../lib/use-wizard'
 import { getKeysAtPath, getStepForPath } from '../../lib/values-utils'
 
-type EnvType = 'value' | 'secretKeyRef' | 'configMapKeyRef' | 'extSecretKeyRef' | 'extConfigMapKeyRef' | 'fieldRef' | 'resourceFieldRef' | 'configMapRef' | 'secretRef' | 'extConfigMapRef' | 'extSecretRef'
+type EnvType = 'value' | 'secretKeyRef' | 'configMapKeyRef' | 'fieldRef' | 'resourceFieldRef' | 'configMapRef' | 'secretRef'
 
 interface EnvEntry {
   value?: string
   valueFrom?: {
-    secretKeyRef?: { name: string; key: string; external?: boolean }
-    configMapKeyRef?: { name: string; key: string; external?: boolean }
+    secretKeyRef?: { name: string; key: string }
+    configMapKeyRef?: { name: string; key: string }
     fieldRef?: { fieldPath: string }
     resourceFieldRef?: { resource: string; containerName?: string }
   }
-  configMapRef?: { name: string; external?: boolean }
-  secretRef?: { name: string; external?: boolean }
+  configMapRef?: { name: string }
+  secretRef?: { name: string }
 }
 
 const TYPE_LABELS: Record<EnvType, string> = {
   value: 'Plain Value',
   secretKeyRef: 'Secret Key',
   configMapKeyRef: 'ConfigMap Key',
-  extSecretKeyRef: 'Existing Secret Key',
-  extConfigMapKeyRef: 'Existing ConfigMap Key',
   fieldRef: 'Field Ref',
   resourceFieldRef: 'Resource Field',
   configMapRef: 'Bulk ConfigMap',
   secretRef: 'Bulk Secret',
-  extConfigMapRef: 'Bulk Existing ConfigMap',
-  extSecretRef: 'Bulk Existing Secret',
 }
 
 /** Types that are individual env vars (not bulk) */
-const INDIVIDUAL_TYPES: EnvType[] = ['value', 'secretKeyRef', 'configMapKeyRef', 'extSecretKeyRef', 'extConfigMapKeyRef', 'fieldRef', 'resourceFieldRef']
+const INDIVIDUAL_TYPES: EnvType[] = ['value', 'secretKeyRef', 'configMapKeyRef', 'fieldRef', 'resourceFieldRef']
 /** Types that are bulk (envFrom) */
-const BULK_TYPES: EnvType[] = ['configMapRef', 'secretRef', 'extConfigMapRef', 'extSecretRef']
+const BULK_TYPES: EnvType[] = ['configMapRef', 'secretRef']
 
 function detectType(entry: EnvEntry): EnvType {
-  if (entry.valueFrom?.secretKeyRef?.external) return 'extSecretKeyRef'
   if (entry.valueFrom?.secretKeyRef) return 'secretKeyRef'
-  if (entry.valueFrom?.configMapKeyRef?.external) return 'extConfigMapKeyRef'
   if (entry.valueFrom?.configMapKeyRef) return 'configMapKeyRef'
   if (entry.valueFrom?.fieldRef) return 'fieldRef'
   if (entry.valueFrom?.resourceFieldRef) return 'resourceFieldRef'
-  if (entry.configMapRef?.external) return 'extConfigMapRef'
   if (entry.configMapRef) return 'configMapRef'
-  if (entry.secretRef?.external) return 'extSecretRef'
   if (entry.secretRef) return 'secretRef'
   return 'value'
 }
@@ -56,14 +48,10 @@ function createEntry(type: EnvType): EnvEntry {
     case 'value': return { value: '' }
     case 'secretKeyRef': return { valueFrom: { secretKeyRef: { name: '', key: '' } } }
     case 'configMapKeyRef': return { valueFrom: { configMapKeyRef: { name: '', key: '' } } }
-    case 'extSecretKeyRef': return { valueFrom: { secretKeyRef: { name: '', key: '', external: true } } }
-    case 'extConfigMapKeyRef': return { valueFrom: { configMapKeyRef: { name: '', key: '', external: true } } }
     case 'fieldRef': return { valueFrom: { fieldRef: { fieldPath: '' } } }
     case 'resourceFieldRef': return { valueFrom: { resourceFieldRef: { resource: '' } } }
     case 'configMapRef': return { configMapRef: { name: '' } }
     case 'secretRef': return { secretRef: { name: '' } }
-    case 'extConfigMapRef': return { configMapRef: { name: '', external: true } }
-    case 'extSecretRef': return { secretRef: { name: '', external: true } }
   }
 }
 
@@ -322,40 +310,6 @@ function EnvValueFields({ entry, type, onUpdate }: {
           />
         </>
       )
-    case 'extSecretKeyRef':
-      return (
-        <>
-          <input
-            value={entry.valueFrom?.secretKeyRef?.name ?? ''}
-            onChange={e => onUpdate({ valueFrom: { secretKeyRef: { name: e.target.value, key: entry.valueFrom?.secretKeyRef?.key ?? '', external: true } } })}
-            placeholder="secret name"
-            className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
-          />
-          <input
-            value={entry.valueFrom?.secretKeyRef?.key ?? ''}
-            onChange={e => onUpdate({ valueFrom: { secretKeyRef: { name: entry.valueFrom?.secretKeyRef?.name ?? '', key: e.target.value, external: true } } })}
-            placeholder="key"
-            className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
-          />
-        </>
-      )
-    case 'extConfigMapKeyRef':
-      return (
-        <>
-          <input
-            value={entry.valueFrom?.configMapKeyRef?.name ?? ''}
-            onChange={e => onUpdate({ valueFrom: { configMapKeyRef: { name: e.target.value, key: entry.valueFrom?.configMapKeyRef?.key ?? '', external: true } } })}
-            placeholder="configmap name"
-            className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
-          />
-          <input
-            value={entry.valueFrom?.configMapKeyRef?.key ?? ''}
-            onChange={e => onUpdate({ valueFrom: { configMapKeyRef: { name: entry.valueFrom?.configMapKeyRef?.name ?? '', key: e.target.value, external: true } } })}
-            placeholder="key"
-            className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
-          />
-        </>
-      )
     case 'fieldRef':
       return (
         <input
@@ -398,24 +352,6 @@ function EnvValueFields({ entry, type, onUpdate }: {
           onChange={v => onUpdate({ secretRef: { name: v } })}
           optionsPath="config.secrets"
           placeholder="secret name"
-        />
-      )
-    case 'extConfigMapRef':
-      return (
-        <input
-          value={entry.configMapRef?.name ?? ''}
-          onChange={e => onUpdate({ configMapRef: { name: e.target.value, external: true } })}
-          placeholder="configmap name"
-          className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
-        />
-      )
-    case 'extSecretRef':
-      return (
-        <input
-          value={entry.secretRef?.name ?? ''}
-          onChange={e => onUpdate({ secretRef: { name: e.target.value, external: true } })}
-          placeholder="secret name"
-          className="flex-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
         />
       )
     default:

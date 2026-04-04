@@ -382,17 +382,24 @@ export function SchemaObjectFields({
 
   for (const [key, propSchema] of Object.entries(properties)) {
     const wizard = propSchema['x-wizard']
-    if (wizard?.hiddenWhen && value?.[wizard.hiddenWhen]) continue
+    if (wizard?.hidden) continue
+    if (wizard?.hiddenWhen) {
+      const fields = Array.isArray(wizard.hiddenWhen) ? wizard.hiddenWhen : [wizard.hiddenWhen]
+      if (fields.some(f => value?.[f])) continue
+    }
     if (wizard?.visibleWhen) {
       const hidden = Object.entries(wizard.visibleWhen).some(
         ([field, allowed]) => {
           const current = value?.[field] ?? properties[field]?.default
-          return !(allowed as string[]).includes(current as string)
+          return !(allowed as string[]).includes(String(current))
         }
       )
       if (hidden) continue
     }
-    if (wizard?.visibleIf && !getAtPath(allValues, wizard.visibleIf)) continue
+    if (wizard?.visibleIf) {
+      const paths = Array.isArray(wizard.visibleIf) ? wizard.visibleIf : [wizard.visibleIf]
+      if (!paths.some(p => getAtPath(allValues, p))) continue
+    }
 
     if (propSchema['x-wizard']?.advanced) {
       advancedFields.push([key, propSchema])

@@ -216,7 +216,7 @@ tests:
                 name: RELEASE-NAME-chartpack-myconfig
                 key: log-level
 
-  - it: should render env valueFrom secretKeyRef with external flag
+  - it: should render env valueFrom secretKeyRef with existing secret
     set:
       workloadType: Deployment
       containers:
@@ -230,15 +230,18 @@ tests:
             API_KEY:
               valueFrom:
                 secretKeyRef:
-                  name: external-secret
+                  name: ext-secret
                   key: api-key
-                  external: true
       networking:
         services:
           http:
             ports:
               http:
                 port: 80
+      config:
+        secrets:
+          ext-secret:
+            existing: external-secret
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env

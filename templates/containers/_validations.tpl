@@ -41,18 +41,14 @@ Validate mounts reference existing resources.
 {{- range $c.mounts }}
 
 {{- if .configMap }}
-{{- if not .external }}
 {{- if not (hasKey $.Values.config.configMaps .configMap) }}
-{{- fail (printf "containers.%s.mounts: configMap %q not found in configMaps map" $cName .configMap) }}
-{{- end }}
+{{- fail (printf "containers.%s.mounts: configMap %q not found in config.configMaps (add it with existing: <name> for pre-existing resources)" $cName .configMap) }}
 {{- end }}
 {{- end }}
 
 {{- if .secret }}
-{{- if not .external }}
 {{- if not (hasKey $.Values.config.secrets .secret) }}
-{{- fail (printf "containers.%s.mounts: secret %q not found in secrets map" $cName .secret) }}
-{{- end }}
+{{- fail (printf "containers.%s.mounts: secret %q not found in config.secrets (add it with existing: <name> for pre-existing resources)" $cName .secret) }}
 {{- end }}
 {{- end }}
 
@@ -75,34 +71,26 @@ Validate env references to chart-managed resources.
 
 {{- if $envCfg.valueFrom }}
 {{- if $envCfg.valueFrom.configMapKeyRef }}
-{{- if not $envCfg.valueFrom.configMapKeyRef.external }}
 {{- if not (hasKey $.Values.config.configMaps $envCfg.valueFrom.configMapKeyRef.name) }}
-{{- fail (printf "containers.%s.env.%s: configMapKeyRef name %q not found in configMaps map (add external: true for external resources)" $cName $envName $envCfg.valueFrom.configMapKeyRef.name) }}
-{{- end }}
+{{- fail (printf "containers.%s.env.%s: configMapKeyRef name %q not found in config.configMaps (add it with existing: <name> for pre-existing resources)" $cName $envName $envCfg.valueFrom.configMapKeyRef.name) }}
 {{- end }}
 {{- end }}
 {{- if $envCfg.valueFrom.secretKeyRef }}
-{{- if not $envCfg.valueFrom.secretKeyRef.external }}
 {{- if not (hasKey $.Values.config.secrets $envCfg.valueFrom.secretKeyRef.name) }}
-{{- fail (printf "containers.%s.env.%s: secretKeyRef name %q not found in secrets map (add external: true for external resources)" $cName $envName $envCfg.valueFrom.secretKeyRef.name) }}
-{{- end }}
+{{- fail (printf "containers.%s.env.%s: secretKeyRef name %q not found in config.secrets (add it with existing: <name> for pre-existing resources)" $cName $envName $envCfg.valueFrom.secretKeyRef.name) }}
 {{- end }}
 {{- end }}
 {{- end }}
 
 {{- if $envCfg.configMapRef }}
-{{- if not $envCfg.configMapRef.external }}
 {{- if not (hasKey $.Values.config.configMaps $envCfg.configMapRef.name) }}
-{{- fail (printf "containers.%s.env.%s: configMapRef name %q not found in configMaps map (add external: true for external resources)" $cName $envName $envCfg.configMapRef.name) }}
-{{- end }}
+{{- fail (printf "containers.%s.env.%s: configMapRef name %q not found in config.configMaps (add it with existing: <name> for pre-existing resources)" $cName $envName $envCfg.configMapRef.name) }}
 {{- end }}
 {{- end }}
 
 {{- if $envCfg.secretRef }}
-{{- if not $envCfg.secretRef.external }}
 {{- if not (hasKey $.Values.config.secrets $envCfg.secretRef.name) }}
-{{- fail (printf "containers.%s.env.%s: secretRef name %q not found in secrets map (add external: true for external resources)" $cName $envName $envCfg.secretRef.name) }}
-{{- end }}
+{{- fail (printf "containers.%s.env.%s: secretRef name %q not found in config.secrets (add it with existing: <name> for pre-existing resources)" $cName $envName $envCfg.secretRef.name) }}
 {{- end }}
 {{- end }}
 
