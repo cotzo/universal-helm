@@ -83,7 +83,7 @@ jobs:
 
       - name: Install cosign
         if: steps.release.outputs.new_release == 'true'
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@v4
 
       - name: Sign OCI chart with cosign
         if: steps.release.outputs.new_release == 'true'
